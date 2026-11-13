@@ -96,9 +96,9 @@ def test_scf_and_co2e() -> None:
 ```
 
 ## Steps
-- [ ] **1.** Add numpy to `app/backend/pyproject.toml`; `cd app && uv sync`.
-- [ ] **2.** Write the test → `uv run pytest backend/tests/engineering/test_units.py -q` fails (import error).
-- [ ] **3.** Implement `constants.py` and `units.py` (Google docstrings with units).
-- [ ] **4.** Full checks green (pytest all, ruff, ruff format, mypy, repo checks).
-- [ ] **5. Docs.** Create `docs/reference/ENGINEERING.md` using the reference-page template from `project-documentation` (sections 1–9) with a "Units and constants" subsection: table of every constant (value, unit, source), the conversion functions and their formulas. Add the row to `docs/README.md`. Work-log; `STATUS.md` (last 2.1, next 2.2).
+- [x] **1.** Add numpy to `app/backend/pyproject.toml`; `cd app && uv sync`.
+- [x] **2.** Write the test → `uv run pytest backend/tests/engineering/test_units.py -q` fails (import error).
+- [x] **3.** Implement `constants.py` and `units.py` (Google docstrings with units).
+- [x] **4.** Full checks green (pytest all, ruff, ruff format, mypy, repo checks).
+- [x] **5. Docs.** Create `docs/reference/ENGINEERING.md` using the reference-page template from `project-documentation` (sections 1–9) with a "Units and constants" subsection: table of every constant (value, unit, source), the conversion functions and their formulas. Add the row to `docs/README.md`. Work-log; `STATUS.md` (last 2.1, next 2.2).
 - [ ] **6. Commit** `feat(engineering): add constants and unit conversions`.
