@@ -259,6 +259,79 @@ baseline. `ValueError` for a `means_ppm` that is not `(W, S)` with S
 sensors, window or wind arrays of the wrong length, `baseline_windows < 1` or a non-positive
 `sigma_floor_ppm`. The defaults are Phase 2 Task 7 values.
 
+### Source inversion
+
+Modules `plumetrace.engineering.inversion` (public API and decisions) and `inversion_model`
+(numerics). Answers: which of the emission candidates leaks, at what rate, and how sure are we.
+
+`invert(InversionInput) -> InversionResult`. `InversionInput` holds the candidates, the sensors,
+the window means above background (`W x S`, NaN or infinity = missing), wind speed, wind "from"
+bearing and stability class per window, `temp_k`, `pressure_pa`, `obs_sigma_ppm` (default 0.1),
+`model_rel_error` (default 0.6) and the dispersion coefficient set (default Briggs rural). It raises
+`ValueError` for empty candidates or sensors, a candidate id of `NONE` or a duplicate id, any array
+whose length differs from the number of windows, a row whose width differs from the number of
+sensors, and a non-positive `obs_sigma_ppm`, `temp_k` or `pressure_pa`, or a negative `model_rel_error`.
+
+- **Hypothesis space:** the 21 KS-07 emission candidates plus `NONE` (no source), so `C + 1 = 22`
+  hypotheses.
+- **Priors:** `NONE` 0.5 (`NO_SOURCE_PRIOR`), the other 0.5 shared equally by the candidates. Most
+  windows in operation are not leaks, and a prior of `1 / (C + 1)` for `NONE` would make a quiet site
+  look like it probably has a leak somewhere; 0.5 says "no leak" and "a leak" are equally plausible
+  before seeing data. Each hypothesis spreads its prior evenly over the rate grid.
+- **Rate grid:** `RATE_GRID_KG_H = geomspace(0.1, 500, 80)` (log spacing, step about 11 %).
+- **Likelihood:** `pred = response[c, w, s] x rate` where `response` is `concentration_ppm` for
+  1 kg/s; variance `obs_sigma_ppm^2 + (model_rel_error x pred)^2`; the log-likelihood is the sum of
+  `-0.5 ((y - pred)^2 / var + ln(2 pi var))` over non-missing readings. The second variance term is
+  the plume model error: a reading may differ from the prediction by a share of the
+  prediction, not only by sensor noise. `NONE` has
+  `pred = 0`.
+- **Posterior:** log-sum-exp normalisation over the `(C + 1) x Q` cells; a candidate's probability
+  is the sum over the grid; `ranked` is sorted by probability, ties by id, and sums to 1.
+- **Rate:** for a candidate top, the conditional posterior over the grid gives the median and the
+  5th and 95th percentiles by linear interpolation of the CDF on ln(rate). `rate_at_grid_edge` is
+  true when the median is at or beyond the second grid value from either end (rate possibly outside
+  0.1-500 kg/h).
+- **Input checks:** every finite value of `observed_ppm_above_bg` must satisfy
+  `abs(value) <= MAX_ABS_OBS_PPM` (bound inclusive); NaN and infinity stay allowed and mean missing.
+  A finite negative `wind_speed_m_s` is rejected (NaN means unknown). Both raise `ValueError`. If the
+  log-posterior is still not finite (for example an absurd `obs_sigma_ppm`), `invert` raises
+  `ValueError` instead of returning a made-up distribution (it fails visibly, with no new reason).
+- **Windows:** used when wind speed and direction are finite, speed is at least `CALM_WIND_M_S` and
+  at least one sensor has a valid reading. `windows_used` counts them.
+
+| Constant | Value | Role |
+|---|---|---|
+| `NO_SOURCE_PRIOR` | 0.5 | prior of `NONE` |
+| `MIN_CONCLUSIVE_PROBABILITY` | 0.6 | below this the top is `ambiguous` |
+| `MIN_SIGNAL_TO_NOISE` | 3.0 | predicted peak below `3 x obs_sigma_ppm` is a `weak_signal` |
+| `MIN_USABLE_WINDOWS` | 2 | fewer is `calm` or `too_few_windows` |
+| `DEFAULT_OBS_SIGMA_PPM` | 0.1 | observation noise |
+| `DEFAULT_MODEL_REL_ERROR` | 0.6 | relative plume model error |
+| `MAX_ABS_OBS_PPM` | 1.0e6 | largest accepted finite `abs(observation)`; pure methane, a mole-fraction difference cannot exceed it |
+
+Decision (`reason`; the `calm` and `too_few_windows` rule is an owner ruling, 2026-11-13): `calm`
+(at least one window and every window has a finite speed below the calm limit),
+`too_few_windows` (fewer than 2 usable windows otherwise, including no windows, all-NaN data or
+unknown wind speed or direction; a mix of calm and unknown-wind windows is `too_few_windows`), `ambiguous` (top probability below 0.6), `weak_signal` (conclusive top candidate, but
+`max(response[top]) x median` is below `3 x obs_sigma_ppm`). Otherwise conclusive with
+`reason = None`. A `NONE` top has no rate. These four cases return `inconclusive = True`; calm and
+too-few-windows return `ranked = []`, `top_id = "NONE"`, `top_probability = 0.0`. An ambiguous or
+weak result still reports the rate of its top candidate: read it together with the reason.
+
+Measured behaviour (planner prototype and the tests): source recovered at p = 1.0; pure noise gives
+`NONE` conclusively (p about 0.84 on the test seed); mirror-symmetric candidates give p = 0.5 and
+`ambiguous`; 36 windows x 21 candidates x 8 sensors x 80 rates runs in about 0.04 s (limit 2 s).
+
+Limits: candidates whose plume never reaches a sensor are indistinguishable from no source (their
+response is zero, so they tie with `NONE`; the result is `ambiguous`, and the rate shown is then
+only the prior). The model-error term is independent per reading, so the rate interval narrows as windows
+accumulate and does not cover the true rate: the multiplicative variance term pulls the median about
+25 % below it (7.1 to 7.7 kg/h for a 10 kg/h KS-07 test leak, three seeds, 12 to 1000 windows). Measured
+p95/p05 ratio on that leak: about 1.93 at 12 windows (covers 10 kg/h), 1.48 at 36, 1.25 at 100 and
+1.21 at 300 to 1000 (does not cover), so it plateaus near 1.8 grid steps (one step is a ratio of
+1.114). The benchmark (Task 13) measures real coverage. Tests use data generated by the same plume model, so they check the algorithm,
+not model mismatch. The constants above are Phase 2 Task 8 values.
+
 ## 4. Design decisions and assumptions
 
 - Ideal gas law for ppm and kg/m3; at 288.15 K and 101325 Pa pure methane is 0.67850 kg/m3.
@@ -301,7 +374,13 @@ samples, length mismatch in both directions and empty circular mean.
 `app/backend/tests/engineering/test_detection.py`: no false alarms on noise, one prompt event for a
 step, a slow drift, NaN dropout and the downwind flag. `test_detection_edges.py`: short or empty
 series, all-NaN sensor, step after a gap, ordering, refractory hold, inclusive sector edge and
-wrap-around, NaN wind, sensor at the centre, flat history, shape and config errors. Run from
+wrap-around, NaN wind, sensor at the centre, flat history, shape and config errors.
+`app/backend/tests/engineering/test_inversion.py`: recovery of a 10 kg/h source with a covering rate
+interval, calm and too-few-windows, pure noise, mirror-symmetric ambiguity, 30 % NaN, a leak beyond the
+grid and the 2 s budget. `test_inversion_edges.py`: empty and all-NaN data, NaN or infinite wind
+and readings, ranking ties, single sensor, receptor next to the source, unreachable candidate,
+`weak_signal`, low grid edge, candidate order, known zero wind versus unknown wind, the pure-methane
+bound (inclusive), the negative-speed rule, the non-finite posterior guard and every input validation. Run from
 `app/`: `uv run pytest backend/tests/engineering -q`.
 
 ## 8. How to extend
@@ -318,3 +397,4 @@ every quantity with its unit suffix. Keep functions pure.
 - 2026-11-13: Gaussian plume forward model added (Phase 2 Task 5).
 - 2026-11-13: window averaging, circular wind mean and calm detection added (Phase 2 Task 6).
 - 2026-11-13: CUSUM event detection added (Phase 2 Task 7).
+- 2026-11-13: Bayesian source inversion added (Phase 2 Task 8).

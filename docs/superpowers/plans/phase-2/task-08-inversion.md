@@ -26,6 +26,7 @@ Create `app/backend/plumetrace/engineering/inversion_model.py`, `app/backend/plu
 - `class InversionResult(BaseModel)`: `ranked: list[CandidateScore]` (descending probability, includes `NONE`), `top_id: str`, `top_probability: float`, `rate_kg_h: float | None`, `rate_p05_kg_h: float | None`, `rate_p95_kg_h: float | None`, `rate_at_grid_edge: bool`, `inconclusive: bool`, `reason: Literal["calm", "too_few_windows", "ambiguous", "weak_signal"] | None`, `windows_used: int`.
 - `def invert(inp: InversionInput) -> InversionResult`:
   1. Keep windows with `wind_speed_m_s ≥ CALM_WIND_M_S`. If none: return `top_id=NONE`, `top_probability=0.0`, `ranked=[]`, rates `None`, `rate_at_grid_edge=False`, `inconclusive=True`, `reason="calm"`, `windows_used=0`. If fewer than `MIN_USABLE_WINDOWS`: same shape with `reason="too_few_windows"` and `windows_used` = the count.
+     Owner ruling 2026-11-13: `calm` only when >=1 window and every window has a finite speed < CALM_WIND_M_S. Windows with non-finite speed or direction, or with no valid observation, are not usable. No usable windows otherwise gives `too_few_windows`. `windows_used` = usable windows.
   2. Response + log-likelihood on `RATE_GRID_KG_H / 3600`.
   3. Log prior: each candidate `ln((1 − NO_SOURCE_PRIOR)/C) − ln(Q)` per grid cell; `NONE` `ln(NO_SOURCE_PRIOR) − ln(Q)` per grid cell. Posterior over `(C+1) × Q` by log-sum-exp normalisation.
   4. Candidate probability = sum over the rate grid; rank descending (ties: by id).
@@ -154,6 +155,6 @@ def test_runtime_budget() -> None:
 ```
 
 ## Steps
-- [ ] Test → FAIL → implement (keep every function ≤ 50 lines; helpers for prior, posterior, rate quantiles, decision) → full checks green.
-- [ ] **Docs.** ENGINEERING.md → "Source inversion": hypothesis space (21 candidates + no source), priors (and why `NONE` gets 0.5), rate grid, likelihood and the model-error term, decision rules with constants, outputs, limits ("candidates whose plume never reaches a sensor are indistinguishable from no source"), runtime. Work-log; `STATUS.md` (last 2.8, next 2.9).
+- [x] Test → FAIL → implement (keep every function ≤ 50 lines; helpers for prior, posterior, rate quantiles, decision) → full checks green.
+- [x] **Docs.** ENGINEERING.md → "Source inversion": hypothesis space (21 candidates + no source), priors (and why `NONE` gets 0.5), rate grid, likelihood and the model-error term, decision rules with constants, outputs, limits ("candidates whose plume never reaches a sensor are indistinguishable from no source"), runtime. Work-log; `STATUS.md` (last 2.8, next 2.9).
 - [ ] **Commit** `feat(engineering): add Bayesian source inversion`.
