@@ -120,6 +120,6 @@ def test_downwind_flag() -> None:
 ```
 
 ## Steps
-- [ ] Test → FAIL → implement → full checks green.
-- [ ] **Docs.** ENGINEERING.md → "Event detection": algorithm, parameters with their meaning and default values, why CUSUM (catches steps and slow drifts), the measured false-alarm behaviour, what it does not decide (leak vs fault is triage's job). Work-log; `STATUS.md` (last 2.7, next 2.8).
+- [x] Test → FAIL → implement → full checks green.
+- [x] **Docs.** ENGINEERING.md → "Event detection": algorithm, parameters with their meaning and default values, why CUSUM (catches steps and slow drifts), the measured false-alarm behaviour, what it does not decide (leak vs fault is triage's job). Work-log; `STATUS.md` (last 2.7, next 2.8).
 - [ ] **Commit** `feat(engineering): add CUSUM event detection`.

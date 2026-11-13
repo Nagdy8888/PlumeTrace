@@ -215,6 +215,50 @@ are compared with it; single samples carry turbulent noise the model does not de
 
 `WINDOW_S` = 600 s, `CALM_WIND_M_S` = 1.0 and `MIN_COVERAGE` = 0.5 are Phase 2 Task 6 values.
 
+### Event detection
+
+Module `plumetrace.engineering.detection`. Finds sustained rises of a methane sensor above its own
+recent background on the 10-minute window means from `window_means`. It flags that something
+changed; it does not decide leak versus sensor fault (triage's job) and does not locate or size it.
+
+`detect_events(window_start_s (W,), means_ppm (W, S), sensors, site_center_xy, wind_from_deg (W,),
+config=DetectionConfig())` returns `DetectionEvent`s (frozen) sorted by `(window_index, sensor_id)`.
+Per sensor column, for each window `t >= baseline_windows`:
+
+- baseline = median of the previous `baseline_windows` non-NaN means; sigma = `max(1.4826 x median
+  absolute deviation, sigma_floor_ppm)` (1.4826 turns the MAD into a normal sigma);
+- one-sided CUSUM `S = max(0, S + (x - baseline) / sigma - k_sigma)`; `S > h_sigma` raises an event
+  (fields: sensor, window index and start, mean, baseline, the `S` that crossed), resets `S` to 0 and
+  holds the sensor at 0 for `refractory_windows`;
+- a NaN window leaves `S` unchanged; an empty history skips the window.
+
+| Parameter | Default | Meaning |
+|---|---|---|
+| `baseline_windows` | 12 | windows (2 h) in the rolling baseline |
+| `k_sigma` | 0.5 | allowance per window; rises smaller than 0.5 sigma never accumulate |
+| `h_sigma` | 5.0 | decision threshold on `S`, in sigmas |
+| `sigma_floor_ppm` | 0.1 | lower bound of sigma, so a flat history cannot give huge scores |
+| `refractory_windows` | 6 | windows held at zero after an event (one event per episode) |
+| `downwind_half_angle_deg` | 60.0 | half width of the downwind sector |
+
+Why CUSUM: a step of a few sigma crosses `h_sigma` in one or two windows, and a slow drift too small
+for a per-window threshold still accumulates `(drift - k_sigma)` per window until it crosses. The
+rolling median baseline follows slow background changes and ignores a few outliers.
+
+`downwind_of_site` is true when the bearing from `site_center_xy` to the sensor
+(`degrees(atan2(dx, dy)) mod 360`) is within `downwind_half_angle_deg` (inclusive, smallest angular
+difference) of `(wind_from_deg[t] + 180) mod 360`. A NaN wind direction or a sensor exactly at the
+site centre has no bearing and gives false.
+
+Measured behaviour (planner prototype, same algorithm and defaults): 0 false alarms over 20 seeds x
+2 days x 8 sensors of Gaussian noise (sigma 0.05 ppm around 1.95 ppm); a +2 ppm step caught at its
+first window; a +0.02 ppm/window drift caught at window 63 (drift began at 50). Tests assert the
+same on seed 7. Limits: the first `baseline_windows` windows are never tested; a series with
+`W <= baseline_windows` gives no events; a rise lasting longer than the baseline becomes the new
+baseline. `ValueError` for a `means_ppm` that is not `(W, S)` with S
+sensors, window or wind arrays of the wrong length, `baseline_windows < 1` or a non-positive
+`sigma_floor_ppm`. The defaults are Phase 2 Task 7 values.
+
 ## 4. Design decisions and assumptions
 
 - Ideal gas law for ppm and kg/m3; at 288.15 K and 101325 Pa pure methane is 0.67850 kg/m3.
@@ -253,7 +297,11 @@ clipping, ground reflection for an elevated source, input validation and vectori
 `app/backend/tests/engineering/test_averaging.py`: complete windows with the partial tail dropped,
 the NaN coverage rule (70 % missing is NaN, 50 % kept), circular mean across north, window wind and
 the calm threshold. `test_averaging_edges.py`: series shorter than one window, fewer than two
-samples, length mismatch in both directions and empty circular mean. Run from
+samples, length mismatch in both directions and empty circular mean.
+`app/backend/tests/engineering/test_detection.py`: no false alarms on noise, one prompt event for a
+step, a slow drift, NaN dropout and the downwind flag. `test_detection_edges.py`: short or empty
+series, all-NaN sensor, step after a gap, ordering, refractory hold, inclusive sector edge and
+wrap-around, NaN wind, sensor at the centre, flat history, shape and config errors. Run from
 `app/`: `uv run pytest backend/tests/engineering -q`.
 
 ## 8. How to extend
@@ -269,3 +317,4 @@ every quantity with its unit suffix. Keep functions pure.
 - 2026-11-13: Briggs rural and Pasquill-Gifford (Martin) dispersion coefficients added (Phase 2 Task 4).
 - 2026-11-13: Gaussian plume forward model added (Phase 2 Task 5).
 - 2026-11-13: window averaging, circular wind mean and calm detection added (Phase 2 Task 6).
+- 2026-11-13: CUSUM event detection added (Phase 2 Task 7).
