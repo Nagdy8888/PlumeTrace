@@ -146,6 +146,49 @@ two sets differ by more than 15 % in sigma_z at 300 m, class D, so a truth model
 is not the inversion model built on the other. The Martin class D sigma_z is below the 0.5 m
 floor under about 24 m; the floor applies there.
 
+### Gaussian plume
+
+Module `plumetrace.engineering.plume`. Forward model: concentration above background at receptor
+points from one continuous point source, with total ground reflection.
+
+```
+C = Q / (2 pi u sy sz) * exp(-y^2 / (2 sy^2)) * [ exp(-(z - H)^2 / (2 sz^2)) + exp(-(z + H)^2 / (2 sz^2)) ]
+```
+
+| Symbol | Meaning | Unit |
+|---|---|---|
+| `Q` (`rate_kg_s`) | emission rate, >= 0 | kg/s |
+| `u` (`wind_speed_m_s`) | wind speed, > 0 (the 10 m wind at all heights) | m/s |
+| `sy`, `sz` | horizontal and vertical spread, `sigmas_m(x, stability, coeff)` | m |
+| `x` (along) | downwind distance of the receptor; clipped to 10 m inside `sigmas_m` | m |
+| `y` (cross) | crosswind distance of the receptor | m |
+| `z` | receptor height | m |
+| `H` (`source.z_m`) | source height | m |
+| `C` | concentration above background | kg/m3 |
+
+Functions:
+
+- `downwind_crosswind_m(source, receptors_xy, wind_from_deg)` returns `(along_m, cross_m)`.
+- `concentration_kg_m3(rate_kg_s, wind_speed_m_s, wind_from_deg, source, receptors, stability, coeff)`
+  takes `receptors` of shape `(N, 3)` and returns shape `(N,)`. `ValueError` if
+  `wind_speed_m_s <= 0` or `rate_kg_s < 0`.
+- `concentration_ppm(..., temp_k, pressure_pa)` is the same result through `kg_m3_to_ppm`.
+
+Coordinates and wind: x = east, y = north, z = up (site coordinates, metres). `wind_from_deg` is
+the meteorological bearing the wind blows FROM, clockwise from north. The plume travels toward
+`theta = radians(wind_from_deg + 180)`. With `dx`, `dy` the receptor offset from the source,
+`along = dx sin(theta) + dy cos(theta)` and `cross = dx cos(theta) - dy sin(theta)`.
+In words: wind from 270 (west) gives `theta` = 90 degrees, so east is downwind; wind from 180
+(south) gives `theta` = 0, so north is downwind. A receptor 100 m north of the source with wind
+from 180 has `along` = 100 m and `cross` = 0.
+
+Assumptions: steady state over the averaging period, flat terrain, no plume rise for vents, the 10 m
+wind used at all heights, total ground reflection (the second exponential is the image source at
+-H). Limits: `C = 0` wherever `along <= 0` (upwind of, or level with, the source); no buildings,
+no meander, no chemistry or deposition; spreads are clipped at 10 m, so the model is not valid
+within about 10 m of the source (value there equals the 10 m value). Reference: Turner,
+*Workbook of Atmospheric Dispersion Estimates*, 2nd ed., 1994.
+
 ## 4. Design decisions and assumptions
 
 - Ideal gas law for ppm and kg/m3; at 288.15 K and 101325 Pa pure methane is 0.67850 kg/m3.
@@ -177,8 +220,11 @@ of a bad sum or unknown component (hand calculations in the docstrings).
 boundaries (u = 2, 3; 600, 300, 10 W/m2; cloud 0.5).
 `app/backend/tests/engineering/test_dispersion.py`: hand-calculated Briggs D at 1000 m and Martin D at
 500 m, the 0.5 m floor, distance clipping, monotone growth for all classes and both sets, and the
-300 m difference between sets. Run from `app/`:
-`uv run pytest backend/tests/engineering -q`.
+300 m difference between sets.
+`app/backend/tests/engineering/test_plume.py`: closed form for a ground source on the centreline,
+linearity in Q, symmetry across the axis, zero upwind, wind direction convention, near-source
+clipping, ground reflection for an elevated source, input validation and vectorised equals loop. Run from
+`app/`: `uv run pytest backend/tests/engineering -q`.
 
 ## 8. How to extend
 
@@ -191,3 +237,4 @@ every quantity with its unit suffix. Keep functions pure.
 - 2026-11-13: gas composition, Papay Z factor, density and CH4 fractions added (Phase 2 Task 2).
 - 2026-11-13: Pasquill stability classification added (Phase 2 Task 3).
 - 2026-11-13: Briggs rural and Pasquill-Gifford (Martin) dispersion coefficients added (Phase 2 Task 4).
+- 2026-11-13: Gaussian plume forward model added (Phase 2 Task 5).

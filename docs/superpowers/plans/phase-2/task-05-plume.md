@@ -115,6 +115,6 @@ def test_vectorised_equals_loop() -> None:
 ```
 
 ## Steps
-- [ ] Test → FAIL → implement → full checks green.
-- [ ] **Docs.** ENGINEERING.md → "Gaussian plume": the equation, symbol table with units, coordinate and wind conventions (with a small diagram in words), assumptions, limits, reference. Work-log; `STATUS.md` (last 2.5, next 2.6).
+- [x] Test → FAIL → implement → full checks green.
+- [x] **Docs.** ENGINEERING.md → "Gaussian plume": the equation, symbol table with units, coordinate and wind conventions (with a small diagram in words), assumptions, limits, reference. Work-log; `STATUS.md` (last 2.5, next 2.6).
 - [ ] **Commit** `feat(engineering): add Gaussian plume forward model`.
