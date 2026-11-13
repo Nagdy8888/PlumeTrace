@@ -3,8 +3,8 @@
 Updated by the implementing agent after every task (see the `plan-execution` skill).
 
 - **Current phase:** 2 — Engineering core (`docs/superpowers/plans/phase-2/README.md`)
-- **Last completed task:** `docs/superpowers/plans/phase-2/task-01-units-constants.md`
-- **Next task:** `docs/superpowers/plans/phase-2/task-02-gas-properties.md`
+- **Last completed task:** `docs/superpowers/plans/phase-2/task-02-gas-properties.md`
+- **Next task:** `docs/superpowers/plans/phase-2/task-03-stability.md`
 - **Phase status:** Phase 1 complete; Owner Gate 1 signed off 2026-11-13 (delegated decision). Evidence: `docs/evidence/2026-11-phase-1-checks.md`; Gate 1 fixes reviewed PASS.
 - **In progress:** none
 - **Blockers / questions for the owner:** none. Open owner action: verify the Subpart W Table W-1B counts in `component_counts.yaml` against the primary CFR 2023 text before Gate 2 (`docs/OWNER_ACTIONS.md`). Planner cleanup (non-blocking): the Task 6 plan's test code (`conftest.py`, `test_candidates.py`, `test_components.py`) fails `ruff format`, E501 and the 50-line function limit; fixed in the repo (formatted, `_minimal_spec` split) by owner decision; `extra="forbid"` on `ComponentCounts`/`CountsTable` and a private `_Frozen` base were added and approved; the Task 4 plan's `app/backend/tests/db/conftest.py` docstring line is 123 chars (E501; wrapped in the repo, owner OK 2026-11-13); `phase-1/README.md` lines 69-72 still list the four GitHub Actions rows (actions/checkout, setup-python, setup-node, setup-uv); rule 25 says no GitHub Actions. The `test_values_come_from_environment` docstring in the Task 3 plan exceeds ruff E501 (fixed in the repo, task file unchanged).
@@ -37,3 +37,4 @@ Updated by the implementing agent after every task (see the `plan-execution` ski
 | 2026-11-13 | 1.8 | PASS | `python scripts/ci_local.py`: all stages passed (11 stages); `--full` (Supabase up): all stages passed (13 stages incl. python-tests-full, frontend-coverage, frontend-build, contract-drift); `pip-audit`: no known vulnerabilities; `npm audit --audit-level=high`: 11 moderate, none high/critical (Phase 6); `structure OK`, `env OK`, `no secrets found`; reviewer PASS; owner (delegated Opus decision 2026-11-13) approved the Windows `.cmd` resolution fix in `run_stage` |
 | 2026-11-13 | Gate 1 | PASS | commit 17709ad; `ci_local.py --full`: all 13 stages passed; reviewer PASS (contract tuples, scoped `.temp` skip, coverage ledger 35 Planned / 7 NotApplicable) |
 | 2026-11-13 | 2.1 | PASS | `uv run pytest backend/tests/engineering`: 6 passed; `ci_local.py` quick: all stages passed; `structure OK`, `env OK`, `no secrets found`; reviewer PASS after 1 fix round (comment wording); plan-verbatim fix: `test_units.py:40` D403 a (standing policy) |
+| 2026-11-13 | 2.2 | PASS | `pytest backend/tests/engineering`: 15 passed; reviewer recomputed M, Tpc, Ppc, Z (0.86248 at 7 MPa/300 K), density 56.297 kg/m3, CH4 fractions, all match; `ci_local.py` quick: all stages passed; `structure OK`, `env OK`, `no secrets found`; plan-verbatim fixes: `test_gas.py` D403 a, ruff format b (`constants.py`, `test_gas.py`) |

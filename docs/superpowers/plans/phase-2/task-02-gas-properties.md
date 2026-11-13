@@ -118,7 +118,7 @@ def test_unknown_component_rejected() -> None:
 ```
 
 ## Steps
-- [ ] **1.** Write the test → fails (import error). **2.** Add the constants and implement `gas.py`.
-- [ ] **3.** Full checks green.
-- [ ] **4. Docs.** ENGINEERING.md → "Gas properties": component table with sources, Kay's rule, Papay equation and validity, the three CH4 fractions and when each is used. Work-log; `STATUS.md` (last 2.2, next 2.3).
+- [x] **1.** Write the test → fails (import error). **2.** Add the constants and implement `gas.py`.
+- [x] **3.** Full checks green.
+- [x] **4. Docs.** ENGINEERING.md → "Gas properties": component table with sources, Kay's rule, Papay equation and validity, the three CH4 fractions and when each is used. Work-log; `STATUS.md` (last 2.2, next 2.3).
 - [ ] **5. Commit** `feat(engineering): add gas composition, Papay Z factor and density`.
