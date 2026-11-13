@@ -88,7 +88,21 @@ Tests use `--import-mode=importlib`; test folders have no `__init__.py`.
 
 ## Database
 
-Filled in by Phase 1 Task 4.
+Local Supabase Postgres, run in Docker. Docker Desktop must be running first (`docker info` works).
+Run these from `app/`:
+
+```bash
+npx --yes supabase@3.1.0 start      # start (first run pulls images)
+npx --yes supabase@3.1.0 db reset   # rebuild from migrations + seed
+npx --yes supabase@3.1.0 stop       # stop
+```
+
+The local database URL is `postgresql://postgres:postgres@127.0.0.1:54322/postgres` (public local
+default). It is the value of `SUPABASE_DB_URL` in the root `.env`.
+
+Tests in `app/backend/tests/db/` need the database. When it is not running they skip with a start
+hint. With `PLUMETRACE_REQUIRE_DB=1` (set by `python scripts/ci_local.py --full`) the same condition
+fails the test. Details: [reference/DATABASE.md](reference/DATABASE.md).
 
 ## Frontend
 

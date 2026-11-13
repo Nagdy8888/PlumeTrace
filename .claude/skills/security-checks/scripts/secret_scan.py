@@ -47,6 +47,7 @@ SKIP_DIRS = {
     ".mypy_cache",
     ".hypothesis",
     ".coverage",
+    ".temp",
 }
 SKIP_FILES = {".env"}
 MAX_BYTES = 5_000_000

@@ -3,10 +3,10 @@
 Updated by the implementing agent after every task (see the `plan-execution` skill).
 
 - **Current phase:** 1 — Foundations (`docs/superpowers/plans/phase-1/README.md`)
-- **Last completed task:** `docs/superpowers/plans/phase-1/task-03-settings.md`
-- **Next task:** `docs/superpowers/plans/phase-1/task-04-supabase.md`
+- **Last completed task:** `docs/superpowers/plans/phase-1/task-04-supabase.md`
+- **Next task:** `docs/superpowers/plans/phase-1/task-05-frontend-scaffold.md`
 - **In progress:** none
-- **Blockers / questions for the owner:** none. Planner cleanup (non-blocking): `phase-1/README.md` lines 69-72 still list the four GitHub Actions rows (actions/checkout, setup-python, setup-node, setup-uv); rule 25 says no GitHub Actions. The `test_values_come_from_environment` docstring in the Task 3 plan exceeds ruff E501 (fixed in the repo, task file unchanged).
+- **Blockers / questions for the owner:** none. Planner cleanup (non-blocking): the Task 4 plan's `app/backend/tests/db/conftest.py` docstring line is 123 chars (E501; wrapped in the repo, owner OK 2026-11-13); `phase-1/README.md` lines 69-72 still list the four GitHub Actions rows (actions/checkout, setup-python, setup-node, setup-uv); rule 25 says no GitHub Actions. The `test_values_come_from_environment` docstring in the Task 3 plan exceeds ruff E501 (fixed in the repo, task file unchanged).
 - **Owner decisions log:**
   - 2026-11-12 — design approved (`docs/superpowers/specs/2026-11-12-plumetrace-design.md`).
   - 2026-11-13 — plans for Phases 1 and 2 written as per-task files; implementation by Sonnet.
@@ -26,3 +26,4 @@ Updated by the implementing agent after every task (see the `plan-execution` ski
 | 2026-11-13 | 1.1 | PASS | `structure OK`, `env OK`, `no secrets found`; reviewer PASS; owner approved committing all pre-existing planning files in the first commit and pushing to a private GitHub repo (2026-11-13, chat) |
 | 2026-11-13 | 1.2 | PASS | `uv run pytest -q`: 3 passed; `ruff check`: All checks passed; `mypy`: no issues found in 2 source files; `structure OK`, `env OK`, `no secrets found`; reviewer PASS |
 | 2026-11-13 | 1.3 | PASS | `uv run pytest -q`: 9 passed; `ruff check`: All checks passed; `mypy`: no issues found in 3 source files; `structure OK`, `env OK`, `no secrets found`; reviewer PASS; owner approved (chat 2026-11-13) wrapping the E501 test docstring and adding `.mypy_cache`, `.hypothesis`, `.coverage` to `SKIP_DIRS` in `secret_scan.py` |
+| 2026-11-13 | 1.4 | PASS | `uv run pytest -q`: 13 passed (DB up); DB stopped: 10 passed, 3 skipped; `PLUMETRACE_REQUIRE_DB=1` fails with "database required but unavailable"; `ruff check`: All checks passed; `mypy`: no issues found in 5 source files; `structure OK`, `env OK`, `no secrets found`; reviewer PASS (RLS on `plumetrace.scenarios`, 0 policies); owner approved (chat 2026-11-13) adding `.temp` to `SKIP_DIRS` in `secret_scan.py` and the wrapped conftest docstring |

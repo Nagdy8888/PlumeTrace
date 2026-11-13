@@ -160,14 +160,14 @@ def test_mvp_scenarios_are_seeded(db_conn: psycopg.Connection[tuple[object, ...]
 ```
 
 ## Steps
-- [ ] **1. Init Supabase** (from `app/`): `printf 'n\nn\n' | npx --yes supabase@3.1.0 init` (answers "no" to editor-settings prompts). Confirm `app/supabase/config.toml` exists. Do not edit `config.toml`.
-- [ ] **2. Start it:** `npx --yes supabase@3.1.0 start`. It prints a "DB URL". Check it is `postgresql://postgres:postgres@127.0.0.1:54322/postgres` (the public local default, which is already the value of `SUPABASE_DB_URL` in the root `.env`). If the printed URL differs, STOP and ask the owner. Never open `.env`; any `.env` change goes through `python -I .claude/skills/security-checks/scripts/env_set.py` (CLAUDE.md rule 9).
-- [ ] **3. Write the tests** above. Run `uv run pytest -q` → `test_db_pool.py` fails (module missing); DB tests fail (no table).
-- [ ] **4. Write the migration, seed and `db` package** exactly as above. Apply: `npx --yes supabase@3.1.0 db reset` (rebuilds the local DB from migrations + seed; the local DB has no other data).
-- [ ] **5. Run** `uv run pytest -q` → all pass (13 total). `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy` clean.
-- [ ] **6. Prove the skip/fail behaviour:** `npx --yes supabase@3.1.0 stop` → `uv run pytest -q` shows 3 skipped DB tests; then (bash) `PLUMETRACE_REQUIRE_DB=1 uv run pytest -q backend/tests/db` → fails with "database required but unavailable". Start again: `npx --yes supabase@3.1.0 start`. Paste the three outputs.
-- [ ] **7. Repo checks** pass.
-- [ ] **8. Docs.**
+- [x] **1. Init Supabase** (from `app/`): `printf 'n\nn\n' | npx --yes supabase@3.1.0 init` (answers "no" to editor-settings prompts). Confirm `app/supabase/config.toml` exists. Do not edit `config.toml`.
+- [x] **2. Start it:** `npx --yes supabase@3.1.0 start`. It prints a "DB URL". Check it is `postgresql://postgres:postgres@127.0.0.1:54322/postgres` (the public local default, which is already the value of `SUPABASE_DB_URL` in the root `.env`). If the printed URL differs, STOP and ask the owner. Never open `.env`; any `.env` change goes through `python -I .claude/skills/security-checks/scripts/env_set.py` (CLAUDE.md rule 9).
+- [x] **3. Write the tests** above. Run `uv run pytest -q` → `test_db_pool.py` fails (module missing); DB tests fail (no table).
+- [x] **4. Write the migration, seed and `db` package** exactly as above. Apply: `npx --yes supabase@3.1.0 db reset` (rebuilds the local DB from migrations + seed; the local DB has no other data).
+- [x] **5. Run** `uv run pytest -q` → all pass (13 total). `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy` clean.
+- [x] **6. Prove the skip/fail behaviour:** `npx --yes supabase@3.1.0 stop` → `uv run pytest -q` shows 3 skipped DB tests; then (bash) `PLUMETRACE_REQUIRE_DB=1 uv run pytest -q backend/tests/db` → fails with "database required but unavailable". Start again: `npx --yes supabase@3.1.0 start`. Paste the three outputs.
+- [x] **7. Repo checks** pass.
+- [x] **8. Docs.**
   - `docs/reference/DATABASE.md`: purpose; connection (backend only, direct Postgres URL from `.env`); schema `plumetrace`; table `scenarios` with every column, type and meaning; RLS stance (enabled, no policies, why); migrations list (file + purpose); how to reset (`db reset`), start, stop; checkpoint tables note ("created by LangGraph PostgresSaver in Phase 5").
   - `docs/LOCAL_DEVELOPMENT.md` → `## Database`: start/stop/reset commands, the local URL, "Docker must be running", how DB tests skip/fail.
   - `docs/README.md`: add the DATABASE.md row. Work-log row; `STATUS.md` (last 1.4, next 1.5).
