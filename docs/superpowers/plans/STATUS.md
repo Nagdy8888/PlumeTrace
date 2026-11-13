@@ -3,8 +3,8 @@
 Updated by the implementing agent after every task (see the `plan-execution` skill).
 
 - **Current phase:** 1 — Foundations (`docs/superpowers/plans/phase-1/README.md`)
-- **Last completed task:** `docs/superpowers/plans/phase-1/task-07-type-contract.md`
-- **Next task:** `docs/superpowers/plans/phase-1/task-08-ci.md`
+- **Last completed task:** `docs/superpowers/plans/phase-1/task-08-ci.md`
+- **Next task:** Phase 1 exit: evidence file `docs/evidence/2026-11-phase-1-checks.md`, then Owner Gate 1
 - **In progress:** none
 - **Blockers / questions for the owner:** none. Planner cleanup (non-blocking): the Task 6 plan's test code (`conftest.py`, `test_candidates.py`, `test_components.py`) fails `ruff format`, E501 and the 50-line function limit; fixed in the repo (formatted, `_minimal_spec` split) by owner decision; `extra="forbid"` on `ComponentCounts`/`CountsTable` and a private `_Frozen` base were added and approved; the Task 4 plan's `app/backend/tests/db/conftest.py` docstring line is 123 chars (E501; wrapped in the repo, owner OK 2026-11-13); `phase-1/README.md` lines 69-72 still list the four GitHub Actions rows (actions/checkout, setup-python, setup-node, setup-uv); rule 25 says no GitHub Actions. The `test_values_come_from_environment` docstring in the Task 3 plan exceeds ruff E501 (fixed in the repo, task file unchanged).
 - **Owner decisions log:**
@@ -30,3 +30,4 @@ Updated by the implementing agent after every task (see the `plan-execution` ski
 | 2026-11-13 | 1.5 | PASS | `npm run lint`: clean; `typecheck`: clean; `npm run test`: 2 files, 4 tests passed; `npm run build`: built in 147ms; `npm audit --omit=dev`: 0 vulnerabilities; `check_slop.py`: no slop found; `structure OK`, `env OK`, `no secrets found`; reviewer PASS; screenshot `docs/evidence/2026-11-phase-1-shell.png`; note: Context7 not queried (all files verbatim from plan) |
 | 2026-11-13 | 1.6 | PASS | `uv run pytest -q`: 37 passed (facility: 24); `ruff check`: All checks passed; `ruff format --check`: 24 files formatted; `mypy`: no issues found in 14 source files; `structure OK`, `env OK`, `no secrets found`; reviewer PASS; owner (delegated Opus decision 2026-11-13) approved ruff-format of 3 test files + `_minimal_spec` split (no logic change) and keeping `extra="forbid"` / `_Frozen` |
 | 2026-11-13 | 1.7 | PASS | `uv run pytest -q`: 40 passed; `ruff check`: All checks passed; `mypy`: no issues found in 14 source files; frontend `lint`/`typecheck` clean, `test`: 4 passed, `build` ok; generated files sha256-stable on rerun, LF only; `check_slop.py`: no slop found; `structure OK`, `env OK`, `no secrets found`; reviewer PASS |
+| 2026-11-13 | 1.8 | PASS | `python scripts/ci_local.py`: all stages passed (11 stages); `--full` (Supabase up): all stages passed (13 stages incl. python-tests-full, frontend-coverage, frontend-build, contract-drift); `pip-audit`: no known vulnerabilities; `npm audit --audit-level=high`: 11 moderate, none high/critical (Phase 6); `structure OK`, `env OK`, `no secrets found`; reviewer PASS; owner (delegated Opus decision 2026-11-13) approved the Windows `.cmd` resolution fix in `run_stage` |

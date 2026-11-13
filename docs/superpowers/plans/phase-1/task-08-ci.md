@@ -313,11 +313,11 @@ def test_stage_env_is_passed(monkeypatch: pytest.MonkeyPatch) -> None:
 (`parents[3]` = repo root from `app/backend/tests/test_ci_local.py`. `ok`/`no` are fake executables — `shutil.which` returns `None`, so the runner receives the bare names.)
 
 ## Steps
-- [ ] **1.** Test → FAIL → create both scripts exactly as shown → `cd app && uv run pytest backend/tests/test_ci_local.py -q` green; ruff (incl. `../scripts`), ruff format, mypy clean.
-- [ ] **2.** `python scripts/install_git_hooks.py` → `installed .git/hooks/pre-commit`.
-- [ ] **3.** `python scripts/ci_local.py` (quick) → all stages pass; then with local Supabase running `python scripts/ci_local.py --full` → all stages pass (the `frontend-coverage` stage needs Task 5's `test:coverage` script; the `contract-drift` stage needs Task 7). Paste both summary tables.
-- [ ] **4.** `cd app && uv run pip-audit` and `cd app/frontend && npm audit --audit-level=high` once by hand (they become stages in Phase 6 Task 6). A high/critical finding: STOP and report (do not upgrade pins yourself).
-- [ ] **5. Docs.** `LOCAL_DEVELOPMENT.md` → `## Checks`: "There is no GitHub Actions CI (owner decision 2026-11-13). Run `python scripts/ci_local.py` (quick; also the pre-commit hook) and `python scripts/ci_local.py --full` (before every phase gate; needs local Supabase). Install the hook once after cloning: `python scripts/install_git_hooks.py`. Never commit with `--no-verify`." plus the stage list (`--list` output). `OWNER_ACTIONS.md`: keep "GitHub Actions stay off". `TESTING.md` (per `testing-strategy`). Work-log row; `STATUS.md` (last 1.8, next "Gate 1").
+- [x] **1.** Test → FAIL → create both scripts exactly as shown → `cd app && uv run pytest backend/tests/test_ci_local.py -q` green; ruff (incl. `../scripts`), ruff format, mypy clean.
+- [x] **2.** `python scripts/install_git_hooks.py` → `installed .git/hooks/pre-commit`.
+- [x] **3.** `python scripts/ci_local.py` (quick) → all stages pass; then with local Supabase running `python scripts/ci_local.py --full` → all stages pass (the `frontend-coverage` stage needs Task 5's `test:coverage` script; the `contract-drift` stage needs Task 7). Paste both summary tables.
+- [x] **4.** `cd app && uv run pip-audit` and `cd app/frontend && npm audit --audit-level=high` once by hand (they become stages in Phase 6 Task 6). A high/critical finding: STOP and report (do not upgrade pins yourself).
+- [x] **5. Docs.** `LOCAL_DEVELOPMENT.md` → `## Checks`: "There is no GitHub Actions CI (owner decision 2026-11-13). Run `python scripts/ci_local.py` (quick; also the pre-commit hook) and `python scripts/ci_local.py --full` (before every phase gate; needs local Supabase). Install the hook once after cloning: `python scripts/install_git_hooks.py`. Never commit with `--no-verify`." plus the stage list (`--list` output). `OWNER_ACTIONS.md`: keep "GitHub Actions stay off". `TESTING.md` (per `testing-strategy`). Work-log row; `STATUS.md` (last 1.8, next "Gate 1").
 - [ ] **6. Commit** `build(checks): add the local check runner and pre-commit hook`. (The hook runs on this commit — it must pass.) Do **not** push.
 
 ## Phase 1 exit

@@ -123,7 +123,39 @@ are recorded in [reference/DEPLOYMENT.md](reference/DEPLOYMENT.md) for a later p
 
 ## Checks
 
-Run from the repo root:
+There is no GitHub Actions CI (owner decision 2026-11-13). Run `python scripts/ci_local.py` (quick;
+also the pre-commit hook) and `python scripts/ci_local.py --full` (before every phase gate; needs
+local Supabase). Install the hook once after cloning: `python scripts/install_git_hooks.py`. Never
+commit with `--no-verify`.
+
+```bash
+python scripts/ci_local.py                 # quick stages
+python scripts/ci_local.py --full          # every stage; sets PLUMETRACE_REQUIRE_DB=1
+python scripts/ci_local.py --only ruff,mypy
+python scripts/ci_local.py --list
+```
+
+Stages, in run order (`python scripts/ci_local.py --list`):
+
+```text
+structure              full/quick
+env                    full/quick
+secrets                full/quick
+slop                   full/quick
+ruff                   full/quick
+ruff-format            full/quick
+mypy                   full/quick
+python-tests           quick
+python-tests-full      full
+frontend-lint          full/quick
+frontend-typecheck     full/quick
+frontend-test          quick
+frontend-coverage      full
+frontend-build         full
+contract-drift         full
+```
+
+The three repository checks can also be run on their own from the repo root:
 
 ```bash
 python -I .claude/skills/repo-structure/scripts/check_structure.py .
@@ -131,4 +163,5 @@ python -I .claude/skills/security-checks/scripts/check_env.py .
 python -I .claude/skills/security-checks/scripts/secret_scan.py .
 ```
 
-Expected output: `structure OK`, `env OK`, `no secrets found`.
+Expected output: `structure OK`, `env OK`, `no secrets found`. Details of the test layers:
+[reference/TESTING.md](reference/TESTING.md).
