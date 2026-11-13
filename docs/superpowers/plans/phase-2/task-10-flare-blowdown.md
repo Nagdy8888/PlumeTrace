@@ -79,6 +79,6 @@ def test_invalid_inputs() -> None:
 ```
 
 ## Steps
-- [ ] Tests → FAIL → implement → full checks green.
-- [ ] **Docs.** ENGINEERING.md → "Flare" (equation, DE default and its source, unlit case) and "Blowdown" (equation, real-gas density, where the isolated volume comes from in S4). Work-log; `STATUS.md` (last 2.10, next 2.11).
+- [x] Tests → FAIL → implement → full checks green.
+- [x] **Docs.** ENGINEERING.md → "Flare" (equation, DE default and its source, unlit case) and "Blowdown" (equation, real-gas density, where the isolated volume comes from in S4). Work-log; `STATUS.md` (last 2.10, next 2.11).
 - [ ] **Commit** `feat(engineering): add flare slip and blowdown vented mass`.

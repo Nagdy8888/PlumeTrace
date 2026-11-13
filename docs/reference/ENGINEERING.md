@@ -407,6 +407,95 @@ Limits:
 - The prior for `fuse` and `vent_probability` come from the inversion posterior, so its limits (see
   Source inversion) carry through.
 
+### Flare
+
+Module `plumetrace.engineering.flare`. Methane that leaves the flare stack unburned, in kg/h:
+
+```
+lit:    slip = (1 - DE) * flared_gas_kg_h * w
+unlit:  slip =            flared_gas_kg_h * w
+```
+
+`w` is the methane mass fraction of the flared gas (`ch4_mass_fraction(comp)` from Gas properties)
+and `DE` the destruction efficiency. `DEFAULT_DESTRUCTION_EFFICIENCY = 0.98`: the source comment in
+the code reads "98 % destruction and removal efficiency, the default for a lit, well-operated flare
+in OGMP 2.0 guidance and EPA AP-42 §13.5; real efficiency varies with wind and flow (design §5.3)".
+With the pilot out nothing is destroyed, so an unlit flare emits all of the methane sent to it
+(scenario S3). `DE` is not used for an unlit flare but is still validated.
+
+Hand calculation (plan tests): 100 kg/h of gas with `w = 0.8624` carries 86.24 kg/h of methane. Lit
+at `DE = 0.98` that gives `0.02 * 86.24 = 1.7248` kg/h; unlit, 86.24 kg/h.
+
+`flare_ch4_slip_kg_h` raises `ValueError` for a negative, NaN or infinite flow, for `w` outside
+`[0, 1]` and for `DE` outside `[0, 1]` (NaN included). `DE = 1` and `DE = 0` are allowed. The result
+is never above `flared_gas_kg_h * w`, so a huge finite flow cannot overflow.
+
+Limits:
+
+- One fixed `DE` for every condition. A real flare's efficiency falls with crosswind, with very
+  low or very high flow and with steam or air assist; the 0.98 is a typical well-operated value,
+  not a prediction for a given hour. The caller may pass another `DE`, but nothing in this module
+  derives it from the weather or the flow.
+- The model is binary on the pilot: lit or unlit. A flame that is partly blown out, or a pilot
+  that flickers, is not represented.
+- The flared gas flow and the pilot status come from the flare meter and pilot thermocouple. A
+  wrong reading gives a wrong slip; the function cannot check it.
+- Only methane slip is computed. Other products of incomplete combustion are not.
+
+### Blowdown
+
+Module `plumetrace.engineering.blowdown`. Gas released when an isolated volume is depressurised
+(scenario S4, a planned blowdown):
+
+```
+gas_mass_kg = V * (rho(p_i, T_i) - rho(p_f, T_f))
+ch4_mass_kg = gas_mass_kg * ch4_mass_fraction(comp)
+```
+
+`rho` is the real-gas `density_kg_m3` (`P M / (Z R T)`, Papay Z, see Gas properties). All pressures
+are absolute. `vented_mass(...)` returns a frozen `BlowdownResult(gas_mass_kg, ch4_mass_kg)`. In S4
+the isolated volume `V` is the sum of the isolated vessels and piping taken from the facility
+spec; the scenario and the agent tool supply it, this module takes it as an input.
+
+Hand calculation (plan test, KS-07 gas, `M = 0.017302 kg/mol`, `Tpc = 196.65 K`,
+`Ppc = 4.6139 MPa`): 10 m3 from 7.0 MPa and 300 K to 98.9 kPa and 300 K. At 7.0 MPa, `Z = 0.86248`
+and `rho = 56.297 kg/m3`; at 98.9 kPa, `Z = 0.99761` and `rho = 0.68766 kg/m3`. Vented gas
+`= 10 * (56.297 - 0.68766) = 556.09 kg`; with a methane mass fraction of 0.86234 that is 479.54 kg
+of methane.
+
+`vented_mass` raises `ValueError` (it never returns NaN or infinity) for:
+
+- a volume that is NaN or infinite (`volume_m3 must be finite`) or not above zero
+  (`volume_m3 must be > 0`);
+- a pressure or temperature that is NaN, infinite, zero or negative (the message names it);
+- a final pressure above the initial one (`p_final_pa must not exceed p_initial_pa`);
+- a density that is not positive, which happens when the Papay Z falls to zero or below (for
+  example 20 K at 10 MPa) and so lies outside the correlation's range;
+- a final gas denser than the initial gas (for example the same pressure but a colder final gas):
+  that is not a venting, so it is rejected instead of returned as a negative mass;
+- a vented mass that overflows to infinity (absurd volume).
+
+Equal pressures and temperatures give 0 kg. A final pressure at or below ambient is accepted; the
+function does not know the ambient pressure, and the caller chooses the final state.
+
+Limits:
+
+- Only the start and end states are used. The path (choked then subcritical flow, cooling by
+  expansion, heat from the vessel wall) is not simulated, so the caller must supply `T_f`. A real
+  blowdown cools the gas, which raises the final density; using the start temperature for `T_f`
+  therefore lowers `rho_f` and slightly over-states the mass released (the final density is small
+  against the initial one at near-ambient final pressure).
+- Z comes from the closed-form Papay correlation with Kay's rule (see Gas properties), valid for
+  sweet natural gas at moderate reduced pressures. Outside that range (very cold gas, very high
+  pressure) the density is wrong; only a non-positive density is detected and rejected.
+- The result is only as good as the isolated volume and the pressure and temperature readings.
+  Dead legs, a partly closed isolation valve, or gas that flows in from outside the isolated
+  section during the blowdown are not modelled.
+- The vented gas has the composition `comp` throughout; there is no fractionation of heavier
+  components.
+- The mass is released, not necessarily emitted: if the blowdown goes to the flare, the methane that
+  reaches the atmosphere is the flare slip above, not this mass.
+
 ## 4. Design decisions and assumptions
 
 - Ideal gas law for ppm and kg/m3; at 288.15 K and 101325 Pa pure methane is 0.67850 kg/m3.
@@ -462,7 +551,16 @@ the two basic rejections. `test_fusion_edges.py`: unusable priors (empty, zero, 
 infinite, overflow), unnormalised prior, zero prior stays zero, clipping at both ends and infinite LR,
 rejected LRs, repeated evidence, ties, underflow, header boundaries and reason text, non-physical
 header and temperature input, common-mode rise, cold unit, overflow-safe extremes, key order and
-every attribution rejection. Run from
+every attribution rejection.
+`app/backend/tests/engineering/test_flare.py`: unlit flare vents all methane (86.24 kg/h), lit flare
+slips 2 % (1.7248 kg/h), negative flow and bad fraction. `test_flare_edges.py`: the 0.98 default,
+zero flow or methane, inclusive efficiency bounds, unlit flare ignoring DE, slip monotone in DE,
+huge flow, and NaN, infinite or out-of-range flow, fraction and efficiency (also when unlit).
+`app/backend/tests/engineering/test_blowdown.py`: 10 m3 from 7.0 MPa (556.09 kg), no pressure drop,
+pressure increase and zero volume. `test_blowdown_edges.py`: frozen result, linearity in volume,
+deeper blowdown vents more, a colder final state, a final gas denser than the initial one,
+non-finite and non-positive volume, pressure and temperature, Z out of range, overflow and a tiny
+volume. Run from
 `app/`: `uv run pytest backend/tests/engineering -q`.
 
 ## 8. How to extend
@@ -481,3 +579,4 @@ every quantity with its unit suffix. Keep functions pure.
 - 2026-11-13: CUSUM event detection added (Phase 2 Task 7).
 - 2026-11-13: Bayesian source inversion added (Phase 2 Task 8).
 - 2026-11-13: evidence fusion and vent-header attribution added (Phase 2 Task 9).
+- 2026-11-13: flare methane slip and blowdown vented mass added (Phase 2 Task 10).
