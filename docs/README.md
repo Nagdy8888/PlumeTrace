@@ -7,6 +7,7 @@
 | [OWNER_ACTIONS.md](OWNER_ACTIONS.md) | Things only the owner can do |
 | [engineering/coverage.json](engineering/coverage.json) | Engineering coverage ledger (42 concepts, Phase 1 scope): which apply, which are planned, which do not apply and why |
 | [evidence/2026-11-phase-1-checks.md](evidence/2026-11-phase-1-checks.md) | Phase 1 check results (quick and full runs, audits) and the Gate 1 review list |
+| [benchmark.md](benchmark.md) | Inversion benchmark under model mismatch: accuracy, rate error, inconclusive and false-call rates (generated, synthetic data) |
 | [reference/STRUCTURE.md](reference/STRUCTURE.md) | Repository layout and dependency rules |
 | [reference/DATABASE.md](reference/DATABASE.md) | Local Supabase schema, RLS, migrations, connection pool |
 | [reference/SIMULATOR.md](reference/SIMULATOR.md) | Station KS-07 facility spec: equipment, leak points, instruments, gas, component counts, validation |

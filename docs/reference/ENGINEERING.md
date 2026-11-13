@@ -719,6 +719,93 @@ Limits:
 - A run is limited to 200 000 steps (about 23 days at 10 s); the step count is
   `floor(duration_s / dt_s + 1e-9)` so that `0.3 / 0.1` still gives 3.
 
+### Benchmark
+
+Package `benchmark` in `app/backend/benchmark/` (not part of `plumetrace`; imported top level
+because pytest sets `pythonpath = ["backend"]`). It answers: how well does the Task 8 inversion
+find and size a leak when the data come from different physics? Results are published in
+[docs/benchmark.md](../benchmark.md) with the case-level evidence in
+`docs/evidence/benchmark-<date>.json`. Evidence label: **synthetic** (a simulated station and
+simulated sensors).
+
+**Method.** `cases.generate_cases` makes 250 cases from one seeded generator (`BENCHMARK_SEED`
+20261112): 160 on-list leaks (source exactly at an emission candidate), 40 off-list leaks (source
+2 to 10 m from a candidate, clipped into the site bounds) and 50 no-leak controls. Rates are
+log-uniform between 0.5 and 100 kg/h; each case has a random start hour and its own seed. Each case
+runs 6 hours at 10 s steps through the truth model (`simulate_sensors` with the default
+`TruthConfig`). `runner.run_case` then takes 10-minute window means (36 windows), the window wind
+and the most frequent stability class per window, subtracts a per-sensor background (5th percentile
+of the window means) and calls `invert` with its defaults (Briggs rural).
+
+**Mismatch ingredients** (the inversion has none of them): Pasquill-Gifford/Martin coefficients
+instead of Briggs rural, wind meander (10 degrees), gusty speed (15 %), building-wake dilution
+(0.6), sensor noise (0.3 ppm), and off-list sources. Sensor faults and drift are not used in this
+run (the truth model supports them).
+
+**Metric definitions** (`metrics.py`; every rate is 0.0 when its denominator is 0):
+
+- `is_correct(cr, k, positions)`: leak cases only. Take the ranked ids in order, remove `NONE`, keep
+  the first `k`. Correct if one of them is the true candidate (on-list) or lies within 10 m
+  horizontally of the true source (off-list). An inconclusive result is never correct.
+- `top1_all` = correct at k = 1 over all leak cases; `top1_conclusive` = the same count over the
+  conclusive leak cases; `top3_all` = correct at k = 3 over all leak cases.
+- Rate error = `|rate - true| / true` over leak cases that are conclusive and correct at k = 1;
+  median and 90th percentile (`None` when there are none).
+- `inconclusive_rate` = inconclusive leak cases over all leak cases.
+- `false_call_rate` = no-leak cases that are conclusive with a top id other than `NONE`, over all
+  no-leak cases.
+- Splits: by the dominant stability class of the case and by true rate (bins `<5`, `5-20`,
+  `20-100` kg/h), over leak cases, each with `n`, `top1_all` and `inconclusive_rate`.
+
+**Reproduce.** From `app/backend`:
+`uv run python -m benchmark --revision $(git rev-parse --short HEAD)` (about one minute). Options:
+`--seed`, `--quick` (6 on-list, 1 off-list, 1 no-leak case), `--out-md`, `--out-json`. The run is
+deterministic: the same seed and code give the same numbers. The report and the evidence file are
+written by the program and are never edited by hand.
+
+**What the run of 2026-11-13 shows** (numbers from `docs/evidence/benchmark-2026-11-13.json`):
+
+| Metric | Value |
+|---|---|
+| Top-1 accuracy (all leak cases) | 0.4 |
+| Top-1 accuracy (conclusive leak cases) | 0.491 |
+| Top-3 accuracy (all leak cases) | 0.62 |
+| Rate error, median (relative) | 1.13 |
+| Rate error, 90th percentile (relative) | 26.7 |
+| Inconclusive rate (leak cases) | 0.185 |
+| False-call rate (no-leak cases) | 0 |
+
+- With these mismatches the inversion names the right source for 40 % of the leak cases (and for
+  49 % of those where it commits). Top-3 is 62 %. The median rate error is 113 %, and the 90th
+  percentile is 27 times the true rate: the rate is not trustworthy at this level of mismatch.
+- Of the 77 conclusive leak cases (57 on-list, 20 off-list) whose top id is the true candidate,
+  the median estimate-to-truth ratio is 1.84, 31 are below the true rate and 26 sit at the top
+  edge of the rate grid (`rate_at_grid_edge`; estimates of 451 kg/h or more, grid 0.1 to 500).
+  On-list only (57 cases): median 2.43, 24 below the true rate, 19 at the edge. The probable cause (looked at in one case): a sensor
+  a few tens of metres from the source sees hits from a plume whose direction wanders (meander),
+  while the inversion places a narrow plume along the 10-minute mean direction; to explain a hit
+  it considers unlikely it needs a very large rate. We read this as model mismatch, not a coding
+  fault: a one-off check on the first 40 cases (not part of the repo) with matched physics
+  (Briggs coefficients, no meander, gusts or wake, low noise) named the true source in 31 of 40 cases (15 of 40 with the full
+  truth model) with a median estimate-to-truth ratio of 0.76 (2.4 with the full truth model),
+  consistent with the low bias Task 8 found on clean data.
+- The false-call rate is 0 partly because 35 of the 50 no-leak cases are inconclusive
+  (`ambiguous` or `weak_signal`); 15 are conclusive `NONE` and none names a source. The "never
+  cry wolf" result is therefore also a "often says nothing" result.
+- Accuracy is lowest in stability class D (0.342, 73 cases) and F (0.2, only 10 cases) and highest
+  in C (0.522); the `20-100` kg/h bin has the fewest inconclusive cases (0.0606) but not the best
+  top-1 (0.364). Small classes (F: 10 cases) carry a wide uncertainty.
+
+**Limitations.** One seed and 250 cases: the figures carry sampling error (for a proportion near
+0.4 with 200 leak cases, roughly plus or minus 0.07 at 95 %). Not tuned: constants, thresholds,
+coefficients and the case list were fixed before the run; the improvement round is the owner's
+decision at Gate 2. The inversion's noise and model-error settings are the Task 8 defaults, its
+rate estimates carry the known low bias of about 25 % on clean data, and the fusion step (Task 9)
+is not part of this benchmark, so the figures describe the physics inversion alone. The truth
+model is another Gaussian plume (see Truth model above); it does not test plume rise,
+buoyancy, terrain or non-Gaussian profiles. The weather is synthetic, the station is simulated and
+no real leak data were used.
+
 ## 4. Design decisions and assumptions
 
 - Ideal gas law for ppm and kg/m3; at 288.15 K and 101325 Pa pure methane is 0.67850 kg/m3.
@@ -830,3 +917,4 @@ every quantity with its unit suffix. Keep functions pure.
 - 2026-11-13: flare methane slip and blowdown vented mass added (Phase 2 Task 10).
 - 2026-11-13: emission-factor inventory and methane intensity added (Phase 2 Task 11).
 - 2026-11-13: truth model (weather, meander, gusts, wakes, noise, drift) for the simulator and the benchmark added (Phase 2 Task 12).
+- 2026-11-13: model-mismatch benchmark (250 cases) and its report added (Phase 2 Task 13).
