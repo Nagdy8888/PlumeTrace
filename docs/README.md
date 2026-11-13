@@ -5,6 +5,7 @@
 | [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) | Prerequisites, pinned versions, how to run everything |
 | [WORK_LOG.md](WORK_LOG.md) | One entry per completed plan task |
 | [OWNER_ACTIONS.md](OWNER_ACTIONS.md) | Things only the owner can do |
+| [evidence/2026-11-phase-1-checks.md](evidence/2026-11-phase-1-checks.md) | Phase 1 check results (quick and full runs, audits) and the Gate 1 review list |
 | [reference/STRUCTURE.md](reference/STRUCTURE.md) | Repository layout and dependency rules |
 | [reference/DATABASE.md](reference/DATABASE.md) | Local Supabase schema, RLS, migrations, connection pool |
 | [reference/SIMULATOR.md](reference/SIMULATOR.md) | Station KS-07 facility spec: equipment, leak points, instruments, gas, component counts, validation |

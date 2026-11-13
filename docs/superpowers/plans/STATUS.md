@@ -4,7 +4,8 @@ Updated by the implementing agent after every task (see the `plan-execution` ski
 
 - **Current phase:** 1 — Foundations (`docs/superpowers/plans/phase-1/README.md`)
 - **Last completed task:** `docs/superpowers/plans/phase-1/task-08-ci.md`
-- **Next task:** Phase 1 exit: evidence file `docs/evidence/2026-11-phase-1-checks.md`, then Owner Gate 1
+- **Next task:** none until the owner passes Gate 1; Phase 2 plan: `docs/superpowers/plans/phase-2/README.md`
+- **Phase status:** Phase 1 complete — waiting for Gate 1 (ks07.yaml, gas composition, component_counts.yaml, emission sources). Evidence: `docs/evidence/2026-11-phase-1-checks.md`.
 - **In progress:** none
 - **Blockers / questions for the owner:** none. Planner cleanup (non-blocking): the Task 6 plan's test code (`conftest.py`, `test_candidates.py`, `test_components.py`) fails `ruff format`, E501 and the 50-line function limit; fixed in the repo (formatted, `_minimal_spec` split) by owner decision; `extra="forbid"` on `ComponentCounts`/`CountsTable` and a private `_Frozen` base were added and approved; the Task 4 plan's `app/backend/tests/db/conftest.py` docstring line is 123 chars (E501; wrapped in the repo, owner OK 2026-11-13); `phase-1/README.md` lines 69-72 still list the four GitHub Actions rows (actions/checkout, setup-python, setup-node, setup-uv); rule 25 says no GitHub Actions. The `test_values_come_from_environment` docstring in the Task 3 plan exceeds ruff E501 (fixed in the repo, task file unchanged).
 - **Owner decisions log:**
