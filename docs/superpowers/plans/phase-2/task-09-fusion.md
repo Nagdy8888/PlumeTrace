@@ -101,6 +101,6 @@ def test_invalid_inputs() -> None:
 ```
 
 ## Steps
-- [ ] Test → FAIL → implement → full checks green.
-- [ ] **Docs.** ENGINEERING.md → "Evidence fusion": why coded, Bayes update with likelihood ratios, clipping, each evidence rule with constants, the S1 walk-through (VS-250 → K-202 with the numbers from the test). Work-log; `STATUS.md` (last 2.9, next 2.10).
+- [x] Test → FAIL → implement → full checks green.
+- [x] **Docs.** ENGINEERING.md → "Evidence fusion": why coded, Bayes update with likelihood ratios, clipping, each evidence rule with constants, the S1 walk-through (VS-250 → K-202 with the numbers from the test). Work-log; `STATUS.md` (last 2.9, next 2.10).
 - [ ] **Commit** `feat(engineering): add evidence fusion and vent attribution`.
