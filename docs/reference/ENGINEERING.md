@@ -108,6 +108,44 @@ resolved to the more stable letter. This is conservative: a more stable class gi
 more concentrated plume and so higher predicted concentrations, which errs toward detecting a
 leak rather than missing one.
 
+### Dispersion coefficients
+
+Module `plumetrace.engineering.dispersion`. `sigmas_m(x_m, stability, coeff)` returns
+`(sigma_y_m, sigma_z_m)` for a numpy array of downwind distances. `CoefficientSet` (`StrEnum`) is
+`BRIGGS_RURAL` or `PG_MARTIN`. Steps: clip `x_m` to `[X_MIN_M, X_MAX_M]` = `[10, 1000]` m, evaluate
+the set, floor both results at `SIGMA_MIN_M` = 0.5 m. Coefficients are module-level
+`MappingProxyType` tables keyed by `StabilityClass`.
+
+**BRIGGS_RURAL** (Briggs 1973, open country; Seinfeld & Pandis, Atmospheric Chemistry and Physics,
+3rd ed., Table 18.3). x in m, sigma in m.
+
+| Class | sigma_y | sigma_z |
+|---|---|---|
+| A | `0.22 x (1 + 0.0001 x)^-0.5` | `0.20 x` |
+| B | `0.16 x (1 + 0.0001 x)^-0.5` | `0.12 x` |
+| C | `0.11 x (1 + 0.0001 x)^-0.5` | `0.08 x (1 + 0.0002 x)^-0.5` |
+| D | `0.08 x (1 + 0.0001 x)^-0.5` | `0.06 x (1 + 0.0015 x)^-0.5` |
+| E | `0.06 x (1 + 0.0001 x)^-0.5` | `0.03 x (1 + 0.0003 x)^-1` |
+| F | `0.04 x (1 + 0.0001 x)^-0.5` | `0.016 x (1 + 0.0003 x)^-1` |
+
+**PG_MARTIN** (Martin 1976 fit of the Pasquill-Gifford curves for x < 1 km; Cooper & Alley, Air
+Pollution Control, Table 20-1). `x_km = x / 1000`; `sigma_y = a x_km^0.894`;
+`sigma_z = c x_km^d + f`.
+
+| Class | a | c | d | f |
+|---|---|---|---|---|
+| A | 213 | 440.8 | 1.941 | 9.27 |
+| B | 156 | 106.6 | 1.149 | 3.3 |
+| C | 104 | 61.0 | 0.911 | 0.0 |
+| D | 68 | 33.2 | 0.725 | -1.7 |
+| E | 50.5 | 22.8 | 0.678 | -1.3 |
+| F | 34 | 14.35 | 0.740 | -0.35 |
+
+Validity: classic fits are extrapolated below 100 m; the benchmark measures the consequence. The
+two sets differ by more than 15 % in sigma_z at 300 m, class D, so a truth model built on one set
+is not the inversion model built on the other. The Martin class D sigma_z is below the 0.5 m
+floor under about 24 m; the floor applies there.
+
 ## 4. Design decisions and assumptions
 
 - Ideal gas law for ppm and kg/m3; at 288.15 K and 101325 Pa pure methane is 0.67850 kg/m3.
@@ -136,7 +174,10 @@ at standard conditions, ppm round trip, array shape, scf and CO2e.
 standard conditions, density, the three CH4 fractions, standard volume to CH4 mass, and rejection
 of a bad sum or unknown component (hand calculations in the docstrings).
 `app/backend/tests/engineering/test_stability.py`: every cell of the table, overcast, and the bin
-boundaries (u = 2, 3; 600, 300, 10 W/m2; cloud 0.5). Run from `app/`:
+boundaries (u = 2, 3; 600, 300, 10 W/m2; cloud 0.5).
+`app/backend/tests/engineering/test_dispersion.py`: hand-calculated Briggs D at 1000 m and Martin D at
+500 m, the 0.5 m floor, distance clipping, monotone growth for all classes and both sets, and the
+300 m difference between sets. Run from `app/`:
 `uv run pytest backend/tests/engineering -q`.
 
 ## 8. How to extend
@@ -149,3 +190,4 @@ every quantity with its unit suffix. Keep functions pure.
 - 2026-11-13: constants and unit conversions added (Phase 2 Task 1).
 - 2026-11-13: gas composition, Papay Z factor, density and CH4 fractions added (Phase 2 Task 2).
 - 2026-11-13: Pasquill stability classification added (Phase 2 Task 3).
+- 2026-11-13: Briggs rural and Pasquill-Gifford (Martin) dispersion coefficients added (Phase 2 Task 4).

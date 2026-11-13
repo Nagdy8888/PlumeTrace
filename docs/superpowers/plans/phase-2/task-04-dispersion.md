@@ -95,6 +95,6 @@ def test_sets_differ_at_300_m() -> None:
 ```
 
 ## Steps
-- [ ] Test → FAIL → implement → full checks green.
-- [ ] **Docs.** ENGINEERING.md → "Dispersion coefficients": both tables with sources, clipping and floor, and the validity note ("classic fits are extrapolated below 100 m; the benchmark measures the consequence"). Work-log; `STATUS.md` (last 2.4, next 2.5).
+- [x] Test → FAIL → implement → full checks green.
+- [x] **Docs.** ENGINEERING.md → "Dispersion coefficients": both tables with sources, clipping and floor, and the validity note ("classic fits are extrapolated below 100 m; the benchmark measures the consequence"). Work-log; `STATUS.md` (last 2.4, next 2.5).
 - [ ] **Commit** `feat(engineering): add Briggs and Pasquill-Gifford dispersion coefficients`.
