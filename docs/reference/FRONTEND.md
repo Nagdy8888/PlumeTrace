@@ -97,3 +97,10 @@ Output is deterministic: UTF-8, LF line endings, sorted keys, trailing newline (
 so Windows does not add CRLF; `.gitattributes` also forces LF). The generated folder is excluded
 from ESLint. Drift check: `python scripts/ci_local.py --full`, stage `contract-drift` (Task 8),
 re-runs both commands and fails if `git diff` is not empty.
+
+Fixed-length tuples (for example a position `[x, y, z]`) reach the schema as JSON Schema 2020-12
+`prefixItems`, which json-schema-to-typescript 16.0.0 ignores and types as `unknown`.
+`scripts/export_contract.py` therefore rewrites every `prefixItems` to the draft-07 `items` array
+(with `minItems` and `maxItems`), so the generated type is `[number, number, number]`. A node that
+has both keywords is an error. `app/backend/tests/test_contract_types.py` checks the rewrite, the
+schema and the committed `contract.ts`.

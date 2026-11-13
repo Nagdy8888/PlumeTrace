@@ -1,0 +1,260 @@
+{
+  "schema_version": 1,
+  "scope": "Phase 1 foundations: repo, root .env handling and checks, local Supabase schema plumetrace (scenarios), frontend shell, facility spec KS-07, type contract, local check runner. No API, agents, LLM calls or replay build exist yet.",
+  "revision": "52349b2 + Gate 1 working tree (2026-11-13)",
+  "environment": "local-dev Windows 11 (Phase 1 only)",
+  "assessments": [
+    {
+      "id": "B01",
+      "status": "Planned",
+      "reason": "Trust boundaries are not mapped yet. Next action: map them when the API and graph land; test in Phase 6.",
+      "evidence": []
+    },
+    {
+      "id": "B02",
+      "status": "NotApplicable",
+      "reason": "No user accounts or logins by design (design section 10); single-operator local backend and a static public build without a backend.",
+      "evidence": []
+    },
+    {
+      "id": "B03",
+      "status": "Planned",
+      "reason": "Database least privilege is not set up yet. Next action: Phase 6 Task 5 (grants); confirm that no tool can issue a work order or file a report (rule 11).",
+      "evidence": []
+    },
+    {
+      "id": "B04",
+      "status": "NotApplicable",
+      "reason": "Single operator and no per-user objects, so there is no object-level access to separate.",
+      "evidence": []
+    },
+    {
+      "id": "B05",
+      "status": "Planned",
+      "reason": "No API exists yet. Next action: API bodies reject extra fields; test in Phase 6.",
+      "evidence": []
+    },
+    {
+      "id": "B06",
+      "status": "Planned",
+      "reason": "No tenants, but RLS is on with no policies. Next action: test that anon and authenticated roles are denied on every table (Phase 6 Task 5).",
+      "evidence": []
+    },
+    {
+      "id": "B07",
+      "status": "NotApplicable",
+      "reason": "No sessions, tokens or logins exist in the design.",
+      "evidence": []
+    },
+    {
+      "id": "B08",
+      "status": "Planned",
+      "reason": "The root .env, env_set, check_env and secret_scan exist. Remaining: a key-scan test of the static build and app/replay, and trace redaction.",
+      "evidence": []
+    },
+    {
+      "id": "B09",
+      "status": "Planned",
+      "reason": "No API yet. Next action: exact-origin CORS on the local API.",
+      "evidence": []
+    },
+    {
+      "id": "B10",
+      "status": "Planned",
+      "reason": "A hostile web page could call the loopback approval API. Next action: add an Origin and content-type check (Phase 6).",
+      "evidence": []
+    },
+    {
+      "id": "B11",
+      "status": "Planned",
+      "reason": "No model drafts are rendered yet. Next action: render them safely as text, add a CSP, and test in a browser.",
+      "evidence": []
+    },
+    {
+      "id": "B12",
+      "status": "Planned",
+      "reason": "Parameterised SQL in plumetrace.db is not written yet. Next action: injection tests through tools and reports.",
+      "evidence": []
+    },
+    {
+      "id": "B13",
+      "status": "Planned",
+      "reason": "Outbound hosts must be fixed in code. Next action: verify that no input chooses a destination (Open-Meteo client, Phase 3 Task 2).",
+      "evidence": []
+    },
+    {
+      "id": "B14",
+      "status": "NotApplicable",
+      "reason": "No uploads, archives or audio; the only parsed inputs are repo-owned YAML (yaml.safe_load) and the app's own replay JSON.",
+      "evidence": []
+    },
+    {
+      "id": "B15",
+      "status": "Planned",
+      "reason": "No rate limiting yet. Next action: Phase 6.",
+      "evidence": []
+    },
+    {
+      "id": "B16",
+      "status": "Planned",
+      "reason": "The $4.00 cap through BudgetedLLM and plumetrace.llm_calls is not built yet. Next action: build it, then test the last-allowance race and an unknown call outcome.",
+      "evidence": []
+    },
+    {
+      "id": "B17",
+      "status": "Planned",
+      "reason": "No limits yet. Next action: bound concurrent live runs and the WebSocket backlog.",
+      "evidence": []
+    },
+    {
+      "id": "B18",
+      "status": "Planned",
+      "reason": "No deadlines yet. Next action: per-run soft 90 s and hard 180 s budgets, and one retry on invalid output.",
+      "evidence": []
+    },
+    {
+      "id": "B19",
+      "status": "Planned",
+      "reason": "No decision endpoint yet. Next action: a duplicate decision must not issue two work orders; test it.",
+      "evidence": []
+    },
+    {
+      "id": "B20",
+      "status": "Planned",
+      "reason": "No decision flow yet. Next action: write the decision and the work order in one transaction.",
+      "evidence": []
+    },
+    {
+      "id": "B21",
+      "status": "Planned",
+      "reason": "One table exists (scenarios). Next action: constraints plus invalid-write tests as migrations are added.",
+      "evidence": []
+    },
+    {
+      "id": "B22",
+      "status": "Planned",
+      "reason": "No decision flow yet. Next action: bind a decision to the run, the interrupt id and the draft revision; add a stale-revision test.",
+      "evidence": []
+    },
+    {
+      "id": "B23",
+      "status": "NotApplicable",
+      "reason": "No worker queue or external dispatch: the graph runs in-process and issued work orders and reports are simulated database rows (design section 10, rule 11).",
+      "evidence": []
+    },
+    {
+      "id": "B24",
+      "status": "NotApplicable",
+      "reason": "No inbound webhooks or provider callbacks exist.",
+      "evidence": []
+    },
+    {
+      "id": "B25",
+      "status": "Planned",
+      "reason": "No agents yet. Next action: read-only tools, the AI never approves, and hostile-content tests.",
+      "evidence": []
+    },
+    {
+      "id": "B26",
+      "status": "Planned",
+      "reason": "No vector RAG; regulatory text only from the cited rules table (rule 8). Next action: citation tests when the rules table lands.",
+      "evidence": []
+    },
+    {
+      "id": "B27",
+      "status": "Planned",
+      "reason": "No graph yet. Next action: interrupt() only in the approval node with a checkpointer; restart and resume tests.",
+      "evidence": []
+    },
+    {
+      "id": "B28",
+      "status": "Planned",
+      "reason": "No traces yet. Next action: no secrets or bulk data in LangSmith metadata, redacted app_logs, canary tests.",
+      "evidence": []
+    },
+    {
+      "id": "B29",
+      "status": "Planned",
+      "reason": "Not built yet. Next action: agent_steps, decisions and app_logs form the audit trail.",
+      "evidence": []
+    },
+    {
+      "id": "B30",
+      "status": "Planned",
+      "reason": "No outbound calls yet. Next action: HTTPS-only outbound calls; env_set generate uses a CSPRNG; verify in Phase 6.",
+      "evidence": []
+    },
+    {
+      "id": "B31",
+      "status": "Planned",
+      "reason": "No API or static host yet. Next action: API and static cache and security headers, Phase 6.",
+      "evidence": []
+    },
+    {
+      "id": "B32",
+      "status": "Planned",
+      "reason": "Settings fail on missing values (Task 3). Next action: loopback binding and require_tracing.",
+      "evidence": []
+    },
+    {
+      "id": "B33",
+      "status": "Planned",
+      "reason": "Exact pins and lockfiles exist and pip-audit is clean; 11 moderate npm dev findings are open. Next action: audit stage in Phase 6 Task 6.",
+      "evidence": []
+    },
+    {
+      "id": "B34",
+      "status": "Planned",
+      "reason": "Migrations go only through db reset. Next action: upgrade-path checks later.",
+      "evidence": []
+    },
+    {
+      "id": "B35",
+      "status": "NotApplicable",
+      "reason": "Local disposable demo database rebuilt by supabase db reset; no production data, and replay outputs are committed files.",
+      "evidence": []
+    },
+    {
+      "id": "B36",
+      "status": "Planned",
+      "reason": "No retention policy yet. Next action: the owner sets a retention policy for LangSmith traces, runs and checkpoints before release; no personal data is stored.",
+      "evidence": []
+    },
+    {
+      "id": "B37",
+      "status": "Planned",
+      "reason": "SI units with suffixes are the rule. Next action: units.py (Phase 2 Task 1); cost arithmetic later.",
+      "evidence": []
+    },
+    {
+      "id": "B38",
+      "status": "Planned",
+      "reason": "No third-party clients yet. Next action: validate Open-Meteo (Phase 3 Task 2) and OpenAI structured outputs (rule 5).",
+      "evidence": []
+    },
+    {
+      "id": "B39",
+      "status": "Planned",
+      "reason": "Phase 1 has negative facility and config tests. Remaining: deny, race and restart tests through the API.",
+      "evidence": []
+    },
+    {
+      "id": "B40",
+      "status": "Planned",
+      "reason": "Only a shell exists. Next action: simulated and real labels, pending and failure states, keyboard use, reduced-motion and 3D fallback.",
+      "evidence": []
+    },
+    {
+      "id": "B41",
+      "status": "Planned",
+      "reason": "The static replay has no backend, keys or live actions. Next action: a build key-scan test.",
+      "evidence": []
+    },
+    {
+      "id": "B42",
+      "status": "Planned",
+      "reason": "No endpoints yet. Next action: take an inventory when the API lands and compare it in Phase 6.",
+      "evidence": []
+    }
+  ]
+}

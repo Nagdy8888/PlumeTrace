@@ -1,5 +1,6 @@
 # Station KS-07 — fictional compressor station. Single source of truth for layout, leak points,
 # instruments and gas. Coordinates: metres, x = east, y = north, z = up, origin = SW fence corner.
+# position_m of equipment = footprint centre at its base; size_m is centred on it in x/y.
 site:
   id: KS-07
   name: Station KS-07
@@ -8,9 +9,10 @@ site:
   latitude_deg: 39.10     # fictional placement in the Karakum desert region (weather source only)
   longitude_deg: 61.30
   elevation_m: 200
-  ambient_pressure_pa: 98900
+  ambient_pressure_pa: 98900   # absolute; matches ISA (ISO 2533) at the 200 m elevation (98.95 kPa)
+# Illustrative pipeline-quality gas chosen by the owner (Gate 1, 2026-11-13); not from a cited analysis.
 gas_composition: {CH4: 0.930, C2H6: 0.035, C3H8: 0.008, nC4H10: 0.002, CO2: 0.010, N2: 0.015}
-operating:
+operating:   # pressures are absolute (Pa), not gauge
   suction_pressure_pa: 4500000
   discharge_pressure_pa: 7000000
   gas_temperature_k: 300

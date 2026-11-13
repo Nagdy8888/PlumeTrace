@@ -102,9 +102,9 @@ python -I .claude/skills/security-checks/scripts/secret_scan.py .
 ```
 Expected: `structure OK`, `env OK`, `no secrets found`.
 
-- [ ] **12. Work log + status.** Add a `WORK_LOG.md` row; update `STATUS.md` (last = 1.1, next = 1.2).
+- [x] **12. Work log + status.** Add a `WORK_LOG.md` row; update `STATUS.md` (last = 1.1, next = 1.2).
 
-- [ ] **13. Commit.** `git status` must NOT list `.env`. Then:
+- [x] **13. Commit.** `git status` must NOT list `.env`. Then:
 ```bash
 git add -A
 git diff --cached --name-only

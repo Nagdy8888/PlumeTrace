@@ -6,21 +6,21 @@ export type Id = string;
  * @minItems 3
  * @maxItems 3
  */
-export type PositionM = [unknown, unknown, unknown];
+export type PositionM = [number, number, number];
 export type Anchors = Anchor[];
 export type Description = string;
 /**
  * @minItems 3
  * @maxItems 3
  */
-export type PositionM1 = [unknown, unknown, unknown];
+export type PositionM1 = [number, number, number];
 export type RotationDeg = number;
 export type Shelter = boolean;
 /**
  * @minItems 3
  * @maxItems 3
  */
-export type SizeM = [unknown, unknown, unknown];
+export type SizeM = [number, number, number];
 export type Tag = string;
 /**
  * Kinds of equipment on the station (value equals name).
@@ -53,7 +53,7 @@ export type NoisePpm = number | null;
  * @minItems 3
  * @maxItems 3
  */
-export type PositionM2 = [unknown, unknown, unknown];
+export type PositionM2 = [number, number, number];
 export type Tag1 = string;
 export type Instruments = Instrument[];
 export type DischargePressurePa = number;
@@ -66,7 +66,7 @@ export type SizeIn = number;
 /**
  * @minItems 2
  */
-export type WaypointsM = [[unknown, unknown, unknown], [unknown, unknown, unknown], ...[unknown, unknown, unknown][]];
+export type WaypointsM = [[number, number, number], [number, number, number], ...[number, number, number][]];
 export type Piping = PipeRoute[];
 export type AmbientPressurePa = number;
 export type XMaxM = number;
@@ -105,9 +105,11 @@ export interface FacilitySpec {
  * Attributes:
  *     tag: Unique equipment tag, for example ``K-202``.
  *     type: Kind of equipment.
- *     position_m: Base position in site coordinates.
+ *     position_m: Footprint centre at the equipment's base (x, y = centre of the footprint,
+ *         z = bottom of the box) in site coordinates.
  *     rotation_deg: Rotation about the vertical axis in degrees.
- *     size_m: Bounding box (x, y, z) in metres.
+ *     size_m: Axis-aligned bounding box (x, y, z) in metres before rotation, centred on
+ *         position_m in x and y and rising from it in z.
  *     anchors: Named leak points on this equipment.
  *     vents_to: Tag of the equipment this one vents to, if any.
  *     shelter: Whether it sits inside a shelter.
@@ -161,8 +163,8 @@ export interface Instrument {
  * Normal operating conditions of the station.
  *
  * Attributes:
- *     suction_pressure_pa: Compressor suction pressure in pascals.
- *     discharge_pressure_pa: Compressor discharge pressure in pascals.
+ *     suction_pressure_pa: Compressor suction absolute pressure in pascals (not gauge).
+ *     discharge_pressure_pa: Compressor discharge absolute pressure in pascals (not gauge).
  *     gas_temperature_k: Gas temperature in kelvin.
  *     throughput_sm3_h: Throughput in standard cubic metres per hour.
  */
@@ -198,7 +200,7 @@ export interface PipeRoute {
  *     latitude_deg: Latitude used only to fetch weather.
  *     longitude_deg: Longitude used only to fetch weather.
  *     elevation_m: Ground elevation in metres.
- *     ambient_pressure_pa: Ambient pressure in pascals.
+ *     ambient_pressure_pa: Ambient absolute pressure in pascals.
  */
 export interface Site {
   ambient_pressure_pa: AmbientPressurePa;

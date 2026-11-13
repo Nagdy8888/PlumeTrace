@@ -69,9 +69,11 @@ class Equipment(_Frozen):
     Attributes:
         tag: Unique equipment tag, for example ``K-202``.
         type: Kind of equipment.
-        position_m: Base position in site coordinates.
+        position_m: Footprint centre at the equipment's base (x, y = centre of the footprint,
+            z = bottom of the box) in site coordinates.
         rotation_deg: Rotation about the vertical axis in degrees.
-        size_m: Bounding box (x, y, z) in metres.
+        size_m: Axis-aligned bounding box (x, y, z) in metres before rotation, centred on
+            position_m in x and y and rising from it in z.
         anchors: Named leak points on this equipment.
         vents_to: Tag of the equipment this one vents to, if any.
         shelter: Whether it sits inside a shelter.
@@ -162,7 +164,7 @@ class Site(_Frozen):
         latitude_deg: Latitude used only to fetch weather.
         longitude_deg: Longitude used only to fetch weather.
         elevation_m: Ground elevation in metres.
-        ambient_pressure_pa: Ambient pressure in pascals.
+        ambient_pressure_pa: Ambient absolute pressure in pascals.
     """
 
     id: str
@@ -179,8 +181,8 @@ class OperatingConditions(_Frozen):
     """Normal operating conditions of the station.
 
     Attributes:
-        suction_pressure_pa: Compressor suction pressure in pascals.
-        discharge_pressure_pa: Compressor discharge pressure in pascals.
+        suction_pressure_pa: Compressor suction absolute pressure in pascals (not gauge).
+        discharge_pressure_pa: Compressor discharge absolute pressure in pascals (not gauge).
         gas_temperature_k: Gas temperature in kelvin.
         throughput_sm3_h: Throughput in standard cubic metres per hour.
     """

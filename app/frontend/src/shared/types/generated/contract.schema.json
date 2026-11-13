@@ -13,9 +13,7 @@
           "type": "string"
         },
         "position_m": {
-          "maxItems": 3,
-          "minItems": 3,
-          "prefixItems": [
+          "items": [
             {
               "type": "number"
             },
@@ -26,6 +24,8 @@
               "type": "number"
             }
           ],
+          "maxItems": 3,
+          "minItems": 3,
           "title": "Position M",
           "type": "array"
         }
@@ -40,7 +40,7 @@
     },
     "Equipment": {
       "additionalProperties": false,
-      "description": "One piece of equipment.\n\nAttributes:\n    tag: Unique equipment tag, for example ``K-202``.\n    type: Kind of equipment.\n    position_m: Base position in site coordinates.\n    rotation_deg: Rotation about the vertical axis in degrees.\n    size_m: Bounding box (x, y, z) in metres.\n    anchors: Named leak points on this equipment.\n    vents_to: Tag of the equipment this one vents to, if any.\n    shelter: Whether it sits inside a shelter.\n    description: Free-text description.",
+      "description": "One piece of equipment.\n\nAttributes:\n    tag: Unique equipment tag, for example ``K-202``.\n    type: Kind of equipment.\n    position_m: Footprint centre at the equipment's base (x, y = centre of the footprint,\n        z = bottom of the box) in site coordinates.\n    rotation_deg: Rotation about the vertical axis in degrees.\n    size_m: Axis-aligned bounding box (x, y, z) in metres before rotation, centred on\n        position_m in x and y and rising from it in z.\n    anchors: Named leak points on this equipment.\n    vents_to: Tag of the equipment this one vents to, if any.\n    shelter: Whether it sits inside a shelter.\n    description: Free-text description.",
       "properties": {
         "anchors": {
           "default": [],
@@ -56,9 +56,7 @@
           "type": "string"
         },
         "position_m": {
-          "maxItems": 3,
-          "minItems": 3,
-          "prefixItems": [
+          "items": [
             {
               "type": "number"
             },
@@ -69,6 +67,8 @@
               "type": "number"
             }
           ],
+          "maxItems": 3,
+          "minItems": 3,
           "title": "Position M",
           "type": "array"
         },
@@ -82,9 +82,7 @@
           "type": "boolean"
         },
         "size_m": {
-          "maxItems": 3,
-          "minItems": 3,
-          "prefixItems": [
+          "items": [
             {
               "type": "number"
             },
@@ -95,6 +93,8 @@
               "type": "number"
             }
           ],
+          "maxItems": 3,
+          "minItems": 3,
           "title": "Size M",
           "type": "array"
         },
@@ -182,9 +182,7 @@
           "title": "Noise Ppm"
         },
         "position_m": {
-          "maxItems": 3,
-          "minItems": 3,
-          "prefixItems": [
+          "items": [
             {
               "type": "number"
             },
@@ -195,6 +193,8 @@
               "type": "number"
             }
           ],
+          "maxItems": 3,
+          "minItems": 3,
           "title": "Position M",
           "type": "array"
         },
@@ -226,7 +226,7 @@
     },
     "OperatingConditions": {
       "additionalProperties": false,
-      "description": "Normal operating conditions of the station.\n\nAttributes:\n    suction_pressure_pa: Compressor suction pressure in pascals.\n    discharge_pressure_pa: Compressor discharge pressure in pascals.\n    gas_temperature_k: Gas temperature in kelvin.\n    throughput_sm3_h: Throughput in standard cubic metres per hour.",
+      "description": "Normal operating conditions of the station.\n\nAttributes:\n    suction_pressure_pa: Compressor suction absolute pressure in pascals (not gauge).\n    discharge_pressure_pa: Compressor discharge absolute pressure in pascals (not gauge).\n    gas_temperature_k: Gas temperature in kelvin.\n    throughput_sm3_h: Throughput in standard cubic metres per hour.",
       "properties": {
         "discharge_pressure_pa": {
           "title": "Discharge Pressure Pa",
@@ -279,9 +279,7 @@
         },
         "waypoints_m": {
           "items": {
-            "maxItems": 3,
-            "minItems": 3,
-            "prefixItems": [
+            "items": [
               {
                 "type": "number"
               },
@@ -292,6 +290,8 @@
                 "type": "number"
               }
             ],
+            "maxItems": 3,
+            "minItems": 3,
             "type": "array"
           },
           "minItems": 2,
@@ -310,7 +310,7 @@
     },
     "Site": {
       "additionalProperties": false,
-      "description": "The site itself.\n\nAttributes:\n    id: Site id, for example ``KS-07``.\n    name: Display name.\n    fictional: Whether the site is simulated (always true for KS-07).\n    bounds: Fence bounds.\n    latitude_deg: Latitude used only to fetch weather.\n    longitude_deg: Longitude used only to fetch weather.\n    elevation_m: Ground elevation in metres.\n    ambient_pressure_pa: Ambient pressure in pascals.",
+      "description": "The site itself.\n\nAttributes:\n    id: Site id, for example ``KS-07``.\n    name: Display name.\n    fictional: Whether the site is simulated (always true for KS-07).\n    bounds: Fence bounds.\n    latitude_deg: Latitude used only to fetch weather.\n    longitude_deg: Longitude used only to fetch weather.\n    elevation_m: Ground elevation in metres.\n    ambient_pressure_pa: Ambient absolute pressure in pascals.",
       "properties": {
         "ambient_pressure_pa": {
           "title": "Ambient Pressure Pa",

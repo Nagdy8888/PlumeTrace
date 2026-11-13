@@ -47,8 +47,9 @@ SKIP_DIRS = {
     ".mypy_cache",
     ".hypothesis",
     ".coverage",
-    ".temp",
 }
+# Supabase CLI cache (gitignored); skipped only at this path.
+SKIP_SUBPATHS = (("app", "supabase", ".temp"),)
 SKIP_FILES = {".env"}
 MAX_BYTES = 5_000_000
 MIN_VALUE_LEN = 12
@@ -101,8 +102,26 @@ def load_env_values(env_path: Path) -> dict[str, str]:
     return values
 
 
+def is_skipped(parts: tuple[str, ...]) -> bool:
+    """Tell whether a path is vendored or cached and must not be scanned.
+
+    Args:
+        parts: The path's components.
+
+    Returns:
+        bool: True if any component is in ``SKIP_DIRS`` or the components contain a
+        ``SKIP_SUBPATHS`` sequence.
+    """
+    if any(part in SKIP_DIRS for part in parts):
+        return True
+    return any(parts[i : i + len(sub)] == sub for sub in SKIP_SUBPATHS for i in range(len(parts)))
+
+
 def iter_files(paths: list[Path]):
     """Yield readable files under the given paths, skipping vendored folders.
+
+    The Supabase CLI cache ``app/supabase/.temp`` is skipped only at that path; a ``.temp``
+    folder anywhere else is scanned.
 
     Args:
         paths: Files or folders to scan.
@@ -116,7 +135,7 @@ def iter_files(paths: list[Path]):
                 yield base
             continue
         for path in base.rglob("*"):
-            if any(part in SKIP_DIRS for part in path.parts):
+            if is_skipped(path.parts):
                 continue
             if path.is_file() and path.name not in SKIP_FILES and path.stat().st_size <= MAX_BYTES:
                 yield path

@@ -9,7 +9,9 @@ column: Western U.S.
 notes: >-
   Production / gathering-and-boosting default counts are used as a documented proxy for a
   transmission compressor station, for which no default counts are published. The TEG regenerator
-  is counted with the contactor as one dehydrator. Reviewed by the owner at Gate 1.
+  is counted with the contactor as one dehydrator. Accepted by the owner at Gate 1 (2026-11-13) as a
+  proxy. The numbers were transcribed from the CFR 2023 edition and are not yet verified against the
+  primary text (see docs/OWNER_ACTIONS.md).
 classes:
   wellheads: {valves: 11, connectors: 36, open_ended_lines: 1, pressure_relief_valves: 0}
   separators: {valves: 34, connectors: 106, open_ended_lines: 6, pressure_relief_valves: 2}

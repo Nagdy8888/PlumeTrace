@@ -14,6 +14,8 @@ latitude and longitude (39.10, 61.30, Karakum desert region) are used only to fe
 Metres. x = east, y = north, z = up. Origin = south-west fence corner. The site is 200 m (x) by
 150 m (y). All positions in the YAML use this frame; `position_m` is `[x, y, z]`.
 
+An equipment `position_m` is the **footprint centre at its base** (x, y = centre of the footprint, z = bottom of the box). `size_m` is the axis-aligned box (x, y, z) before rotation, centred on `position_m` in x and y and rising from it in z. Anchor and instrument positions are points.
+
 ### Modules
 
 | Module (`plumetrace.facility.`) | Responsibility |
@@ -134,6 +136,8 @@ The eight `methane_point` sensors (AT-101 to AT-108) feed `methane_sensors`; eac
 
 ### Gas composition (mole fraction)
 
+**Source:** none; illustrative pipeline-quality composition chosen by the owner at Gate 1 (2026-11-13), inside the design range CH4 0.90-0.95; not from a cited gas analysis; the station is simulated.
+
 | Species | Fraction |
 |---|---|
 | CH4 | 0.930 |
@@ -147,12 +151,14 @@ The eight `methane_point` sensors (AT-101 to AT-108) feed `methane_sensors`; eac
 
 | Quantity | Value |
 |---|---|
-| Suction pressure | 4.5e+06 Pa |
-| Discharge pressure | 7e+06 Pa |
+| Suction pressure (absolute) | 4.5e+06 Pa |
+| Discharge pressure (absolute) | 7e+06 Pa |
 | Gas temperature | 300 K |
 | Throughput | 41667 sm3/h |
-| Ambient pressure | 98900 Pa |
+| Ambient pressure (absolute) | 98900 Pa |
 | Ground elevation | 200 m |
+
+All pressures are absolute, not gauge: the Phase 2 Z factor and blowdown use absolute pressure. 98900 Pa matches the ISA (ISO 2533) value at 200 m (98.95 kPa).
 
 ### Procedural flanges and valves
 
@@ -172,7 +178,9 @@ maps each equipment tag to the counts of its class (types mapped to `null` get z
 
 **Column used:** Western U.S.
 
-**Notes:** Production / gathering-and-boosting default counts are used as a documented proxy for a transmission compressor station, for which no default counts are published. The TEG regenerator is counted with the contactor as one dehydrator. Reviewed by the owner at Gate 1.
+**Notes:** Production / gathering-and-boosting default counts are used as a documented proxy for a transmission compressor station, for which no default counts are published. The TEG regenerator is counted with the contactor as one dehydrator. Accepted by the owner at Gate 1 (2026-11-13) as a proxy. The numbers were transcribed from the CFR 2023 edition and are not yet verified against the primary text (see docs/OWNER_ACTIONS.md).
+
+**Proxy:** not verified against the primary source.
 
 | Class | Valves | Connectors | Open-ended lines | Pressure relief valves |
 |---|---|---|---|---|
@@ -215,3 +223,12 @@ maps each equipment tag to the counts of its class (types mapped to `null` get z
 Unknown fields anywhere in the YAML are rejected, so a typo is an error. The Gate 1 owner review
 of `ks07.yaml`, the gas composition, `component_counts.yaml` and the emission sources is listed
 in `docs/OWNER_ACTIONS.md`.
+
+### Gate 1 decisions (2026-11-13)
+
+- **Location:** the site is fictional. The check against Carbon Mapper coverage is deferred to Phase 8 Task 4.
+- **Emission candidates:** the 21 are kept. Packing (into the shelter) and `VS-250.tip` (via the header) are separate by design. Pneumatics and blowdown are not candidates: scenario S4 releases at `VS-250.tip` and `blowdown.py` quantifies it.
+- **Methane sensors:** the eight are kept. `PIG-101.door` and `V-100.psv` are about 70-75 m from AT-101 and AT-107. The benchmark reports per-candidate results, and Gate 2 decides on any extra sensor.
+- **Pipe ends:** the gaps at the ends of R-140 and R-500 (about 1.25 m and 0.5 m) are cosmetic and handled in Phase 4.
+
+Gate 1 is signed off.

@@ -13,7 +13,7 @@ The outputs are generated - never edit them by hand.
 
 import json
 from pathlib import Path
-from typing import Final
+from typing import Final, cast
 
 from plumetrace.facility.loader import load_facility
 from plumetrace.facility.spec import FacilitySpec
@@ -23,13 +23,42 @@ SCHEMA_OUT: Final[Path] = REPO_ROOT / "app/frontend/src/shared/types/generated/c
 FACILITY_OUT: Final[Path] = REPO_ROOT / "app/frontend/src/shared/facility/ks07.json"
 
 
+def _tuples_as_items(node: object) -> object:
+    """Rewrite ``prefixItems`` to the draft-07 ``items`` array form.
+
+    Pydantic emits JSON Schema 2020-12 ``prefixItems`` for fixed-length tuples.
+    json-schema-to-typescript 16.0.0 ignores ``prefixItems`` and types the members as
+    ``unknown``; ``items: [...]`` together with ``minItems`` and ``maxItems`` gives
+    ``[number, number, number]``.
+
+    Args:
+        node: A JSON Schema node (dict, list or scalar), rewritten recursively.
+
+    Returns:
+        A copy of ``node`` with every ``prefixItems`` key renamed to ``items``.
+
+    Raises:
+        ValueError: If a node has both ``prefixItems`` and ``items``.
+    """
+    if isinstance(node, dict):
+        if "prefixItems" in node and "items" in node:
+            raise ValueError("schema node has both prefixItems and items")
+        return {
+            ("items" if k == "prefixItems" else k): _tuples_as_items(v) for k, v in node.items()
+        }
+    if isinstance(node, list):
+        return [_tuples_as_items(v) for v in node]
+    return node
+
+
 def build_contract_schema() -> dict[str, object]:
     """Build the JSON Schema of the facility model.
 
     Returns:
-        The ``FacilitySpec`` JSON Schema with ``title`` set to ``FacilitySpec``.
+        The ``FacilitySpec`` JSON Schema with ``title`` set to ``FacilitySpec`` and fixed-length
+        tuples in the ``items`` array form (see ``_tuples_as_items``).
     """
-    schema: dict[str, object] = FacilitySpec.model_json_schema()
+    schema = cast(dict[str, object], _tuples_as_items(FacilitySpec.model_json_schema()))
     schema["title"] = "FacilitySpec"
     return schema
 

@@ -49,6 +49,8 @@ The check runner itself is covered by unit tests in `app/backend/tests/test_ci_l
 selection by mode, unknown stage names, stop at the first failing command, failure summary, stage
 environment).
 
+`app/backend/tests/test_secret_scan.py` covers the secret scanner's skip rules (only the Supabase CLI cache `app/supabase/.temp` is skipped) and `app/backend/tests/test_contract_types.py` covers the generated contract types.
+
 ## Which layers a change needs
 
 | Change | Required layers |
