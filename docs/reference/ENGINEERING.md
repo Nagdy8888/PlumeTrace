@@ -898,6 +898,34 @@ wrap-around over thousands of hours, and the interpolation. `app/backend/tests/f
 test_obstacles_edges.py`: obstacle order, sizes, flags, empty spec, rotation.
 Run from `app/`: `uv run pytest backend/tests/engineering -q`.
 
+### Physical laws tested
+
+`app/backend/tests/engineering/test_properties.py` (Hypothesis 6.170.14, 11 tests). Every test
+uses `settings(max_examples=200, derandomize=True, deadline=None, database=None)`: 200 examples,
+the same inputs on every run, no time limit per example and no example database (nothing is stored
+or replayed between runs; Hypothesis may still create a gitignored `.hypothesis/constants` cache). Inputs are
+drawn over: rate 1e-5 to 5 kg/s, wind speed 0.5 to 20 m/s, any bearing, source height 0 to 30 m,
+1 to 1500 m downwind, +-300 m crosswind, receptor height 0 to 10 m, every stability class and both
+coefficient sets.
+
+| Test | Law checked | Source |
+|---|---|---|
+| `test_plume_is_linear_in_rate` | C(kQ) = k C(Q) | Turner (1994), eq. 1-1 (C is proportional to Q) |
+| `test_plume_scales_inversely_with_wind_speed` | C u is the same for any wind speed | Turner (1994), eq. 1-1 (C is proportional to 1/u; no plume rise) |
+| `test_nothing_upwind` | concentration is exactly 0 for receptors behind the source | Turner (1994), eq. 1-1 domain (downwind only) |
+| `test_crosswind_mirror_symmetry_and_finiteness` | mirroring across the plume axis gives the same value; finite and non-negative | Turner (1994), eq. 1-1 (even in crosswind offset) |
+| `test_rotating_the_scene_with_the_wind_changes_nothing` | rotating source, receptor and wind direction together leaves C unchanged | geometry of the wind-aligned frame |
+| `test_ppm_round_trip` | kg/m3 to ppm to kg/m3 returns the input | ideal-gas law (`units.py`) |
+| `test_circular_mean_rotates_with_the_data` | rotating every direction by phi rotates the circular mean by phi; result in [0, 360) | definition of the circular mean |
+| `test_fusion_is_a_probability_and_order_free` | posterior is non-negative, sums to 1 and does not depend on evidence order | Bayes update with clipped likelihood ratios (`fusion.py`) |
+| `test_neutral_evidence_keeps_the_prior` | likelihood ratio 1 everywhere returns the normalised prior | Bayes update with clipped likelihood ratios (`fusion.py`) |
+| `test_unlit_flare_never_slips_less_than_lit` | 0 <= lit slip <= unlit slip | flare destruction efficiency (`flare.py`) |
+| `test_pipeline_gas_properties_stay_physical` | for CH4 >= 85 %, 0 < Z <= 1.05 and the CH4 mass fraction is in [0, 1], over 1 to 80 bar and 260 to 330 K | Papay correlation, Kay's rule (`gas.py`) |
+
+Only these laws are checked. The tests do not check mass conservation of the plume, monotone fall
+with distance, or any property of the inversion or the truth model.
+
+
 ## 8. How to extend
 
 Add a constant only in `constants.py` with a `# source:` comment, never inline in a model. Name
@@ -918,3 +946,4 @@ every quantity with its unit suffix. Keep functions pure.
 - 2026-11-13: emission-factor inventory and methane intensity added (Phase 2 Task 11).
 - 2026-11-13: truth model (weather, meander, gusts, wakes, noise, drift) for the simulator and the benchmark added (Phase 2 Task 12).
 - 2026-11-13: model-mismatch benchmark (250 cases) and its report added (Phase 2 Task 13).
+- 2026-11-14: property-based and metamorphic tests of the physics laws added (Phase 2 Task 14).

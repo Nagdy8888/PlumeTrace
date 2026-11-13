@@ -302,7 +302,7 @@ def test_pipeline_gas_properties_stay_physical(
 ```
 
 ## Steps
-- [ ] Copy the file → `cd app && uv run pytest backend/tests/engineering/test_properties.py -q` → `11 passed`.
-- [ ] Full checks (`python scripts/ci_local.py`); ruff, ruff format, mypy clean.
-- [ ] **Docs.** ENGINEERING.md → "Physical laws tested"; `docs/reference/TESTING.md` → "Property-based tests" row for this file. Work-log; `STATUS.md`: "Phase 2 complete — waiting for Gate 2 (physics assumptions + benchmark). Improvement round: not started."
+- [x] Copy the file → `cd app && uv run pytest backend/tests/engineering/test_properties.py -q` → `11 passed`.
+- [x] Full checks (`python scripts/ci_local.py`); ruff, ruff format, mypy clean.
+- [x] **Docs.** ENGINEERING.md → "Physical laws tested"; `docs/reference/TESTING.md` → "Property-based tests" row for this file. Work-log; `STATUS.md`: "Phase 2 complete — waiting for Gate 2 (physics assumptions + benchmark). Improvement round: not started."
 - [ ] **Commit** `test(engineering): add property-based and metamorphic tests of the physics`.
