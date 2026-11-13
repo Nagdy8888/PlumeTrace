@@ -1,0 +1,23 @@
+[project]
+name = "plumetrace"
+version = "0.1.0"
+description = "PlumeTrace backend: engineering core, facility, simulator, data access and API."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "pydantic==2.14.3",
+    "pydantic-settings==2.16.2",
+    "pyyaml==6.0.3",
+    "psycopg[binary,pool]==3.3.9",
+    "psycopg-pool==3.3.3",
+    "plumetrace-agents",
+]
+
+[tool.uv.sources]
+plumetrace-agents = { workspace = true }
+
+[build-system]
+requires = ["hatchling==1.33.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["plumetrace"]

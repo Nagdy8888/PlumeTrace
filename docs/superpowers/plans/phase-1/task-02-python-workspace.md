@@ -195,13 +195,13 @@ def test_agents_package_imports_and_has_version() -> None:
 ```
 
 ## Steps
-- [ ] **1.** Create the two test files first, then all other files above with exactly the shown content.
-- [ ] **2.** `cd app && uv sync` → creates `.venv` and `uv.lock` without errors.
-- [ ] **3.** `uv run pytest -q` → `3 passed`.
-- [ ] **4.** `uv run ruff check .` → `All checks passed!`; `uv run ruff format --check .` → no changes needed (run `uv run ruff format .` once if it reports files, then re-check).
-- [ ] **5.** `uv run mypy` → `Success: no issues found`.
-- [ ] **6.** Repo checks (from repo root): `check_structure.py` → `structure OK`; `check_env.py` → `env OK`; `secret_scan.py` → `no secrets found`.
-- [ ] **7. Docs.** In `docs/LOCAL_DEVELOPMENT.md` → `## Python`: `cd app`, `uv sync`, `uv run pytest -q`, `uv run ruff check .`, `uv run ruff format .`, `uv run mypy`; note "tests use `--import-mode=importlib`; test folders have no `__init__.py`". Work-log row; `STATUS.md` (last 1.2, next 1.3).
+- [x] **1.** Create the two test files first, then all other files above with exactly the shown content.
+- [x] **2.** `cd app && uv sync` → creates `.venv` and `uv.lock` without errors.
+- [x] **3.** `uv run pytest -q` → `3 passed`.
+- [x] **4.** `uv run ruff check .` → `All checks passed!`; `uv run ruff format --check .` → no changes needed (run `uv run ruff format .` once if it reports files, then re-check).
+- [x] **5.** `uv run mypy` → `Success: no issues found`.
+- [x] **6.** Repo checks (from repo root): `check_structure.py` → `structure OK`; `check_env.py` → `env OK`; `secret_scan.py` → `no secrets found`.
+- [x] **7. Docs.** In `docs/LOCAL_DEVELOPMENT.md` → `## Python`: `cd app`, `uv sync`, `uv run pytest -q`, `uv run ruff check .`, `uv run ruff format .`, `uv run mypy`; note "tests use `--import-mode=importlib`; test folders have no `__init__.py`". Work-log row; `STATUS.md` (last 1.2, next 1.3).
 - [ ] **8. Commit** `feat(workspace): add uv workspace with backend and agents packages` (stage `app/` files and docs; `uv.lock` included; `.venv` must not be staged).
 
 ## Done when

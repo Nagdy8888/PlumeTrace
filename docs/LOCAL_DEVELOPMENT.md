@@ -60,7 +60,18 @@ Filled in by Phase 1 Task 3.
 
 ## Python
 
-Filled in by Phase 1 Task 2.
+All Python commands run from `app/` (the uv workspace root; members `backend` and `agents`).
+
+```bash
+cd app
+uv sync                  # create .venv and install both packages plus the dev tools
+uv run pytest -q         # run the tests
+uv run ruff check .      # lint
+uv run ruff format .     # format
+uv run mypy              # type-check (strict)
+```
+
+Tests use `--import-mode=importlib`; test folders have no `__init__.py`.
 
 ## Database
 

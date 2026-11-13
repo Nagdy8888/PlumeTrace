@@ -1,0 +1,65 @@
+[project]
+name = "plumetrace-workspace"
+version = "0.1.0"
+description = "PlumeTrace uv workspace root (not a package)."
+requires-python = ">=3.12,<3.13"
+dependencies = ["plumetrace", "plumetrace-agents"]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["backend", "agents"]
+
+[tool.uv.sources]
+plumetrace = { workspace = true }
+plumetrace-agents = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest==9.2.0",
+    "ruff==0.17.5",
+    "mypy==2.4.1",
+    "types-PyYAML==6.0.12.20261111",
+    "pip-audit==2.10.1",
+    "hypothesis==6.170.14",
+    "pytest-cov==7.1.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "D", "S", "ANN", "N"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+known-first-party = ["plumetrace", "plumetrace_agents", "evals"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101", "ANN"]
+
+[tool.mypy]
+strict = true
+plugins = ["pydantic.mypy"]
+packages = ["plumetrace", "plumetrace_agents"]
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests", "agents/tests"]
+addopts = "--import-mode=importlib"
+pythonpath = ["backend"]
+markers = [
+    "db: needs the local Supabase Postgres (see docs/LOCAL_DEVELOPMENT.md)",
+    "slow: longer than ~5 s; skipped by the quick local checks (scripts/ci_local.py)",
+    "fuzz: Schemathesis API fuzzing (Phase 6); full local checks only",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["plumetrace", "plumetrace_agents"]
+
+[tool.coverage.report]
+exclude_also = ["if __name__ == .__main__.:", "raise NotImplementedError"]

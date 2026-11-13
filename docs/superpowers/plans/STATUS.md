@@ -3,8 +3,8 @@
 Updated by the implementing agent after every task (see the `plan-execution` skill).
 
 - **Current phase:** 1 — Foundations (`docs/superpowers/plans/phase-1/README.md`)
-- **Last completed task:** `docs/superpowers/plans/phase-1/task-01-repo-bootstrap.md`
-- **Next task:** `docs/superpowers/plans/phase-1/task-02-python-workspace.md`
+- **Last completed task:** `docs/superpowers/plans/phase-1/task-02-python-workspace.md`
+- **Next task:** `docs/superpowers/plans/phase-1/task-03-settings.md`
 - **In progress:** none
 - **Blockers / questions for the owner:** planner cleanup (non-blocking): `phase-1/README.md` lines 69-72 still list the four GitHub Actions rows (actions/checkout, setup-python, setup-node, setup-uv); rule 25 says no GitHub Actions.
 - **Owner decisions log:**
@@ -24,3 +24,4 @@ Updated by the implementing agent after every task (see the `plan-execution` ski
 | Date | Phase.Task | Result | Evidence |
 |---|---|---|---|
 | 2026-11-13 | 1.1 | PASS | `structure OK`, `env OK`, `no secrets found`; reviewer PASS; owner approved committing all pre-existing planning files in the first commit and pushing to a private GitHub repo (2026-11-13, chat) |
+| 2026-11-13 | 1.2 | PASS | `uv run pytest -q`: 3 passed; `ruff check`: All checks passed; `mypy`: no issues found in 2 source files; `structure OK`, `env OK`, `no secrets found`; reviewer PASS |
