@@ -79,6 +79,6 @@ def test_calm_threshold() -> None:
 ```
 
 ## Steps
-- [ ] Test → FAIL → implement → full checks green.
-- [ ] **Docs.** ENGINEERING.md → "Averaging": why sensor data is averaged (the plume model predicts ~10-min means), window rule, coverage rule, circular mean, calm threshold. Work-log; `STATUS.md` (last 2.6, next 2.7).
+- [x] Test → FAIL → implement → full checks green.
+- [x] **Docs.** ENGINEERING.md → "Averaging": why sensor data is averaged (the plume model predicts ~10-min means), window rule, coverage rule, circular mean, calm threshold. Work-log; `STATUS.md` (last 2.6, next 2.7).
 - [ ] **Commit** `feat(engineering): add window averaging and wind statistics`.

@@ -189,6 +189,32 @@ no meander, no chemistry or deposition; spreads are clipped at 10 m, so the mode
 within about 10 m of the source (value there equals the 10 m value). Reference: Turner,
 *Workbook of Atmospheric Dispersion Estimates*, 2nd ed., 1994.
 
+### Averaging
+
+Module `plumetrace.engineering.averaging`. The plume model predicts roughly 10-minute mean
+concentrations, so raw sensor and weather samples are averaged into complete windows before they
+are compared with it; single samples carry turbulent noise the model does not describe.
+
+- `window_means(times_s, values, window_s=WINDOW_S)` with `times_s` shape `(T,)` (constant step
+  `dt`) and `values` shape `(T, S)` returns `(window_start_s (W,), means (W, S))`. Window k covers
+  `[t0 + k window_s, t0 + (k+1) window_s)`, `t0 = times_s[0]`. Only complete windows are returned;
+  a trailing partial window is dropped; a series shorter than one window gives empty results
+  (shapes `(0,)` and `(0, S)`).
+- Input checks: fewer than two samples, or a `values`, `speed_m_s` or `from_deg` whose length
+  differs from `times_s` (longer or shorter, nothing is truncated), raises `ValueError`.
+- Coverage rule: the mean uses the non-NaN samples; if there are fewer than
+  `MIN_COVERAGE x window_s / dt` of them (`MIN_COVERAGE` = 0.5), the window is NaN. Exactly 50 % is
+  kept.
+- `circular_mean_deg(directions_deg)` is the vector mean of unit vectors, so 359 and 1 degrees
+  average to 0, not 180. The result is in `[0, 360)`; values within 1e-9 of 360 return 0.0. An
+  empty array raises `ValueError`.
+- `window_wind(times_s, speed_m_s, from_deg, window_s=WINDOW_S)` returns per complete window the
+  arithmetic mean speed and the circular mean direction. It has no NaN coverage rule.
+- `is_calm(speed_m_s)` is `speed_m_s < CALM_WIND_M_S` (1 m/s): the plume formula divides by wind
+  speed, so calm windows are not modelled.
+
+`WINDOW_S` = 600 s, `CALM_WIND_M_S` = 1.0 and `MIN_COVERAGE` = 0.5 are Phase 2 Task 6 values.
+
 ## 4. Design decisions and assumptions
 
 - Ideal gas law for ppm and kg/m3; at 288.15 K and 101325 Pa pure methane is 0.67850 kg/m3.
@@ -223,7 +249,11 @@ boundaries (u = 2, 3; 600, 300, 10 W/m2; cloud 0.5).
 300 m difference between sets.
 `app/backend/tests/engineering/test_plume.py`: closed form for a ground source on the centreline,
 linearity in Q, symmetry across the axis, zero upwind, wind direction convention, near-source
-clipping, ground reflection for an elevated source, input validation and vectorised equals loop. Run from
+clipping, ground reflection for an elevated source, input validation and vectorised equals loop.
+`app/backend/tests/engineering/test_averaging.py`: complete windows with the partial tail dropped,
+the NaN coverage rule (70 % missing is NaN, 50 % kept), circular mean across north, window wind and
+the calm threshold. `test_averaging_edges.py`: series shorter than one window, fewer than two
+samples, length mismatch in both directions and empty circular mean. Run from
 `app/`: `uv run pytest backend/tests/engineering -q`.
 
 ## 8. How to extend
@@ -238,3 +268,4 @@ every quantity with its unit suffix. Keep functions pure.
 - 2026-11-13: Pasquill stability classification added (Phase 2 Task 3).
 - 2026-11-13: Briggs rural and Pasquill-Gifford (Martin) dispersion coefficients added (Phase 2 Task 4).
 - 2026-11-13: Gaussian plume forward model added (Phase 2 Task 5).
+- 2026-11-13: window averaging, circular wind mean and calm detection added (Phase 2 Task 6).

@@ -1,0 +1,131 @@
+"""Window averaging and wind statistics for sensor and weather series.
+
+The plume model predicts roughly 10-minute mean concentrations, so raw samples are averaged into
+complete windows before they are compared with it. Pure numpy, no I/O.
+"""
+
+import math
+from typing import Final
+
+import numpy as np
+import numpy.typing as npt
+
+# 10-minute window, the 1 m/s calm limit and the 50 % coverage rule: Phase 2 Task 6 values.
+WINDOW_S: Final[float] = 600.0
+CALM_WIND_M_S: Final[float] = 1.0
+MIN_COVERAGE: Final[float] = 0.5
+
+
+def _samples_per_window(
+    times_s: npt.NDArray[np.float64], window_s: float, *series: npt.NDArray[np.float64]
+) -> int:
+    """Number of samples in one window; checks the series against ``times_s``.
+
+    Raises:
+        ValueError: If there are fewer than two samples or a series length differs from
+            ``len(times_s)``.
+    """
+    if len(times_s) < 2:
+        raise ValueError("need at least two samples to find the time step")
+    for item in series:
+        if len(item) != len(times_s):
+            raise ValueError(
+                f"series length {len(item)} differs from times_s length {len(times_s)}"
+            )
+    return round(window_s / float(times_s[1] - times_s[0]))
+
+
+def _window_starts_s(
+    times_s: npt.NDArray[np.float64], window_s: float, n: int
+) -> npt.NDArray[np.float64]:
+    """Start time of each complete window."""
+    count = len(times_s) // n
+    return float(times_s[0]) + window_s * np.arange(count, dtype=np.float64)
+
+
+def window_means(
+    times_s: npt.NDArray[np.float64],
+    values: npt.NDArray[np.float64],
+    window_s: float = WINDOW_S,
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    """Average ``values`` over consecutive complete windows, ignoring NaN samples.
+
+    Window k covers ``[t0 + k*window_s, t0 + (k+1)*window_s)``; a trailing partial window is
+    dropped. A sensor with fewer than ``MIN_COVERAGE`` of the expected samples in a window gets
+    NaN for that window.
+
+    Args:
+        times_s: Sample times, shape ``(T,)``, ascending with a constant step, in s.
+        values: Samples, shape ``(T, S)``.
+        window_s: Window length in s.
+
+    Returns:
+        ``(window_start_s, means)`` with shapes ``(W,)`` and ``(W, S)``; ``W`` is 0 when the
+        series is shorter than one window.
+
+    Raises:
+        ValueError: If ``times_s`` has fewer than two samples or ``len(values)`` differs from
+            ``len(times_s)`` (longer or shorter, no truncation).
+    """
+    n = _samples_per_window(times_s, window_s, values)
+    starts = _window_starts_s(times_s, window_s, n)
+    count = len(starts)
+    blocks = np.asarray(values, dtype=np.float64)[: count * n].reshape(count, n, values.shape[1])
+    valid = ~np.isnan(blocks)
+    n_valid = valid.sum(axis=1)
+    total = np.where(valid, blocks, 0.0).sum(axis=1)
+    means = np.where(n_valid < MIN_COVERAGE * n, np.nan, total / np.maximum(n_valid, 1))
+    return starts, means
+
+
+def circular_mean_deg(directions_deg: npt.NDArray[np.float64]) -> float:
+    """Vector mean of compass directions, in ``[0, 360)`` degrees.
+
+    Args:
+        directions_deg: Directions in degrees.
+
+    Returns:
+        Mean direction; values within 1e-9 of 360 are returned as 0.0.
+
+    Raises:
+        ValueError: If ``directions_deg`` is empty.
+    """
+    if len(directions_deg) == 0:
+        raise ValueError("directions_deg is empty")
+    rad = np.radians(directions_deg)
+    mean = math.degrees(math.atan2(float(np.sin(rad).sum()), float(np.cos(rad).sum()))) % 360.0
+    return 0.0 if mean > 360.0 - 1e-9 else mean
+
+
+def window_wind(
+    times_s: npt.NDArray[np.float64],
+    speed_m_s: npt.NDArray[np.float64],
+    from_deg: npt.NDArray[np.float64],
+    window_s: float = WINDOW_S,
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    """Mean wind speed and circular mean wind direction per complete window.
+
+    Args:
+        times_s: Sample times, shape ``(T,)``, constant step, in s.
+        speed_m_s: Wind speed, shape ``(T,)``, in m/s.
+        from_deg: Direction the wind blows from, shape ``(T,)``, degrees.
+        window_s: Window length in s.
+
+    Returns:
+        ``(mean_speed_m_s, mean_from_deg)``, each of shape ``(W,)`` (empty when the series is
+        shorter than one window).
+
+    Raises:
+        ValueError: If ``times_s`` has fewer than two samples or ``speed_m_s`` or ``from_deg``
+            has a different length from ``times_s``.
+    """
+    n = _samples_per_window(times_s, window_s, speed_m_s, from_deg)
+    count = len(times_s) // n
+    speed = np.asarray(speed_m_s, dtype=np.float64)[: count * n].reshape(count, n)
+    direction = np.asarray(from_deg, dtype=np.float64)[: count * n].reshape(count, n)
+    return speed.mean(axis=1), np.array([circular_mean_deg(row) for row in direction])
+
+
+def is_calm(speed_m_s: float) -> bool:
+    """Return True when the wind is below ``CALM_WIND_M_S``."""
+    return speed_m_s < CALM_WIND_M_S
