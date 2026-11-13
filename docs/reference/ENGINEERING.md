@@ -622,6 +622,103 @@ Limits:
 - Volumes use the ideal gas law at 15 degC. A mass basis, or a different reference temperature
   such as 60 degF, gives a slightly different percentage.
 
+### Truth model (why the demo is not an inverse crime)
+
+Modules `plumetrace.engineering.truth_weather` and `plumetrace.engineering.truth_model`, and
+`plumetrace.facility.obstacles` (it lives in `facility` because `engineering` may not import it).
+To keep each file within the size limits, `WakeObstacle` and the wake rule are in `truth_wake`,
+`SensorFault` and its drift in `truth_faults`, the AR(1) meander and gusts in `truth_turbulence`;
+`truth_model` re-exports both types. The public helpers of these modules (`interpolate_weather`,
+`InterpolatedWeather`, `stability_series`, `angular_diff_deg`, `turbulent_wind`, `ar1_series`,
+`wake_mask`, `apply_faults`) are the truth model's internal building blocks, not part of the plan
+interface.
+The simulator (Phase 3) and the benchmark (Task 13) generate sensor data with this model. The
+inversion fits data with Briggs coefficients and a steady plume, so data made by the same model
+would be "solved by construction" (an inverse crime). The truth model therefore differs on purpose:
+
+| Ingredient | Parameter (default) | Why it is there |
+|---|---|---|
+| Other dispersion coefficients | `TruthConfig.coeff = PG_MARTIN` (inversion: `BRIGGS_RURAL`) | The two fits of the same curves differ. At 300 m on class D the centreline excess is about 24 % higher with Martin: 4.17 ppm against 3.36 ppm for 36 kg/h, 4 m/s, 290 K, 98 900 Pa, source and receptor at 2 m (hand calculation: `sy`, `sz` = 23.65 m, 14.95 m Briggs; 23.18 m, 12.17 m Martin). |
+| Wind-direction meander | `meander_sd_deg = 10`, `meander_tau_s = 120` | A real wind direction wanders on the minute scale; the inversion sees window means. |
+| Gusty speed | `speed_cv = 0.15`, same `meander_tau_s`, floor `MIN_SPEED_M_S = 0.3` | Speed varies around the hourly value. |
+| Building wake | `wake_dilution = 0.6`; wake length 3 obstacle heights | Receptors close behind a building or shelter see less plume; the inversion has no obstacles. |
+| Sensor noise | `noise_ppm = 0.3` | White Gaussian noise on every reading. |
+| Drift faults | `SensorFault(sensor_id, drift_ppm_per_h, start_s)` | A fault adds `drift * max(0, t - start) / 3600` ppm to one sensor. |
+| Own weather and stability | hourly weather, class by `pasquill_class` | Stability follows the hourly sun and cloud, not the inversion's window. |
+
+The 0.3 m/s floor, the wake length of 3 heights, the 6 m shelter height and the 200 000-step cap
+are Task 12 project values (no published source is claimed). The coefficient sets are the ones of
+Dispersion coefficients.
+
+Per time step `t = k * dt_s`, `k = 0 ... floor(duration_s / dt_s) - 1` (`simulate_sensors`):
+
+1. **Weather:** `h = t / 3600`, `i = floor(h)`, `f = h - i`. Speed is linear between hour `i` and
+   `i + 1`; direction is linear along the shortest arc; temperature, shortwave and cloud come from
+   hour `i`. Hours past the list hold the last entry.
+2. **Meander:** `phi = exp(-dt_s / meander_tau_s)`, `m_0 = sd * e_0`,
+   `m_k = phi * m_(k-1) + sqrt(1 - phi^2) * sd * e_k`; direction = interpolated + `m_k`, wrapped to
+   [0, 360).
+3. **Gusts:** the same AR(1) with stationary sd `speed_cv` gives `r_k`;
+   `speed = max(0.3, interpolated * (1 + r_k))`.
+4. **Stability:** `pasquill_class(interpolated speed without gust, shortwave, cloud)`.
+5. **Plume:** sum over sources with `start_s <= t < end_s` of `concentration_ppm(rate / 3600,
+   speed, direction, source, receptors, stability, coeff, temp, pressure)`.
+6. **Wake:** a receptor is in an obstacle's wake when, in the wind frame centred on the obstacle,
+   `0 < along <= 3 * height_m` and `|cross| <= half_width_m`. Its plume is multiplied by
+   `wake_dilution` once, however many wakes it is in.
+7. **Output:** `background_ppm + plume + noise_ppm * e` per sensor, plus the drift of each fault.
+
+**Random-draw order.** All draws are made up front as `rng.standard_normal((T, 2 + S))`, which
+equals drawing step by step: per step the meander value, the gust value, then one noise value per
+sensor in sensor order. The draws are made even when `noise_ppm`, `meander_sd_deg` or `speed_cv`
+is 0, so a seed gives aligned sequences whatever the configuration, and the generator advances by
+exactly `T * (2 + S)` values. The same seed and inputs give a bit-identical series. The weather
+generator draws three values per hour: speed normal, direction normal, cloud beta.
+
+**Synthetic weather** (`synthetic_hourly_weather(hours, start_hour_of_day, rng, prevailing)`):
+speed `exp(ln 4 + 0.5 z)` clipped to 0.3 to 15 m/s; direction a mean-reverting walk
+`d = d + N(0, 20) - 0.2 * angular_diff(d, prevailing)` (hour 0 is already one step from the
+prevailing direction, default 250 deg); cloud `beta(2, 5)`; shortwave `800 sin(pi (h - 6) / 12)`
+from 06 to 18 h local time times `(1 - 0.75 cloud)`, else 0; temperature 300 K if shortwave exceeds
+10 W/m2, else 285 K. All of these numbers are Task 12 values.
+
+**How Phase 3 feeds real weather.** The simulator will build one `HourlyWeather` per hour from
+Open-Meteo hourly data (wind speed, wind direction, shortwave radiation, cloud cover,
+temperature), converted to m/s, degrees, W/m2, a 0 to 1 fraction and K, with `hour_index` counting
+from 0. `HourlyWeather` rejects non-finite or unphysical values at construction (negative speed,
+cloud outside 0 to 1, temperature not above 0 K), so bad API data fails at the boundary. A calm
+hour (0 m/s) is valid input: the speed floor of 0.3 m/s applies.
+
+`ValueError` (never NaN) for: no sensors, repeated sensor ids, a fault on an unknown sensor, empty
+weather, `dt_s` or `pressure_pa` not positive and finite, a duration that is not finite or shorter
+than one step (zero steps is an error, not an empty series), more than 200 000 steps, an invalid
+`TruthConfig`, `TrueSource`, `WakeObstacle` or `SensorFault` (checked at construction), and a
+reading that is not finite (for example drifts that overflow). A source's `end_s` may be infinite.
+
+Limits:
+
+- It is the same Gaussian plume formula as the inversion (`concentration_ppm`) with another
+  coefficient set plus noise. It does not test structural errors such as plume rise, dense-gas or
+  buoyant behaviour, terrain, or a non-Gaussian vertical profile. A good benchmark result shows
+  robustness to these mismatches only, not to every real-world error.
+- Stability changes only at the hour boundaries of the weather (speed interpolates, sun and cloud
+  do not), so a class can jump while the wind changes smoothly. The class uses no gusts.
+- Meander and gusts share one correlation time and are stationary; there is no averaging-time
+  dependence of the spread, and the plume is evaluated as steady state at every step.
+- The wake is a box rule: one fixed factor, three heights long, one width, no recirculation or
+  plume lift. A source inside a wake is not treated; only receptors are tested. A receptor inside
+  the obstacle footprint (`along <= 0` from the centre) counts as outside. Rotation is ignored and
+  the larger footprint side gives the width (a conservative square), see Obstacles in
+  SIMULATOR.md.
+- Noise is white and Gaussian with one `noise_ppm` for all sensors; `Sensor.noise_ppm` is not
+  used. Drift is linear and unbounded; there is no dropout (NaN), saturation or stuck value.
+- Pressure is constant, temperature is constant within an hour. Distances are clipped to 10 to
+  1000 m as in Dispersion coefficients, so beyond 1 km the spread stops growing.
+- The synthetic weather is deliberately simple: independent hourly speeds and clouds, no seasons,
+  two temperatures, no latitude. It is for tests and the benchmark, not a climate model.
+- A run is limited to 200 000 steps (about 23 days at 10 s); the step count is
+  `floor(duration_s / dt_s + 1e-9)` so that `0.3 / 0.1` still gives 3.
+
 ## 4. Design decisions and assumptions
 
 - Ideal gas law for ppm and kg/m3; at 288.15 K and 101325 Pa pure methane is 0.67850 kg/m3.
@@ -694,8 +791,25 @@ lean gas, gas without methane, bad and missing counts, the tag in the message, a
 million valves, gas without hydrocarbons, all twelve leaker cells, the meter conversion from raw
 constants, unknown names and read-only tables. `test_intensity.py`: 1.000 % and zero throughput.
 `test_intensity_edges.py`: zero emission, scaling, the methane density check, above 100 %, tiny
-throughput, bad throughput and emission, overflow. Run from
-`app/`: `uv run pytest backend/tests/engineering -q`.
+throughput, bad throughput and emission, overflow.
+`app/backend/tests/engineering/test_truth_model.py` (plan tests): determinism, the quiet Briggs
+configuration equals the plume model, Martin differs from Briggs by more than 10 %, background and
+noise statistics, the source window, linear drift, the 0.6 wake dilution, KS-07 obstacles and the
+synthetic weather ranges (the noise statistics test uses seed 0: the plan's seed 1 is a 3.8-sigma
+outlier draw for the specified draw order, so `test_noise_is_unbiased_pooled_over_50_seeds` checks the
+bias over 18 000 pooled samples, owner decision 2026-11-13). `test_truth_model_edges.py`: step count and time axis, every
+`ValueError` of the set-up and of the four input types, draw order and generator advance (also
+with zero noise), meander on draw 0 and gusts on draw 1 against the documented recursion, wind
+independent of the noise level, seeds, column order, overflow. `test_truth_model_physics_edges.py`:
+the stationary statistics of meander and gusts (sd 10 deg, CV 0.15, lag-1 correlation exp(-1/12)),
+the speed floor, wrap-around through north, hold of the last hour, stability and temperature per
+hour, source windows (start inclusive, end exclusive), linearity, upwind sensors, drift start and
+sign, and the wake boundaries (inclusive 3 heights, centre, width, once only, wind direction, zero
+dilution). `test_truth_weather_edges.py`: `HourlyWeather` validation, `angular_diff_deg`, the
+generator's draw order and three draws per hour, day and night, the clock shift, clipping and
+wrap-around over thousands of hours, and the interpolation. `app/backend/tests/facility/
+test_obstacles_edges.py`: obstacle order, sizes, flags, empty spec, rotation.
+Run from `app/`: `uv run pytest backend/tests/engineering -q`.
 
 ## 8. How to extend
 
@@ -715,3 +829,4 @@ every quantity with its unit suffix. Keep functions pure.
 - 2026-11-13: evidence fusion and vent-header attribution added (Phase 2 Task 9).
 - 2026-11-13: flare methane slip and blowdown vented mass added (Phase 2 Task 10).
 - 2026-11-13: emission-factor inventory and methane intensity added (Phase 2 Task 11).
+- 2026-11-13: truth model (weather, meander, gusts, wakes, noise, drift) for the simulator and the benchmark added (Phase 2 Task 12).

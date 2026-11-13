@@ -84,6 +84,8 @@ Random draws per step, in order: meander `ε`, gust `ε`, then `S` sensor-noise 
 - `def facility_obstacles(spec: FacilitySpec) -> list[WakeObstacle]` — every `building` (`half_width = max(size_x, size_y)/2`, `height = size_z`) and every equipment with `shelter: true` (`half_width = max(size_x, size_y)/2`, `height = SHELTER_HEIGHT_M`), in spec order.
 
 ## Tests (full code) — `app/backend/tests/engineering/test_truth_model.py`
+
+> Owner decision 2026-11-13: test_background_and_noise_statistics seed 1 -> 0. The literal draw order (meander, gust, then S noise) gives mean 1.8896 for seed 1 (3.8 sigma); the implementation is unbiased over seeds 0-299 (mean 1.9503). Planner defect, not a code change.
 ```python
 """Tests for the truth model used by the simulator and the benchmark."""
 
@@ -151,7 +153,7 @@ def test_truth_physics_differs_from_inversion_physics() -> None:
 
 def test_background_and_noise_statistics() -> None:
     """No sources: mean 1.95 and standard deviation 0.3 ppm (360 samples)."""
-    s = _run(TruthConfig(), sources=[], seed=1)
+    s = _run(TruthConfig(), sources=[], seed=0)
     assert float(s.ppm.mean()) == pytest.approx(1.95, abs=0.05)
     assert float(s.ppm.std()) == pytest.approx(0.3, abs=0.04)
 
@@ -205,6 +207,6 @@ def test_synthetic_weather_ranges_and_determinism() -> None:
 ```
 
 ## Steps
-- [ ] Tests → FAIL → implement (helpers for interpolation, AR(1) series, wake mask; every function ≤ 50 lines) → full checks green (`check_structure.py` confirms `facility/obstacles.py` imports only `engineering` + facility).
-- [ ] **Docs.** ENGINEERING.md → "Truth model (why the demo is not an inverse crime)": every mismatch ingredient, its parameter and why; the random-draw order; how Phase 3 will feed Open-Meteo weather. SIMULATOR.md → "Obstacles". Work-log; `STATUS.md` (last 2.12, next 2.13).
+- [x] Tests → FAIL → implement (helpers for interpolation, AR(1) series, wake mask; every function ≤ 50 lines) → full checks green (`check_structure.py` confirms `facility/obstacles.py` imports only `engineering` + facility).
+- [x] **Docs.** ENGINEERING.md → "Truth model (why the demo is not an inverse crime)": every mismatch ingredient, its parameter and why; the random-draw order; how Phase 3 will feed Open-Meteo weather. SIMULATOR.md → "Obstacles". Work-log; `STATUS.md` (last 2.12, next 2.13).
 - [ ] **Commit** `feat(engineering): add truth model for simulator and benchmark`.

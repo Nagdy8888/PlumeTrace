@@ -25,6 +25,7 @@ An equipment `position_m` is the **footprint centre at its base** (x, y = centre
 | `loader` | `load_facility(path)` reads the YAML as UTF-8 with `yaml.safe_load` and validates it. |
 | `candidates` | `emission_candidates(spec)` and `methane_sensors(spec)`, returning `plumetrace.engineering.geometry` types. |
 | `components` | Procedural flange and valve placement and the component-count table. |
+| `obstacles` | `facility_obstacles(spec)`: buildings and shelters as wake obstacles for the truth model. |
 
 `facility` imports only `plumetrace.engineering` (checked by `check_structure.py`).
 
@@ -208,6 +209,28 @@ maps each equipment tag to the counts of its class (types mapped to `null` get z
 | flare_stack | none (zeros) |
 | meter_run | meters_piping |
 | building | none (zeros) |
+
+### Obstacles
+
+`plumetrace.facility.obstacles.facility_obstacles(spec)` turns the spec into the list of
+`WakeObstacle` objects that the truth model uses for building wakes (see "Truth model" in
+`docs/reference/ENGINEERING.md`). Every equipment of type `building` and every equipment with
+`shelter: true` is one obstacle, in spec order: centre = footprint centre (x, y), half width =
+`max(size_x, size_y) / 2`, height = `size_z` for a building and `SHELTER_HEIGHT_M = 6.0` m for a
+shelter (a Task 12 project value). A building that is also flagged as a shelter is listed once, as
+a building. Rotation is ignored.
+
+| Obstacle | Centre (x, y) m | Half width m | Height m | Wake length (3 x height) m |
+|---|---|---|---|---|
+| K-201 shelter | 75, 57 | 6.0 | 6.0 | 18 |
+| K-202 shelter | 75, 75 | 6.0 | 6.0 | 18 |
+| K-203 shelter | 75, 93 | 6.0 | 6.0 | 18 |
+| CR-901 control room | 30, 20 | 7.5 | 4.0 | 12 |
+| MCC-902 motor control centre | 50, 20 | 5.0 | 4.0 | 12 |
+
+A receptor is in a wake when it is up to three heights downwind of the centre and within the half
+width across the wind. The shelter height is not the real roof height of the compressor (the box
+is 3 m high); it stands for the building envelope around the unit.
 
 ### Validation rules
 
