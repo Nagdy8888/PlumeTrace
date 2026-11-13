@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+/* Design tokens (semantic names are stable; values are placeholders until Phase 4).
+   Grey surfaces, colour reserved for meaning — see .ux-profile.md. */
+:root {
+  --surface-0: #16181a;
+  --surface-1: #1d2023;
+  --surface-2: #25292d;
+  --surface-3: #2e3338;
+  --border-1: #353a40;
+  --border-2: #4a5058;
+  --text-1: #e6e8ea;
+  --text-2: #a7adb4;
+  --accent: #4f8fc0;
+  --alarm-high: #d64545;
+  --alarm-med: #e0a030;
+  --alarm-low: #c9b458;
+  --ok: #3f9b6b;
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: var(--surface-0);
+  color: var(--text-1);
+}

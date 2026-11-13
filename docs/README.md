@@ -7,5 +7,7 @@
 | [OWNER_ACTIONS.md](OWNER_ACTIONS.md) | Things only the owner can do |
 | [reference/STRUCTURE.md](reference/STRUCTURE.md) | Repository layout and dependency rules |
 | [reference/DATABASE.md](reference/DATABASE.md) | Local Supabase schema, RLS, migrations, connection pool |
+| [reference/FRONTEND.md](reference/FRONTEND.md) | React app scaffold: scripts, folder rules, design tokens, tests |
+| [reference/DEPLOYMENT.md](reference/DEPLOYMENT.md) | Vercel settings and security headers, recorded for a later phase (not deployed) |
 | [superpowers/specs/2026-11-12-plumetrace-design.md](superpowers/specs/2026-11-12-plumetrace-design.md) | The approved design |
 | [superpowers/plans/2026-11-12-plumetrace-roadmap.md](superpowers/plans/2026-11-12-plumetrace-roadmap.md) | Roadmap and phase plans |

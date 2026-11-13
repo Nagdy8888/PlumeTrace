@@ -106,7 +106,20 @@ fails the test. Details: [reference/DATABASE.md](reference/DATABASE.md).
 
 ## Frontend
 
-Filled in by Phase 1 Task 5.
+React + TypeScript + Vite. Needs Node 22.13 or newer. Run these from `app/frontend/`:
+
+```bash
+cd app/frontend
+npm ci               # install from the lockfile
+npm run dev          # dev server on http://localhost:5173
+npm run lint
+npm run typecheck
+npm run test
+npm run build        # type-check + production build into dist/
+```
+
+Details: [reference/FRONTEND.md](reference/FRONTEND.md). Nothing is deployed; the Vercel settings
+are recorded in [reference/DEPLOYMENT.md](reference/DEPLOYMENT.md) for a later phase.
 
 ## Checks
 

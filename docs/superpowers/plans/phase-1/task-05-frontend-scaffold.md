@@ -353,12 +353,12 @@ describe("vercel.json security headers", () => {
 ```
 
 ## Steps
-- [ ] **1.** Create every file above (tests included) exactly as shown.
-- [ ] **2.** `cd app/frontend && npm install` → creates `package-lock.json`; no `ERESOLVE` errors. If there is any peer-dependency error, STOP and paste it.
-- [ ] **3.** `npm run lint` → no errors; `npm run typecheck` → no errors; `npm run test` → 4 tests pass (1 + 3); `npm run build` → `dist/` created.
-- [ ] **4.** From the repo root: `python -I .claude/skills/frontend-design/scripts/check_slop.py app/frontend/src` → `no slop found`; plus the three repo checks.
-- [ ] **5.** `npm run dev`, open the printed URL in the browser (Playwright or the built-in browser), take a screenshot at 1440×900, save it as `docs/evidence/2026-11-phase-1-shell.png`. It should show a dark grey page with "PlumeTrace" and a small "Simulated" label. Stop the dev server.
-- [ ] **6. Docs.**
+- [x] **1.** Create every file above (tests included) exactly as shown.
+- [x] **2.** `cd app/frontend && npm install` → creates `package-lock.json`; no `ERESOLVE` errors. If there is any peer-dependency error, STOP and paste it.
+- [x] **3.** `npm run lint` → no errors; `npm run typecheck` → no errors; `npm run test` → 4 tests pass (1 + 3); `npm run build` → `dist/` created.
+- [x] **4.** From the repo root: `python -I .claude/skills/frontend-design/scripts/check_slop.py app/frontend/src` → `no slop found`; plus the three repo checks.
+- [x] **5.** `npm run dev`, open the printed URL in the browser (Playwright or the built-in browser), take a screenshot at 1440×900, save it as `docs/evidence/2026-11-phase-1-shell.png`. It should show a dark grey page with "PlumeTrace" and a small "Simulated" label. Stop the dev server.
+- [x] **6. Docs.**
   - `docs/reference/FRONTEND.md`: stack and pinned versions (link LOCAL_DEVELOPMENT), scripts, folder rules (`src/` children, features via `index.ts`, see `frontend-structure`), design tokens list (names + "placeholder until Phase 4"), anti-slop gate, tests (Vitest + Testing Library, setup file path).
   - `docs/reference/DEPLOYMENT.md`: Vercel project settings — root directory `app/frontend`, install `npm ci`, build `npm run build`, output `dist`, framework preset Vite, **no environment variables**; headers come from `vercel.json` (list them); start the page with "Deployment is a later phase that is not planned yet (owner decision 2026-11-13); nothing is deployed during development." — the settings above are recorded for that later phase only.
   - `docs/LOCAL_DEVELOPMENT.md` → `## Frontend`: `cd app/frontend`, `npm ci`, `npm run dev|lint|typecheck|test|build`.
