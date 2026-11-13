@@ -117,6 +117,6 @@ def test_zero_throughput_rejected() -> None:
 ```
 
 ## Steps
-- [ ] Tests → FAIL → implement → full checks green.
-- [ ] **Docs.** ENGINEERING.md → "Inventory" (both factor tables with full citations, TOC→CH4 and THC→CH4 conversions, which factor serves which job: average for the site inventory, W-4 leaker for an OGI-found leak in S6) and "Methane intensity" (definition, basis, citation). Work-log; `STATUS.md` (last 2.11, next 2.12).
+- [x] Tests → FAIL → implement → full checks green.
+- [x] **Docs.** ENGINEERING.md → "Inventory" (both factor tables with full citations, TOC→CH4 and THC→CH4 conversions, which factor serves which job: average for the site inventory, W-4 leaker for an OGI-found leak in S6) and "Methane intensity" (definition, basis, citation). Work-log; `STATUS.md` (last 2.11, next 2.12).
 - [ ] **Commit** `feat(engineering): add emission-factor inventory and methane intensity`.

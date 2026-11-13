@@ -496,6 +496,132 @@ Limits:
 - The mass is released, not necessarily emitted: if the blowdown goes to the flare, the methane that
   reaches the atmosphere is the flare slip above, not this mass.
 
+### Inventory
+
+Modules `plumetrace.engineering.emission_factors` (two read-only factor tables) and
+`plumetrace.engineering.inventory` (two functions). Two jobs, two tables:
+
+| Job | Function | Table | Why |
+|---|---|---|---|
+| Site inventory, all components, average | `bottom_up_ch4_kg_h(counts, comp)` | `EPA_1995_AVERAGE_GAS_TOC_KG_H` | an average over all components of a population, leaking or not |
+| One component found leaking by OGI (scenario S6) | `leaker_ch4_kg_h(component, location, comp)` | `SUBPART_W_W4_LEAKER_THC_SCF_H` | a factor for a component already known to leak |
+
+Table 1, `EPA_1995_AVERAGE_GAS_TOC_KG_H` (kg of total organic compounds per hour per source). Source
+comment in the code: EPA-453/R-95-017 "1995 Protocol for Equipment Leak Emission Estimates", Table
+2-4 "Oil and Gas Production Operations Average Emission Factors", gas service, p. 2-14. The values
+are total organic compounds, which include methane and ethane. "others" covers compressors,
+diaphragms, drains, dump arms, hatches, instruments, meters, pressure relief valves, polished rods,
+relief valves and vents (table footnote c).
+
+| Source | kg TOC/h |
+|---|---|
+| valves | 4.5e-3 |
+| pump seals | 2.4e-3 |
+| others | 8.8e-3 |
+| connectors | 2.0e-4 |
+| flanges | 3.9e-4 |
+| open-ended lines | 2.0e-3 |
+
+Table 2, `SUBPART_W_W4_LEAKER_THC_SCF_H` (scf of total hydrocarbon per hour per leaking component).
+Source comment in the code: 40 CFR Part 98 Subpart W, Table W-4 "Default Total Hydrocarbon Leaker
+Emission Factors", onshore natural gas transmission compression, gas service, column "If you survey
+using any of the methods in § 98.234(a)(1), (3), or (5)" (optical gas imaging); [89 FR 42325, May
+14, 2024]; CFR 2025 edition.
+
+| Component | compressor | non-compressor |
+|---|---|---|
+| valve | 24.2 | 10.5 |
+| connector | 9.13 | 9.3 |
+| open-ended line | 28.2 | 18.4 |
+| pressure relief valve | 64.8 | 3.28 |
+| meter | 31.6 | 4.79 |
+| other | 6.70 | 6.70 |
+
+`bottom_up_ch4_kg_h` sums, over every equipment tag,
+`valves*f[valves] + connectors*f[connectors] + open_ended_lines*f[open_ended_lines] +
+pressure_relief_valves*f[others]` (pressure relief valves take the "others" factor, table footnote
+c) and multiplies the total by `ch4_hydrocarbon_mass_fraction(comp)` (TOC to CH4 by the methane
+share of hydrocarbon mass; an approximation). The input is a mapping tag to
+`ComponentCountsDict`, i.e. `ComponentCounts.model_dump()` from the facility package (engineering
+never imports facility). Flanges and pump seals have factors in the table but no count in the
+interface, so they are not summed.
+
+`leaker_ch4_kg_h` converts `scf_h` to methane: `scf_h * FT3_TO_M3 * (P_STD_PA / (R * T_STD_K)) *
+ch4_hydrocarbon_mole_fraction(comp) * M_CH4_KG_MOL` (THC to CH4 by the methane share of hydrocarbon
+moles). The 60 degF scf versus 15 degC Sm3 reference difference is ignored (about 0.2 %).
+
+Hand calculations (KS-07 gas: the hydrocarbons weigh 16.4415 g per mole of gas, so the methane
+share of hydrocarbon mass is `0.930 * 16.043 / 16.4415 = 0.90746`; the share of hydrocarbon moles
+is `0.930 / 0.975`; 1 m3 of ideal gas at 288.15 K and 101325 Pa holds 42.2925 mol):
+
+- One compressor with 73 valves, 179 connectors, 3 open-ended lines and 4 relief valves:
+  `73*4.5e-3 + 179*2.0e-4 + 3*2.0e-3 + 4*8.8e-3 = 0.4055 kg TOC/h`; times 0.90746 is 0.36798 kg
+  CH4/h (about 3.2 t CH4 per year if it ran all year).
+- A non-compressor valve leaker: `10.5 scf/h = 0.29733 m3/h = 12.575 mol/h`; times 0.930/0.975 and
+  16.043 g/mol is 0.19243 kg CH4/h. A compressor valve leaker (24.2 scf/h) gives 0.44349 kg/h.
+
+Both functions raise `ValueError` (they never return NaN or infinity) for: a gas without any
+hydrocarbon (a TOC or THC factor cannot be converted); a count that is missing, negative, not an
+integer (booleans and floats included) or so large that the rate is not finite (the message names
+the equipment tag and the field); an unknown leaker component or location. An empty mapping gives
+0.0, and a gas with hydrocarbons but no methane gives 0.0.
+
+Limits:
+
+- **The component counts are an unverified proxy.** For KS-07 the counts passed in come from the
+  facility package: Subpart W Table W-1B (CFR 2023 edition) default counts for onshore natural gas
+  production and gathering-and-boosting equipment, used for a transmission compressor station for
+  which no default counts are published. The owner accepted them as a proxy at Gate 1
+  (2026-11-13); the transcription is still to be verified against the primary text
+  (`docs/OWNER_ACTIONS.md`). The site inventory inherits that, so treat it as an order of
+  magnitude, not a measurement.
+- The average factors describe a US oil and gas production population in the early 1990s. They are
+  applied to a different kind of site (a compressor station) and a different decade; the site's
+  real leak rate can be far from the average, because leaks are very unevenly distributed (a few
+  large leakers dominate).
+- Flanges and pump seals are not counted (no count in the interface), and every relief valve uses
+  the broad "others" factor. The sum is therefore not a complete component census.
+- TOC to CH4 uses the methane share of hydrocarbon mass of the bulk gas, THC to CH4 the share of
+  hydrocarbon moles. Both assume a leak has the same composition as the pipeline gas.
+- The W-4 factors are per leaker, not per component: they say how much a component emits once it
+  leaks, not how often one leaks, and not for how long. Turning a found leak into an annual figure
+  needs a duration the module does not know.
+- The two tables have different bases (kg TOC/h versus scf THC/h) and different origins, so a
+  site total from Table 1 and an OGI leaker from Table 2 are not additive without care.
+- Results are rates for the stated gas; converting to CO2-equivalent (GWP100 or GWP20) is
+  `units.co2e_kg`, and the choice of horizon belongs to the caller.
+
+### Methane intensity
+
+Module `plumetrace.engineering.intensity`. `methane_intensity_percent(ch4_emitted_kg_h,
+throughput_sm3_h)` returns
+
+```
+intensity [%] = (ch4_emitted_kg_h / rho_CH4,std) / throughput_sm3_h * 100
+```
+
+where `rho_CH4,std = ppm_to_kg_m3(1e6, T_STD_K, P_STD_PA) = 0.67850 kg/Sm3` (pure methane, ideal
+gas, 15 degC, 101325 Pa). The basis is volume: emitted methane volume at standard conditions over
+gas handled volume, following the OGCI methane-intensity methodology (methane emitted volume
+divided by gas handled volume).
+
+Hand calculation (plan test): 6.785 kg/h is 10.000 Sm3/h; over 1000 Sm3/h that is 1.000 %. For
+the KS-07 station, 1 kg/h of methane over 1000 Sm3/h is `1 / 0.67850 / 1000 * 100 = 0.1474 %`.
+
+`ValueError` for a throughput that is zero, negative, NaN or infinite, an emission that is negative,
+NaN or infinite, and a ratio that overflows. Zero emission gives 0 %. The result is not capped at
+100 %.
+
+Limits:
+
+- It is an instantaneous rate over an instantaneous flow. A reported intensity is normally an
+  annual figure; the caller must use rates and flows that cover the same period.
+- Only the two numbers passed in are used. What counts as "gas handled" for a compressor station
+  (throughput versus marketed gas) is the caller's choice and changes the percentage; this module
+  does not decide it.
+- Volumes use the ideal gas law at 15 degC. A mass basis, or a different reference temperature
+  such as 60 degF, gives a slightly different percentage.
+
 ## 4. Design decisions and assumptions
 
 - Ideal gas law for ppm and kg/m3; at 288.15 K and 101325 Pa pure methane is 0.67850 kg/m3.
@@ -560,7 +686,15 @@ huge flow, and NaN, infinite or out-of-range flow, fraction and efficiency (also
 pressure increase and zero volume. `test_blowdown_edges.py`: frozen result, linearity in volume,
 deeper blowdown vents more, a colder final state, a final gas denser than the initial one,
 non-finite and non-positive volume, pressure and temperature, Z out of range, overflow and a tiny
-volume. Run from
+volume.
+`app/backend/tests/engineering/test_inventory.py`: transcribed factors, one compressor
+(0.36798 kg CH4/h), summing equipment, the valve leaker conversion (0.19243 and 0.44349 kg/h).
+`test_inventory_edges.py`: empty site, the relief-valve "others" factor from raw numbers, linearity,
+lean gas, gas without methane, bad and missing counts, the tag in the message, an absurd count, a
+million valves, gas without hydrocarbons, all twelve leaker cells, the meter conversion from raw
+constants, unknown names and read-only tables. `test_intensity.py`: 1.000 % and zero throughput.
+`test_intensity_edges.py`: zero emission, scaling, the methane density check, above 100 %, tiny
+throughput, bad throughput and emission, overflow. Run from
 `app/`: `uv run pytest backend/tests/engineering -q`.
 
 ## 8. How to extend
@@ -580,3 +714,4 @@ every quantity with its unit suffix. Keep functions pure.
 - 2026-11-13: Bayesian source inversion added (Phase 2 Task 8).
 - 2026-11-13: evidence fusion and vent-header attribution added (Phase 2 Task 9).
 - 2026-11-13: flare methane slip and blowdown vented mass added (Phase 2 Task 10).
+- 2026-11-13: emission-factor inventory and methane intensity added (Phase 2 Task 11).
