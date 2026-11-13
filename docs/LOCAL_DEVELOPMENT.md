@@ -56,7 +56,20 @@ Everything runs locally. There is no GitHub Actions CI and no deployment.
 
 ## Configuration
 
-Filled in by Phase 1 Task 3.
+Settings come from `plumetrace.config` (`app/backend/plumetrace/config.py`), the only Python module that reads configuration.
+
+| Variable | Meaning |
+|---|---|
+| `OPENAI_API_KEY` | OpenAI API key (secret; the owner pastes it). |
+| `LANGSMITH_API_KEY` | LangSmith API key (secret). |
+| `LANGSMITH_TRACING` | `true` turns LangSmith tracing on; default off. |
+| `LANGSMITH_PROJECT` | LangSmith project name; default `plumetrace-dev`. |
+| `SUPABASE_DB_URL` | Postgres connection string of the local Supabase (secret). |
+
+Only the root `.env` is read; never create other `.env` files. Values are never printed: secrets are
+held as `SecretStr` and hidden from `repr`/`str`. Without a `.env` the settings load with defaults,
+and database code raises `ConfigurationError` naming `SUPABASE_DB_URL`. Tests build
+`Settings(_env_file=None)` so they never read the real `.env`.
 
 ## Python
 

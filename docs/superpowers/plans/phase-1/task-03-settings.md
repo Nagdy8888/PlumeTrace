@@ -100,9 +100,9 @@ def test_env_file_points_at_repo_root() -> None:
 ```
 
 ## Steps
-- [ ] **1.** Write the test file. **2.** `uv run pytest backend/tests/test_config.py -q` → fails with `ModuleNotFoundError: No module named 'plumetrace.config'`.
-- [ ] **3.** Implement `config.py` exactly per the Interface (Google docstrings on every object).
-- [ ] **4.** `uv run pytest -q` → all pass (9 total); `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy` clean.
-- [ ] **5.** Repo checks pass (`structure OK`, `env OK`, `no secrets found`).
-- [ ] **6. Docs.** `docs/LOCAL_DEVELOPMENT.md` → `## Configuration`: list the five variable **names** with one-line meaning each, state "only the root `.env` is read; never create other `.env` files; values are never printed". Work-log row; `STATUS.md` (last 1.3, next 1.4).
+- [x] **1.** Write the test file. **2.** `uv run pytest backend/tests/test_config.py -q` → fails with `ModuleNotFoundError: No module named 'plumetrace.config'`.
+- [x] **3.** Implement `config.py` exactly per the Interface (Google docstrings on every object).
+- [x] **4.** `uv run pytest -q` → all pass (9 total); `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy` clean.
+- [x] **5.** Repo checks pass (`structure OK`, `env OK`, `no secrets found`).
+- [x] **6. Docs.** `docs/LOCAL_DEVELOPMENT.md` → `## Configuration`: list the five variable **names** with one-line meaning each, state "only the root `.env` is read; never create other `.env` files; values are never printed". Work-log row; `STATUS.md` (last 1.3, next 1.4).
 - [ ] **7. Commit** `feat(config): load settings from the single root .env`.

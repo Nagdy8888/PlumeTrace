@@ -37,7 +37,17 @@ PATTERNS = {
 
 PLACEHOLDER = re.compile(r"(?i)your[_-]|_here\b|example|placeholder|xxxx|<[^>]*>|\.\.\.")
 
-SKIP_DIRS = {".git", "node_modules", ".venv", "__pycache__", ".pytest_cache", ".ruff_cache"}
+SKIP_DIRS = {
+    ".git",
+    "node_modules",
+    ".venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".mypy_cache",
+    ".hypothesis",
+    ".coverage",
+}
 SKIP_FILES = {".env"}
 MAX_BYTES = 5_000_000
 MIN_VALUE_LEN = 12
