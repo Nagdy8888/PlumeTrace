@@ -1,0 +1,35 @@
+source: >-
+  40 CFR Part 98, Subpart W, Table W-1B "Default Average Component Counts for Major Onshore Natural
+  Gas Production Equipment and Onshore Petroleum and Natural Gas Gathering and Boosting Equipment",
+  CFR 2023 edition (govinfo package CFR-2023-title40-vol23), [75 FR 74488, Nov. 30, 2010, as
+  amended at 80 FR 64298, Oct. 22, 2015]. The table was removed in the 2024 Subpart W revision
+  (89 FR 42323-42325, May 14, 2024); it is the latest published set of default component counts.
+  Accessed 2026-11-12.
+column: Western U.S.
+notes: >-
+  Production / gathering-and-boosting default counts are used as a documented proxy for a
+  transmission compressor station, for which no default counts are published. The TEG regenerator
+  is counted with the contactor as one dehydrator. Reviewed by the owner at Gate 1.
+classes:
+  wellheads: {valves: 11, connectors: 36, open_ended_lines: 1, pressure_relief_valves: 0}
+  separators: {valves: 34, connectors: 106, open_ended_lines: 6, pressure_relief_valves: 2}
+  meters_piping: {valves: 14, connectors: 51, open_ended_lines: 1, pressure_relief_valves: 1}
+  compressors: {valves: 73, connectors: 179, open_ended_lines: 3, pressure_relief_valves: 4}
+  in_line_heaters: {valves: 14, connectors: 65, open_ended_lines: 2, pressure_relief_valves: 1}
+  dehydrators: {valves: 24, connectors: 90, open_ended_lines: 2, pressure_relief_valves: 2}
+equipment_type_map:
+  pig_trap: meters_piping
+  filter_separator: separators
+  scrubber: separators
+  recip_compressor: compressors
+  fin_fan_cooler: null
+  vent_stack: null
+  teg_contactor: dehydrators
+  teg_regenerator: null
+  fuel_gas_skid: meters_piping
+  storage_tank: null
+  vru: compressors
+  knockout_drum: separators
+  flare_stack: null
+  meter_run: meters_piping
+  building: null

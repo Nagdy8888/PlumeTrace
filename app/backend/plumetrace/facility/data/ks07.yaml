@@ -1,0 +1,77 @@
+# Station KS-07 — fictional compressor station. Single source of truth for layout, leak points,
+# instruments and gas. Coordinates: metres, x = east, y = north, z = up, origin = SW fence corner.
+site:
+  id: KS-07
+  name: Station KS-07
+  fictional: true
+  bounds: {x_min_m: 0, x_max_m: 200, y_min_m: 0, y_max_m: 150}
+  latitude_deg: 39.10     # fictional placement in the Karakum desert region (weather source only)
+  longitude_deg: 61.30
+  elevation_m: 200
+  ambient_pressure_pa: 98900
+gas_composition: {CH4: 0.930, C2H6: 0.035, C3H8: 0.008, nC4H10: 0.002, CO2: 0.010, N2: 0.015}
+operating:
+  suction_pressure_pa: 4500000
+  discharge_pressure_pa: 7000000
+  gas_temperature_k: 300
+  throughput_sm3_h: 41667
+equipment:
+  - {tag: PIG-101, type: pig_trap, position_m: [15, 75, 0], rotation_deg: 0, size_m: [6, 1.2, 1.5], anchors: [{id: PIG-101.door, position_m: [12, 75, 1.0], emission_point: true}]}
+  - {tag: V-100, type: filter_separator, position_m: [30, 75, 0], rotation_deg: 0, size_m: [2, 2, 6], anchors: [{id: V-100.psv, position_m: [30, 75, 6.0], emission_point: true}]}
+  - {tag: V-211, type: scrubber, position_m: [62, 57, 0], rotation_deg: 0, size_m: [1.5, 1.5, 5], anchors: [{id: V-211.psv, position_m: [62, 57, 5.0], emission_point: true}]}
+  - {tag: V-212, type: scrubber, position_m: [62, 75, 0], rotation_deg: 0, size_m: [1.5, 1.5, 5], anchors: [{id: V-212.psv, position_m: [62, 75, 5.0], emission_point: true}]}
+  - {tag: V-213, type: scrubber, position_m: [62, 93, 0], rotation_deg: 0, size_m: [1.5, 1.5, 5], anchors: [{id: V-213.psv, position_m: [62, 93, 5.0], emission_point: true}]}
+  - {tag: K-201, type: recip_compressor, position_m: [75, 57, 0], rotation_deg: 0, size_m: [12, 4, 3], shelter: true, vents_to: VS-250, anchors: [{id: K-201.packing, position_m: [73, 57, 1.5], emission_point: true}, {id: K-201.engine_exhaust, position_m: [80, 57, 6.0], emission_point: true}]}
+  - {tag: K-202, type: recip_compressor, position_m: [75, 75, 0], rotation_deg: 0, size_m: [12, 4, 3], shelter: true, vents_to: VS-250, anchors: [{id: K-202.packing, position_m: [73, 75, 1.5], emission_point: true}, {id: K-202.engine_exhaust, position_m: [80, 75, 6.0], emission_point: true}]}
+  - {tag: K-203, type: recip_compressor, position_m: [75, 93, 0], rotation_deg: 0, size_m: [12, 4, 3], shelter: true, vents_to: VS-250, anchors: [{id: K-203.packing, position_m: [73, 93, 1.5], emission_point: true}, {id: K-203.engine_exhaust, position_m: [80, 93, 6.0], emission_point: true}]}
+  - {tag: E-231, type: fin_fan_cooler, position_m: [95, 57, 0], rotation_deg: 0, size_m: [8, 4, 5]}
+  - {tag: E-232, type: fin_fan_cooler, position_m: [95, 75, 0], rotation_deg: 0, size_m: [8, 4, 5]}
+  - {tag: E-233, type: fin_fan_cooler, position_m: [95, 93, 0], rotation_deg: 0, size_m: [8, 4, 5]}
+  - {tag: VS-250, type: vent_stack, position_m: [85, 115, 0], rotation_deg: 0, size_m: [0.4, 0.4, 12], anchors: [{id: VS-250.tip, position_m: [85, 115, 12.0], emission_point: true}]}
+  - {tag: T-301, type: teg_contactor, position_m: [120, 60, 0], rotation_deg: 0, size_m: [1.5, 1.5, 15]}
+  - {tag: R-302, type: teg_regenerator, position_m: [130, 50, 0], rotation_deg: 0, size_m: [4, 2, 8], anchors: [{id: R-302.still_vent, position_m: [130, 50, 8.0], emission_point: true}]}
+  - {tag: FG-501, type: fuel_gas_skid, position_m: [110, 95, 0], rotation_deg: 0, size_m: [4, 3, 2], anchors: [{id: FG-501.skid, position_m: [110, 95, 1.5], emission_point: true}]}
+  - {tag: TK-401, type: storage_tank, position_m: [150, 110, 0], rotation_deg: 0, size_m: [6, 6, 7], anchors: [{id: TK-401.thief_hatch, position_m: [150, 110, 7.0], emission_point: true}]}
+  - {tag: TK-402, type: storage_tank, position_m: [165, 110, 0], rotation_deg: 0, size_m: [6, 6, 7], anchors: [{id: TK-402.thief_hatch, position_m: [165, 110, 7.0], emission_point: true}]}
+  - {tag: VRU-410, type: vru, position_m: [157, 95, 0], rotation_deg: 0, size_m: [4, 3, 2.5], anchors: [{id: VRU-410.skid, position_m: [157, 95, 1.5], emission_point: true}]}
+  - {tag: V-602, type: knockout_drum, position_m: [175, 30, 0], rotation_deg: 0, size_m: [6, 2, 2.5], anchors: [{id: V-602.psv, position_m: [175, 30, 4.0], emission_point: true}]}
+  - {tag: FL-601, type: flare_stack, position_m: [185, 30, 0], rotation_deg: 0, size_m: [1, 1, 30], anchors: [{id: FL-601.tip, position_m: [185, 30, 30.0], emission_point: true}]}
+  - {tag: M-701, type: meter_run, position_m: [175, 75, 0], rotation_deg: 0, size_m: [10, 2, 1.5], anchors: [{id: M-701.meter, position_m: [175, 75, 1.0], emission_point: true}]}
+  - {tag: PIG-702, type: pig_trap, position_m: [190, 75, 0], rotation_deg: 0, size_m: [6, 1.2, 1.5], anchors: [{id: PIG-702.door, position_m: [193, 75, 1.0], emission_point: true}]}
+  - {tag: CR-901, type: building, position_m: [30, 20, 0], rotation_deg: 0, size_m: [15, 8, 4], description: Control room}
+  - {tag: MCC-902, type: building, position_m: [50, 20, 0], rotation_deg: 0, size_m: [10, 6, 4], description: Motor control centre}
+piping:
+  - {id: R-100, service: gas, size_in: 24, waypoints_m: [[15, 75, 1], [30, 75, 1], [45, 75, 4]]}
+  - {id: R-110, service: gas, size_in: 20, waypoints_m: [[45, 57, 4], [45, 93, 4]]}
+  - {id: R-111, service: gas, size_in: 12, waypoints_m: [[45, 57, 4], [62, 57, 4], [69, 57, 1.5]]}
+  - {id: R-112, service: gas, size_in: 12, waypoints_m: [[45, 75, 4], [62, 75, 4], [69, 75, 1.5]]}
+  - {id: R-113, service: gas, size_in: 12, waypoints_m: [[45, 93, 4], [62, 93, 4], [69, 93, 1.5]]}
+  - {id: R-121, service: gas, size_in: 10, waypoints_m: [[81, 57, 1.5], [95, 57, 4], [105, 57, 4]]}
+  - {id: R-122, service: gas, size_in: 10, waypoints_m: [[81, 75, 1.5], [95, 75, 4], [105, 75, 4]]}
+  - {id: R-123, service: gas, size_in: 10, waypoints_m: [[81, 93, 1.5], [95, 93, 4], [105, 93, 4]]}
+  - {id: R-130, service: gas, size_in: 20, waypoints_m: [[105, 57, 4], [105, 93, 4]]}
+  - {id: R-140, service: gas, size_in: 20, waypoints_m: [[105, 75, 4], [120, 75, 4], [120, 62, 1.5]]}
+  - {id: R-150, service: gas, size_in: 20, waypoints_m: [[120, 75, 4], [170, 75, 4], [175, 75, 1], [187, 75, 1]]}
+  - {id: R-250, service: vent, size_in: 2, waypoints_m: [[73, 57, 2], [73, 93, 2], [73, 105, 2], [85, 105, 2], [85, 115, 1]]}
+  - {id: R-600, service: flare, size_in: 12, waypoints_m: [[105, 57, 4], [105, 30, 4], [175, 30, 2], [185, 30, 1]]}
+  - {id: R-400, service: condensate, size_in: 4, waypoints_m: [[62, 57, 0.5], [62, 40, 0.5], [150, 40, 0.5], [150, 107, 0.5]]}
+  - {id: R-500, service: fuel_gas, size_in: 2, waypoints_m: [[105, 93, 4], [110, 93, 1.5]]}
+instruments:
+  - {tag: AT-101, kind: methane_point, position_m: [5, 5, 2.0], noise_ppm: 0.3}
+  - {tag: AT-102, kind: methane_point, position_m: [100, 5, 2.0], noise_ppm: 0.3}
+  - {tag: AT-103, kind: methane_point, position_m: [195, 5, 2.0], noise_ppm: 0.3}
+  - {tag: AT-104, kind: methane_point, position_m: [195, 75, 2.0], noise_ppm: 0.3}
+  - {tag: AT-105, kind: methane_point, position_m: [195, 145, 2.0], noise_ppm: 0.3}
+  - {tag: AT-106, kind: methane_point, position_m: [100, 145, 2.0], noise_ppm: 0.3}
+  - {tag: AT-107, kind: methane_point, position_m: [5, 145, 2.0], noise_ppm: 0.3}
+  - {tag: AT-108, kind: methane_point, position_m: [110, 75, 2.0], noise_ppm: 0.3}
+  - {tag: MET-01, kind: met_mast, position_m: [10, 140, 10.0]}
+  - {tag: FT-250, kind: flow, position_m: [85, 110, 1.0], attaches_to: VS-250}
+  - {tag: TT-201P, kind: temperature, position_m: [73, 57, 1.5], attaches_to: K-201}
+  - {tag: TT-202P, kind: temperature, position_m: [73, 75, 1.5], attaches_to: K-202}
+  - {tag: TT-203P, kind: temperature, position_m: [73, 93, 1.5], attaches_to: K-203}
+  - {tag: FT-601, kind: flow, position_m: [178, 30, 1.0], attaches_to: FL-601}
+  - {tag: TE-601, kind: thermocouple, position_m: [185, 30, 29.5], attaches_to: FL-601}
+  - {tag: PT-401, kind: pressure, position_m: [150, 110, 7.0], attaches_to: TK-401}
+  - {tag: PT-402, kind: pressure, position_m: [165, 110, 7.0], attaches_to: TK-402}
+  - {tag: FT-701, kind: flow, position_m: [175, 75, 1.0], attaches_to: M-701}

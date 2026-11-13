@@ -545,9 +545,9 @@ def test_real_counts_table_matches_the_cited_source() -> None:
 ```
 
 ## Steps
-- [ ] **1.** Write all test files. `uv run pytest backend/tests/facility -q` → collection errors (modules missing).
-- [ ] **2.** Write `engineering/geometry.py` and the facility modules per the Interfaces, plus both YAML files exactly as shown.
-- [ ] **3.** `uv run pytest -q` → all pass (13 earlier + 24 here = 37: loader 5, validation 10 incl. 8 parametrised, candidates 3, components 6). `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy` clean.
-- [ ] **4.** Repo checks pass — `check_structure.py` also verifies `facility` imports only `engineering`.
-- [ ] **5. Docs.** `docs/reference/SIMULATOR.md` with section `## Facility KS-07`: coordinate convention; table of all 24 equipment items (tag, type, position, size, anchors); the 21 emission candidates; the 18 instruments; the 15 pipe routes (id, service, size); gas composition; operating conditions; component-count source and mapping (copy the `source` and `notes` text); procedural flange/valve rule; validation rules. Add the SIMULATOR.md row to `docs/README.md`. Work-log row; `STATUS.md` (last 1.6, next 1.7).
+- [x] **1.** Write all test files. `uv run pytest backend/tests/facility -q` → collection errors (modules missing).
+- [x] **2.** Write `engineering/geometry.py` and the facility modules per the Interfaces, plus both YAML files exactly as shown.
+- [x] **3.** `uv run pytest -q` → all pass (13 earlier + 24 here = 37: loader 5, validation 10 incl. 8 parametrised, candidates 3, components 6). `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy` clean.
+- [x] **4.** Repo checks pass — `check_structure.py` also verifies `facility` imports only `engineering`.
+- [x] **5. Docs.** `docs/reference/SIMULATOR.md` with section `## Facility KS-07`: coordinate convention; table of all 24 equipment items (tag, type, position, size, anchors); the 21 emission candidates; the 18 instruments; the 15 pipe routes (id, service, size); gas composition; operating conditions; component-count source and mapping (copy the `source` and `notes` text); procedural flange/valve rule; validation rules. Add the SIMULATOR.md row to `docs/README.md`. Work-log row; `STATUS.md` (last 1.6, next 1.7).
 - [ ] **6. Commit** `feat(facility): add Station KS-07 facility spec, loader and candidates`.
