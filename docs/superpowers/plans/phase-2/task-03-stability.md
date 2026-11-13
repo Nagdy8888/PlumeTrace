@@ -76,6 +76,6 @@ def test_bin_boundaries(inputs: tuple[float, float, float], expected: S) -> None
 ```
 
 ## Steps
-- [ ] Test → FAIL → implement → full checks green.
-- [ ] **Docs.** ENGINEERING.md → "Stability": the table, bins, thresholds, the more-stable resolution rule and why. Work-log; `STATUS.md` (last 2.3, next 2.4).
+- [x] Test → FAIL → implement → full checks green.
+- [x] **Docs.** ENGINEERING.md → "Stability": the table, bins, thresholds, the more-stable resolution rule and why. Work-log; `STATUS.md` (last 2.3, next 2.4).
 - [ ] **Commit** `feat(engineering): add Pasquill stability classification`.

@@ -79,12 +79,44 @@ critical constants), retrieved 2026-11.
 Papay validity: sweet natural gas at moderate reduced pressures. The KS-07 discharge case
 (7.0 MPa, 300 K, Pr 1.52, Tr 1.53) is inside that range; Z there is 0.862.
 
+### Stability
+
+Module `plumetrace.engineering.stability`. Pasquill-Gifford-Turner classes A (very unstable) to F
+(moderately stable) from Turner (1994), Workbook of Atmospheric Dispersion Estimates, 2nd ed.,
+Table 1-1. `pasquill_class(wind_speed_m_s, shortwave_w_m2, cloud_fraction)` returns a
+`StabilityClass` (`StrEnum`) using lookup tables, not nested conditions.
+
+Thresholds (`Final[float]` constants): `DAY_SHORTWAVE_W_M2 = 10`, `STRONG_W_M2 = 600`,
+`MODERATE_W_M2 = 300`, `OVERCAST_FRACTION = 0.875`, `NIGHT_CLOUDY_FRACTION = 0.5`.
+
+1. Cloud fraction at least 0.875 (overcast), day or night: class D.
+2. Day is shortwave above 10 W/m2. Insolation is strong above 600, moderate from 300 to 600
+   inclusive, slight below 300.
+3. Night: cloudy at cloud fraction 0.5 or more, clear otherwise.
+4. Wind bins (m/s): below 2, 2 to below 3, 3 to below 5, 5 to below 6, 6 and above.
+
+| u (m/s) | day strong | day moderate | day slight | night cloudy | night clear |
+|---|---|---|---|---|---|
+| < 2 | A | B | B | F | F |
+| 2 to < 3 | B | B | C | E | F |
+| 3 to < 5 | B | C | C | D | E |
+| 5 to < 6 | C | D | D | D | D |
+| >= 6 | C | D | D | D | D |
+
+Resolution rule: the classic table has split cells (for example A-B, B-C, C-D, E-F). Each is
+resolved to the more stable letter. This is conservative: a more stable class gives a narrower,
+more concentrated plume and so higher predicted concentrations, which errs toward detecting a
+leak rather than missing one.
+
 ## 4. Design decisions and assumptions
 
 - Ideal gas law for ppm and kg/m3; at 288.15 K and 101325 Pa pure methane is 0.67850 kg/m3.
 - `scf_to_sm3` ignores the 60 °F versus 15 °C reference difference (about 0.2 %).
 - Z uses the closed-form Papay correlation (no iteration) with Kay's rule, not AGA8; adequate for
   the sweet KS-07 gas, not for sour or rich gas.
+- The 600 and 300 W/m2 insolation bins, the 10 W/m2 day/night split and the cloud fractions are
+  Phase 2 Task 3 thresholds (project choices, not Turner's own W/m2 values). Split cells of the
+  Pasquill table resolve to the more stable class (see Stability).
 - GWP values are AR6 fossil methane (29.8 over 100 years, 82.5 over 20 years).
 
 ## 5. Limits and failure behaviour
@@ -102,7 +134,9 @@ None. Constants are code, not settings.
 at standard conditions, ppm round trip, array shape, scf and CO2e.
 `app/backend/tests/engineering/test_gas.py`: KS-07 molar mass, Kay's rule, Papay Z at 7.0 MPa and at
 standard conditions, density, the three CH4 fractions, standard volume to CH4 mass, and rejection
-of a bad sum or unknown component (hand calculations in the docstrings). Run from `app/`:
+of a bad sum or unknown component (hand calculations in the docstrings).
+`app/backend/tests/engineering/test_stability.py`: every cell of the table, overcast, and the bin
+boundaries (u = 2, 3; 600, 300, 10 W/m2; cloud 0.5). Run from `app/`:
 `uv run pytest backend/tests/engineering -q`.
 
 ## 8. How to extend
@@ -114,3 +148,4 @@ every quantity with its unit suffix. Keep functions pure.
 
 - 2026-11-13: constants and unit conversions added (Phase 2 Task 1).
 - 2026-11-13: gas composition, Papay Z factor, density and CH4 fractions added (Phase 2 Task 2).
+- 2026-11-13: Pasquill stability classification added (Phase 2 Task 3).
