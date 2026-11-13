@@ -1,0 +1,439 @@
+{
+  "$defs": {
+    "Anchor": {
+      "additionalProperties": false,
+      "description": "A named point on equipment where a leak can be placed.\n\nAttributes:\n    id: Anchor id, ``<equipment tag>.<name>``.\n    position_m: Position in site coordinates.\n    emission_point: Whether the inversion treats it as a candidate source.",
+      "properties": {
+        "emission_point": {
+          "title": "Emission Point",
+          "type": "boolean"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "position_m": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Position M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "position_m",
+        "emission_point"
+      ],
+      "title": "Anchor",
+      "type": "object"
+    },
+    "Equipment": {
+      "additionalProperties": false,
+      "description": "One piece of equipment.\n\nAttributes:\n    tag: Unique equipment tag, for example ``K-202``.\n    type: Kind of equipment.\n    position_m: Base position in site coordinates.\n    rotation_deg: Rotation about the vertical axis in degrees.\n    size_m: Bounding box (x, y, z) in metres.\n    anchors: Named leak points on this equipment.\n    vents_to: Tag of the equipment this one vents to, if any.\n    shelter: Whether it sits inside a shelter.\n    description: Free-text description.",
+      "properties": {
+        "anchors": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Anchor"
+          },
+          "title": "Anchors",
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "position_m": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Position M",
+          "type": "array"
+        },
+        "rotation_deg": {
+          "title": "Rotation Deg",
+          "type": "number"
+        },
+        "shelter": {
+          "default": false,
+          "title": "Shelter",
+          "type": "boolean"
+        },
+        "size_m": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Size M",
+          "type": "array"
+        },
+        "tag": {
+          "title": "Tag",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/EquipmentType"
+        },
+        "vents_to": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Vents To"
+        }
+      },
+      "required": [
+        "tag",
+        "type",
+        "position_m",
+        "rotation_deg",
+        "size_m"
+      ],
+      "title": "Equipment",
+      "type": "object"
+    },
+    "EquipmentType": {
+      "description": "Kinds of equipment on the station (value equals name).",
+      "enum": [
+        "pig_trap",
+        "filter_separator",
+        "scrubber",
+        "recip_compressor",
+        "fin_fan_cooler",
+        "vent_stack",
+        "teg_contactor",
+        "teg_regenerator",
+        "fuel_gas_skid",
+        "storage_tank",
+        "vru",
+        "knockout_drum",
+        "flare_stack",
+        "meter_run",
+        "building"
+      ],
+      "title": "EquipmentType",
+      "type": "string"
+    },
+    "Instrument": {
+      "additionalProperties": false,
+      "description": "One instrument.\n\nAttributes:\n    tag: Unique instrument tag, for example ``AT-101``.\n    kind: Kind of instrument.\n    position_m: Position in site coordinates.\n    attaches_to: Tag of the equipment it measures, if any.\n    noise_ppm: One-sigma noise in ppm (methane sensors only).",
+      "properties": {
+        "attaches_to": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Attaches To"
+        },
+        "kind": {
+          "$ref": "#/$defs/InstrumentKind"
+        },
+        "noise_ppm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Noise Ppm"
+        },
+        "position_m": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Position M",
+          "type": "array"
+        },
+        "tag": {
+          "title": "Tag",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tag",
+        "kind",
+        "position_m"
+      ],
+      "title": "Instrument",
+      "type": "object"
+    },
+    "InstrumentKind": {
+      "description": "Kinds of instrument on the station (value equals name).",
+      "enum": [
+        "methane_point",
+        "met_mast",
+        "flow",
+        "temperature",
+        "pressure",
+        "thermocouple"
+      ],
+      "title": "InstrumentKind",
+      "type": "string"
+    },
+    "OperatingConditions": {
+      "additionalProperties": false,
+      "description": "Normal operating conditions of the station.\n\nAttributes:\n    suction_pressure_pa: Compressor suction pressure in pascals.\n    discharge_pressure_pa: Compressor discharge pressure in pascals.\n    gas_temperature_k: Gas temperature in kelvin.\n    throughput_sm3_h: Throughput in standard cubic metres per hour.",
+      "properties": {
+        "discharge_pressure_pa": {
+          "title": "Discharge Pressure Pa",
+          "type": "number"
+        },
+        "gas_temperature_k": {
+          "title": "Gas Temperature K",
+          "type": "number"
+        },
+        "suction_pressure_pa": {
+          "title": "Suction Pressure Pa",
+          "type": "number"
+        },
+        "throughput_sm3_h": {
+          "title": "Throughput Sm3 H",
+          "type": "number"
+        }
+      },
+      "required": [
+        "suction_pressure_pa",
+        "discharge_pressure_pa",
+        "gas_temperature_k",
+        "throughput_sm3_h"
+      ],
+      "title": "OperatingConditions",
+      "type": "object"
+    },
+    "PipeRoute": {
+      "additionalProperties": false,
+      "description": "A pipe route as a polyline.\n\nAttributes:\n    id: Unique route id, for example ``R-250``.\n    service: What the pipe carries.\n    size_in: Nominal size in inches.\n    waypoints_m: Polyline points in site coordinates (at least two).",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "service": {
+          "enum": [
+            "gas",
+            "vent",
+            "flare",
+            "condensate",
+            "fuel_gas"
+          ],
+          "title": "Service",
+          "type": "string"
+        },
+        "size_in": {
+          "title": "Size In",
+          "type": "number"
+        },
+        "waypoints_m": {
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "minItems": 2,
+          "title": "Waypoints M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "service",
+        "size_in",
+        "waypoints_m"
+      ],
+      "title": "PipeRoute",
+      "type": "object"
+    },
+    "Site": {
+      "additionalProperties": false,
+      "description": "The site itself.\n\nAttributes:\n    id: Site id, for example ``KS-07``.\n    name: Display name.\n    fictional: Whether the site is simulated (always true for KS-07).\n    bounds: Fence bounds.\n    latitude_deg: Latitude used only to fetch weather.\n    longitude_deg: Longitude used only to fetch weather.\n    elevation_m: Ground elevation in metres.\n    ambient_pressure_pa: Ambient pressure in pascals.",
+      "properties": {
+        "ambient_pressure_pa": {
+          "title": "Ambient Pressure Pa",
+          "type": "number"
+        },
+        "bounds": {
+          "$ref": "#/$defs/SiteBounds"
+        },
+        "elevation_m": {
+          "title": "Elevation M",
+          "type": "number"
+        },
+        "fictional": {
+          "title": "Fictional",
+          "type": "boolean"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "latitude_deg": {
+          "title": "Latitude Deg",
+          "type": "number"
+        },
+        "longitude_deg": {
+          "title": "Longitude Deg",
+          "type": "number"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "fictional",
+        "bounds",
+        "latitude_deg",
+        "longitude_deg",
+        "elevation_m",
+        "ambient_pressure_pa"
+      ],
+      "title": "Site",
+      "type": "object"
+    },
+    "SiteBounds": {
+      "additionalProperties": false,
+      "description": "Rectangular fence bounds in metres.\n\nAttributes:\n    x_min_m: West edge.\n    x_max_m: East edge.\n    y_min_m: South edge.\n    y_max_m: North edge.",
+      "properties": {
+        "x_max_m": {
+          "title": "X Max M",
+          "type": "number"
+        },
+        "x_min_m": {
+          "title": "X Min M",
+          "type": "number"
+        },
+        "y_max_m": {
+          "title": "Y Max M",
+          "type": "number"
+        },
+        "y_min_m": {
+          "title": "Y Min M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x_min_m",
+        "x_max_m",
+        "y_min_m",
+        "y_max_m"
+      ],
+      "title": "SiteBounds",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Validated description of the station.\n\nAttributes:\n    site: Site identity, bounds and location.\n    gas_composition: Mole fractions by species; must sum to 1.\n    operating: Normal operating conditions.\n    equipment: All equipment, each with its anchors.\n    piping: Pipe routes as polylines.\n    instruments: All instruments.",
+  "properties": {
+    "equipment": {
+      "items": {
+        "$ref": "#/$defs/Equipment"
+      },
+      "title": "Equipment",
+      "type": "array"
+    },
+    "gas_composition": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Gas Composition",
+      "type": "object"
+    },
+    "instruments": {
+      "items": {
+        "$ref": "#/$defs/Instrument"
+      },
+      "title": "Instruments",
+      "type": "array"
+    },
+    "operating": {
+      "$ref": "#/$defs/OperatingConditions"
+    },
+    "piping": {
+      "items": {
+        "$ref": "#/$defs/PipeRoute"
+      },
+      "title": "Piping",
+      "type": "array"
+    },
+    "site": {
+      "$ref": "#/$defs/Site"
+    }
+  },
+  "required": [
+    "site",
+    "gas_composition",
+    "operating",
+    "equipment",
+    "piping",
+    "instruments"
+  ],
+  "title": "FacilitySpec",
+  "type": "object"
+}

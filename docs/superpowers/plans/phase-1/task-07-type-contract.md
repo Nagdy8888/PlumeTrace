@@ -83,12 +83,12 @@ def test_contract_schema_describes_facility_spec() -> None:
 ```
 
 ## Steps
-- [ ] **1.** Write the test; `uv run pytest backend/tests/test_export_contract.py -q` → fails (script missing).
-- [ ] **2.** Write `scripts/export_contract.py` per the Interface (Google docstrings).
-- [ ] **3.** `uv run pytest -q` → all pass (40). `uv run ruff check .` and `uv run ruff check --config pyproject.toml ../scripts` (ruff only finds the config under `app/`, so `scripts/` needs it explicitly) and `uv run ruff format --check --config pyproject.toml . ../scripts` clean; `uv run mypy` clean.
-- [ ] **4.** Generate: `cd app && uv run python ../scripts/export_contract.py`; then `cd frontend && npm install` (adds json-schema-to-typescript to the lockfile) and `npm run gen:types`.
-- [ ] **5.** Idempotency: run step 4 again; `git status --porcelain app/frontend/src/shared` must show the files as new/unchanged — and a second `git diff --stat` after committing must be empty. Paste the output.
-- [ ] **6.** Frontend still green: `npm run lint && npm run typecheck && npm run test && npm run build` (generated folder is excluded from lint by `eslint.config.js`).
-- [ ] **7.** Repo checks + `check_slop.py app/frontend/src` pass.
-- [ ] **8. Docs.** `FRONTEND.md` → `## Type contract`: source of truth (Pydantic models), the two commands, never edit generated files, drift check (`ci_local.py --full`, stage `contract-drift`, Task 8). Work-log row; `STATUS.md` (last 1.7, next 1.8).
+- [x] **1.** Write the test; `uv run pytest backend/tests/test_export_contract.py -q` → fails (script missing).
+- [x] **2.** Write `scripts/export_contract.py` per the Interface (Google docstrings).
+- [x] **3.** `uv run pytest -q` → all pass (40). `uv run ruff check .` and `uv run ruff check --config pyproject.toml ../scripts` (ruff only finds the config under `app/`, so `scripts/` needs it explicitly) and `uv run ruff format --check --config pyproject.toml . ../scripts` clean; `uv run mypy` clean.
+- [x] **4.** Generate: `cd app && uv run python ../scripts/export_contract.py`; then `cd frontend && npm install` (adds json-schema-to-typescript to the lockfile) and `npm run gen:types`.
+- [x] **5.** Idempotency: run step 4 again; `git status --porcelain app/frontend/src/shared` must show the files as new/unchanged — and a second `git diff --stat` after committing must be empty. Paste the output.
+- [x] **6.** Frontend still green: `npm run lint && npm run typecheck && npm run test && npm run build` (generated folder is excluded from lint by `eslint.config.js`).
+- [x] **7.** Repo checks + `check_slop.py app/frontend/src` pass.
+- [x] **8. Docs.** `FRONTEND.md` → `## Type contract`: source of truth (Pydantic models), the two commands, never edit generated files, drift check (`ci_local.py --full`, stage `contract-drift`, Task 8). Work-log row; `STATUS.md` (last 1.7, next 1.8).
 - [ ] **9. Commit** `feat(contract): export facility schema and TypeScript types for the frontend`.
