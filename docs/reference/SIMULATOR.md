@@ -319,3 +319,63 @@ This makes one real request to the public API (free, no key, no cost). If it fai
 prints the reason and keeps the existing file; do not edit the JSON by hand. Review the diff
 before committing: the weather changes every scenario that uses these hours. Outbound-network
 controls are in `docs/reference/SECURITY.md`.
+
+## Instruments
+
+`plumetrace.simulator.instruments` produces the non-methane process readings that triage and
+fusion use as evidence (design section 4). It is pure simulation: no network, no database, and
+deterministic for a seed because the caller passes the `numpy` generator. The baselines are
+**Task 3 values** (chosen for the simulation, not taken from a published source). The station is
+simulated and so are these readings.
+
+### Tags
+
+| Tag | Meaning | Unit | Baseline mean | Noise sd |
+|---|---|---|---|---|
+| `FT-250` | Packing vent header flow (VS-250), whole gas | kg/h | 0.9 | 0.25 |
+| `TT-201P` | Packing case temperature, K-201 | degC | 80.0 | 0.5 |
+| `TT-202P` | Packing case temperature, K-202 | degC | 80.0 | 0.5 |
+| `TT-203P` | Packing case temperature, K-203 | degC | 80.0 | 0.5 |
+| `FT-601` | Flare header flow (FL-601), whole gas | kg/h | 5.0 | 0.5 |
+| `TE-601` | Flare pilot thermocouple | degC | 600.0 | 10.0 |
+| `PT-401` | Tank TK-401 pressure | kPag | 2.0 | 0.05 |
+| `PT-402` | Tank TK-402 pressure | kPag | 2.0 | 0.05 |
+| `FT-701` | Throughput meter M-701 | Sm3/h | 41667.0 | 200.0 |
+
+### Effect model
+
+`simulate_instruments(times_s, effects, rng)` returns a dict of tag to series (float64, same
+length as `times_s`, always finite). For every tag, in table order, it draws
+`rng.normal(0, noise_sd, n)` (always, so a run with effects stays aligned with a run without),
+starts from the mean, applies the effects on that tag in the order given, and adds the noise last.
+
+An `InstrumentEffect` has a `tag`, a `kind`, a `value`, a window `[start_s, end_s)` (`end_s`
+defaults to infinity) and `ramp_s`. Its weight is `w(t) = 0` before `start_s` or at/after
+`end_s`, else `min(1, (t - start_s) / ramp_s)` (1 when `ramp_s == 0`).
+
+| Kind | Result |
+|---|---|
+| `offset` | `value += w * effect.value` |
+| `set` | `value = (1 - w) * value + w * effect.value` (noise is still added, so a pilot "out" reads about 30 degC plus noise) |
+
+### Packing-leak signature
+
+`packing_leak_effects(unit_tag, ch4_rate_kg_h, ch4_mass_fraction, start_s, ramp_s=1800)` gives
+two ramped offsets for a leak on `K-20n`:
+
+- `FT-250` rises by `ch4_rate_kg_h / ch4_mass_fraction`. The header meter reads **whole gas**, not
+  methane, so the methane rate is divided by the methane mass fraction (15 kg/h CH4 at 0.8623 is
+  +17.395 kg/h).
+- `TT-20nP` rises by +6.0 degC (a Task 3 value). A leaking packing runs hot, and the temperature
+  of the leaking unit is what separates K-201, K-202 and K-203.
+
+### What is rejected
+
+| Situation | Result |
+|---|---|
+| Effect on a tag not in the table | `KeyError("unknown instrument <tag>")` |
+| `times_s` empty, not 1-D or not finite | `ValueError` |
+| Effect with a `kind` other than `offset`/`set`, non-finite `value` or `start_s`, NaN `end_s`, `end_s <= start_s`, or `ramp_s` negative or not finite | `ValueError` naming the tag; nothing is drawn from the generator |
+| `packing_leak_effects` with a `unit_tag` that is not `K-201` to `K-203`, a non-positive or non-finite rate, a mass fraction outside (0, 1], a non-finite start or a bad ramp | `ValueError` |
+
+The simulator never returns NaN. Sensor dropout is not modelled here.

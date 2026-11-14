@@ -113,6 +113,6 @@ def test_unknown_tag_rejected() -> None:
 ```
 
 ## Steps
-- [ ] Tests → FAIL → implement → full checks green.
-- [ ] **Docs.** SIMULATOR.md → "Instruments": table of every tag (meaning, unit, baseline, noise), effect model, the packing-leak signature and why (header flow in whole gas; hot packing). Work-log; `STATUS.md` (last 3.3, next 3.4).
+- [x] Tests → FAIL → implement → full checks green.
+- [x] **Docs.** SIMULATOR.md → "Instruments": table of every tag (meaning, unit, baseline, noise), effect model, the packing-leak signature and why (header flow in whole gas; hot packing). Work-log; `STATUS.md` (last 3.3, next 3.4).
 - [ ] **Commit** `feat(simulator): add non-methane instrument simulator`.
