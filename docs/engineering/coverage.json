@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "scope": "Phase 1 foundations plus Phase 2 engineering core (pure physics, benchmark); no API, agents, LLM calls or replay build exist yet.",
-  "revision": "a3c12c5 + docs working tree (2026-11-14)",
+  "scope": "Phase 1 foundations plus Phase 2 engineering core (pure physics, benchmark, improvement round); no API, agents, LLM calls or replay build exist yet.",
+  "revision": "efc74af + docs working tree (2026-11-14)",
   "environment": "local-dev Windows 11, Python 3.12",
   "assessments": [
     {
@@ -246,6 +246,13 @@
           "result": "passed",
           "revision": "a3c12c5 + docs working tree (2026-11-14)",
           "environment": "local-dev Windows 11, Python 3.12"
+        },
+        {
+          "kind": "test",
+          "path": "docs/evidence/2026-11-phase-2-gate-2.md",
+          "result": "passed",
+          "revision": "efc74af + docs working tree (2026-11-14)",
+          "environment": "local-dev Windows 11, Python 3.12"
         }
       ]
     },
@@ -265,6 +272,13 @@
           "path": "docs/evidence/2026-11-phase-2-checks.md",
           "result": "passed",
           "revision": "a3c12c5 + docs working tree (2026-11-14)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        },
+        {
+          "kind": "test",
+          "path": "docs/evidence/2026-11-phase-2-gate-2.md",
+          "result": "passed",
+          "revision": "efc74af + docs working tree (2026-11-14)",
           "environment": "local-dev Windows 11, Python 3.12"
         }
       ]

@@ -9,6 +9,9 @@
 | [evidence/2026-11-phase-1-checks.md](evidence/2026-11-phase-1-checks.md) | Phase 1 check results (quick and full runs, audits) and the Gate 1 review list |
 | [evidence/2026-11-phase-2-checks.md](evidence/2026-11-phase-2-checks.md) | Phase 2 check results (quick and full runs, audits, per-module test counts, coverage of the engineering core, benchmark determinism check) and the Gate 2 review list; local / synthetic |
 | [benchmark.md](benchmark.md) | Inversion benchmark under model mismatch: accuracy, rate error, inconclusive and false-call rates (generated, synthetic data) |
+| [benchmark-improvement.md](benchmark-improvement.md) | Improvement round (pre-registered 2026-11-14): Task 8 and meander-aware inversion on a fresh seed, calibration metrics, adoption verdict (generated, synthetic data) |
+| [evidence/benchmark-improvement-2026-11-14.json](evidence/benchmark-improvement-2026-11-14.json) | Case-level evidence of the improvement run (both methods, generated) |
+| [evidence/2026-11-phase-2-gate-2.md](evidence/2026-11-phase-2-gate-2.md) | Gate 2 evidence: full check run, official run and determinism check, published reproduction, code diff since 23b8703, decisions summary |
 | [reference/STRUCTURE.md](reference/STRUCTURE.md) | Repository layout and dependency rules |
 | [reference/DATABASE.md](reference/DATABASE.md) | Local Supabase schema, RLS, migrations, connection pool |
 | [reference/SIMULATOR.md](reference/SIMULATOR.md) | Station KS-07 facility spec: equipment, leak points, instruments, gas, component counts, validation |

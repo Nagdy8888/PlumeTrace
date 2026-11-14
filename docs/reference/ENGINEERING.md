@@ -859,14 +859,17 @@ written by the program and are never edited by hand.
   top-1 (0.364). Small classes (F: 10 cases) carry a wide uncertainty.
 
 **Limitations.** One seed and 250 cases: the figures carry sampling error (for a proportion near
-0.4 with 200 leak cases, roughly plus or minus 0.07 at 95 %). Not tuned: constants, thresholds,
+0.4 with 200 leak cases, roughly plus or minus 0.07: an approximate 95 % half-width for a proportion near 0.4 over 200 leak cases: 2 x sqrt(0.4 x 0.6 / 200) = 0.069). Not tuned: constants, thresholds,
 coefficients and the case list were fixed before the run; the improvement round is the owner's
-decision at Gate 2. The inversion's noise and model-error settings are the Task 8 defaults, its
+decision at Gate 2 (the improvement round that followed is described below). The inversion's noise and model-error settings are the Task 8 defaults, its
 rate estimates carry the known low bias of about 25 % on clean data, and the fusion step (Task 9)
 is not part of this benchmark, so the figures describe the physics inversion alone. The truth
 model is another Gaussian plume (see Truth model above); it does not test plume rise,
 buoyancy, terrain or non-Gaussian profiles. The weather is synthetic, the station is simulated and
 no real leak data were used.
+
+**Disclosure (Gate 2).** The omitted sensor faults and drift (the benchmark has none) and the missing numeric false-alarm target are a deviation from design section 5 ("occasional sensor faults") and section 5.1b (false-alarm-rate target), accepted at Gate 2. The detection false-alarm rate was measured only in the planner prototype (0 of 20 clean no-leak seeds) and has no numeric target. The 8-sensor layout is kept, not optimised. One seed per method: about plus or minus 0.07 sampling error (an approximate 95 % half-width for a proportion near 0.4 over 200 leak cases: 2 x sqrt(0.4 x 0.6 / 200) = 0.069). The truth model shares the Gaussian formula, so the mismatch is partial (no plume rise, no terrain).
+
 
 ### Post-hoc reading of the committed evidence (not part of the published scoring)
 
@@ -968,6 +971,86 @@ edited by hand; two runs give identical files apart from the date.
    once and both evidence files are kept; scoring, metrics, thresholds and the rule are not changed.
 4. No second improvement round.
 
+### Improvement round results (run 2026-11-14 at efc74af, seed 20261114)
+
+The one official run of the pre-registered comparison, made once at the pre-registration commit
+`efc74af`, with the command given above and without `--quick`. A second run into other paths gave
+byte-identical files. The generated files are `docs/benchmark-improvement.md` and
+`docs/evidence/benchmark-improvement-2026-11-14.json`; the table and the verdict below are copied
+from the generated Markdown. Evidence label: synthetic.
+
+| Metric | Published (seed 20261112) | Fresh Task 8 | Fresh meander-aware |
+|---|---|---|---|
+| Top-1 accuracy (all leak cases) | 0.4 | 0.48 | 0.69 |
+| Top-1 accuracy (conclusive leak cases) | 0.491 | 0.552 | 0.836 |
+| Top-3 accuracy (all leak cases) | 0.62 | 0.72 | 0.805 |
+| Rate error, median (relative) | 1.13 | 1.34 | 0.177 |
+| Rate error, 90th percentile (relative) | 26.7 | 49.2 | 0.611 |
+| Inconclusive rate (leak cases) | 0.185 | 0.13 | 0.175 |
+| False-call rate (no-leak cases) | 0 | 0 | 0 |
+| Confident-wrong rate (named cases wrong with p >= 0.95) | not recorded | 0.407 | 0.122 |
+| Missed-leak rate (conclusive NONE on a leak case) | not recorded | 0.035 | 0.005 |
+| Rate inside the 90 % interval (good cases) | not recorded | 0.2 | 0.428 |
+| Rate at the grid edge (good cases) | not recorded | 0.316 | 0 |
+| Median rate / true rate (good cases) | not recorded | 2.34 | 0.932 |
+
+Reliability of the stated probability (named cases):
+
+| Top probability | Task 8 named | Task 8 top-1 | Meander named | Meander top-1 |
+|---|---|---|---|---|
+| [0.6, 0.8) | 2 | 0 | 4 | 0.5 |
+| [0.8, 0.95) | 4 | 0.5 | 6 | 0.333 |
+| [0.95, 1.0] | 161 | 0.578 | 154 | 0.87 |
+
+**Adopted for the app: meander-aware.** Rule: adopt the meander-aware method only if its top-1 accuracy is at least Task 8's and its confident-wrong rate and false-call rate are each at most Task 8's (ties adopt). Compared (meander-aware / Task 8): top-1 0.69 / 0.48; confident-wrong 0.122 / 0.407; false-call 0 / 0.
+
+**Reading of the data** (plain, no more than the numbers show; hypotheses are marked).
+
+- Accuracy. On the fresh seed the Task 8 method names the right source in 0.48 of the leak cases
+  (top-1) and 0.72 in its top three; the meander-aware method in 0.69 and 0.805. The same cases are
+  used for both, so the comparison is paired. Both methods have a false-call rate of 0 on the 50
+  no-leak cases.
+- Rate. Over the good cases (named, right at top-1, with a rate: 95 for Task 8, 138 for
+  meander-aware) the median relative rate error is 1.34 for Task 8 and 0.177 for meander-aware, the
+  90th percentile 49.2 and 0.611. The median rate over the true rate is 2.34 and 0.932, and the share
+  of rates at the edge of the rate grid is 0.316 and 0. The two sets of good cases differ, so these
+  rate figures are not a like-for-like comparison of the same cases.
+- Inconclusive. The inconclusive rate is 0.13 for Task 8 and 0.175 for meander-aware: the meander
+  method says "inconclusive" more often, most visibly in stability classes E and F (0.116 and 0.125
+  for Task 8, 0.209 and 0.375 for meander-aware; class F has 8 cases).
+- Missed and confident-wrong calls. The missed-leak rate (a conclusive `NONE` on a real leak) is
+  0.035 and 0.005. The confident-wrong rate (a wrong named source with probability 0.95 or more) is
+  0.407 for Task 8 and 0.122 for meander-aware.
+- Is the probability calibrated? No, for either method. Among the named cases that state a
+  probability of 0.95 or more (161 for Task 8, 154 for meander-aware) the top-1 accuracy is 0.578
+  and 0.87. A calibrated probability would give about 0.95 or more in that bin. The meander-aware
+  method is closer but still below it. The other two bins hold at most 6 cases per method and say
+  little. The 90 % rate interval holds the true rate in 0.2 (Task 8) and 0.428 (meander-aware) of the
+  good cases, against 0.9 for a calibrated interval: the intervals are too narrow for both. This is
+  why the app labels these values "model estimate" and "model probability" (rate display rule,
+  section 4).
+- Seed spread. The Task 8 method was run on two seeds: the published seed (top-1 0.4, rate error
+  median 1.13, inconclusive 0.185) and the fresh seed (0.48, 1.34, 0.13). That difference between
+  seeds for one method is the order of the sampling error of one seed (about plus or minus 0.07, an approximate 95 % half-width for a proportion near 0.4 over 200 leak cases: 2 x sqrt(0.4 x 0.6 / 200) = 0.069); small differences between methods on a single seed should
+  be read with that in mind. The top-1 gap between the two methods on the fresh seed is larger than
+  the spread between the two Task 8 runs.
+- Inverse crime (a statement, not a hypothesis). The meander in the benchmark data is generated by a wind-direction process acting on the same Gaussian plume formula that the meander-aware correction models. The correction is therefore partly self-consistent with the data generator: the measured gain is an optimistic result for a simulated station, an upper bound for a real site, and is not evidence of real-world accuracy. Checked against the code: the truth model (`truth_model.py`, `truth_turbulence.py`) adds a stationary AR(1) wind-direction meander (default standard deviation 10 degrees, correlation time 120 s) to the hourly wind direction and evaluates `concentration_ppm`, the same Gaussian plume formula as the inversion, at every 10 s step with the Martin coefficient set; the 10-minute window mean of that series is a time average of Gaussian plumes whose axis wanders, which is the situation the correction `sigma_y,eff^2 = sigma_y^2 + (x s)^2` describes.
+- Hypotheses (not tested by this run). The gain is consistent with the within-window direction
+  spread being the main cause of the poor published rate result, because the method widens exactly
+  the spread the truth model injects. The meander-aware method is given the measured direction
+  spread of the same truth model that produces the data, so a real station, whose wind may behave
+  differently, may see a smaller gain. The higher inconclusive rate may come from the wider plume
+  responding less sharply to a source; this was not examined.
+
+**Adoption.** The code printed "Adopted for the app: meander-aware" (top-1 0.69 against 0.48,
+confident-wrong 0.122 against 0.407, false-call 0 against 0). Downstream: the places that build the
+window input of the inversion in later phases (Phase 3 Task 5 `selection.py` and Phase 5 Task 9
+`build_inversion_input`) pass one more argument,
+`wind_dir_sd_deg=window_direction_sd_deg(series.times_s, series.wind_from_deg)`, sliced to the same
+windows; this is a deviation pre-approved by the Gate 2 decision (STATUS.md decisions log), and the
+phase task files are not edited. The published run at `23b8703` stays the "before" and the Task 8
+default path is unchanged.
+
 ## 4. Design decisions and assumptions
 
 Index of the assumptions and limits that matter when reading a result. Each points to the module
@@ -986,8 +1069,10 @@ section above that states it in full; the numbers are measured there.
 | Fusion | The likelihood ratios (0.05, 20, 4, 2 degC, `k = 1`) are project choices, not calibrated; evidence items are treated as independent (naive Bayes) | Evidence fusion limits |
 | Truth model | It is the same Gaussian formula as the inversion with another coefficient set, meander, gusts, wakes and noise, so the mismatch is partial: plume rise, buoyant or dense-gas behaviour, terrain and non-Gaussian profiles are not tested | Truth model limits |
 | Inventory | The component counts are an UNVERIFIED PROXY (Subpart W Table W-1B production and gathering defaults used for a transmission compressor station); the average factors are an early-1990s US production population | Inventory limits |
-| Meander option | Optional `dir_sd_deg` widens `sigma_y` by the measured within-window direction spread; small-angle approximation; a project derivation, not a citation; its effect on the benchmark is not yet measured | Gaussian plume, Averaging, Source inversion |
+| Meander option | Optional `dir_sd_deg` widens `sigma_y` by the measured within-window direction spread; small-angle approximation; a project derivation, not a citation; measured effect on the fresh seed (synthetic, one seed): top-1 0.69 against 0.48 and median rate error 0.177 against 1.34 for the meander-aware method and the Task 8 method; see Improvement round results | Gaussian plume, Averaging, Source inversion, Improvement round results |
 | Benchmark | Synthetic data, one seed, 250 cases; rate error at this mismatch is large (median 113 %); not tuned | Benchmark |
+| Citations | Coefficients, factors and defaults (Briggs rural, Martin, EPA 1995 Protocol Table 2-4, Subpart W Tables W-1B and W-4, AP-42 §13.5, OGMP 2.0 98 %) are copied from the project plan with their source names; none has yet been checked against the primary publication (owner action before the Phase 7 release gate). | Dispersion coefficients, Inventory, Flare |
+| Rate display rule | Binding for Phases 3 to 7; applies to inversion and fusion outputs, not the bottom-up inventory KPI. R1: the inversion rate is shown only as an interval "p05–p95 kg/h (median p50)" with 2 significant figures, never the median alone (UI, captions, drafts, reports). R2: the rate is suppressed when the result is inconclusive, the top is `NONE` or `rate_at_grid_edge` is true (the UI shows "rate not quantified" plus the reason, "outside model range" for the grid edge); pre-approved Phase 5 Task 9 deviation: `run_plume_inversion` returns `rate = None` in those cases and the locate agent then returns `status="inconclusive"` with an OGI request; if S1 hits the grid edge that is a Gate 3 scenario issue, not a reason to relax the rule. R3: every inversion rate and probability carries the fixed label "model estimate" / "model probability" with a link to the benchmark page, never "confidence", "certain" or "calibrated". R4: Phase 7 About and README take benchmark numbers only from the generated evidence JSON of the adopted method, showing top-1, rate-in-interval, confident-wrong rate and inconclusive rate next to the published 23b8703 numbers. Full text: `docs/superpowers/plans/STATUS.md`, Owner decisions log, entry 2026-11-14 Gate 2 | Improvement round results |
 
 Smaller decisions: the ideal gas law is used for ppm and kg/m3 (at 288.15 K and 101325 Pa pure
 methane is 0.67850 kg/m3); `scf_to_sm3` ignores the 60 degF versus 15 degC reference difference
@@ -1174,5 +1259,6 @@ every quantity with its unit suffix. Keep functions pure.
 - 2026-11-13: model-mismatch benchmark (250 cases) and its report added (Phase 2 Task 13).
 - 2026-11-14: property-based and metamorphic tests of the physics laws added (Phase 2 Task 14).
 - 2026-11-14: Phase 2 gate documentation: intro, assumptions index and failure-behaviour sections rewritten for the whole core; the matched-physics check labelled post-hoc and not reproducible; a post-hoc reading of the benchmark evidence added (no code or scoring changed).
-- 2026-11-14: optional within-window wind-direction spread added: `window_direction_sd_deg`, `dir_sd_deg` on the plume, `wind_dir_sd_deg` on the inversion; `InversionInput` moved to `inversion_input.py` (Phase 2 improvement round 2.15). The default behaviour and the published benchmark are unchanged; the effect of the option on the benchmark is not yet measured.
-- 2026-11-14: benchmark improvement round prepared: calibration metrics, the adoption rule and `python -m benchmark.compare` (Phase 2 improvement round 2.16); scoring code and the published benchmark unchanged; no fresh run yet.
+- 2026-11-14: optional within-window wind-direction spread added: `window_direction_sd_deg`, `dir_sd_deg` on the plume, `wind_dir_sd_deg` on the inversion; `InversionInput` moved to `inversion_input.py` (Phase 2 improvement round 2.15). The default behaviour and the published benchmark are unchanged; the effect of the option on the benchmark was not yet measured at that point (see the entry on the official run below).
+- 2026-11-14: benchmark improvement round prepared: calibration metrics, the adoption rule and `python -m benchmark.compare` (Phase 2 improvement round 2.16); scoring code and the published benchmark unchanged; no fresh run yet at that point (see the entry on the official run below).
+- 2026-11-14: the official improvement run was made once at the pre-registration commit `efc74af` (`python -m benchmark.compare --seed 20261114`, synthetic data, one seed per method): meander-aware top-1 0.69 against 0.48 for the Task 8 method, median rate error 0.177 against 1.34, confident-wrong rate 0.122 against 0.407, false-call rate 0 for both; the adoption rule printed "Adopted for the app: meander-aware". The probabilities and the 90 % rate intervals are not calibrated for either method. Results, reading and caveats are in "Improvement round results"; Gate 2 closed (delegated decision, `docs/evidence/2026-11-phase-2-gate-2.md`).
