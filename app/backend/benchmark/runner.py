@@ -6,7 +6,12 @@ from dataclasses import dataclass
 import numpy as np
 
 from benchmark.cases import CASE_HOURS, DT_S, BenchmarkCase
-from plumetrace.engineering.averaging import WINDOW_S, window_means, window_wind
+from plumetrace.engineering.averaging import (
+    WINDOW_S,
+    window_direction_sd_deg,
+    window_means,
+    window_wind,
+)
 from plumetrace.engineering.inversion import InversionInput, InversionResult, invert
 from plumetrace.engineering.stability import StabilityClass
 from plumetrace.engineering.truth_model import simulate_sensors
@@ -58,15 +63,19 @@ def window_stability(
     return [_mode(classes[k * n : (k + 1) * n]) for k in range(n_windows)]
 
 
-def run_case(case: BenchmarkCase, spec: FacilitySpec) -> CaseResult:
+def run_case(case: BenchmarkCase, spec: FacilitySpec, *, meander: bool = False) -> CaseResult:
     """Simulate one case with the truth model and locate the source with the inversion.
 
     The inversion uses its default Briggs rural coefficients and sees the background-subtracted
     10-minute means only; the background is the 5th percentile of each sensor window means.
+    With ``meander`` it also gets, per window, the circular standard deviation of the 10 s
+    wind-direction series (``window_direction_sd_deg``), measured from the data, not the truth
+    model's setting. Both settings simulate identical data: the generator is seeded by the case.
 
     Args:
         case: The case to run.
         spec: The facility spec.
+        meander: Give the inversion the measured within-window direction spread.
 
     Returns:
         The case, the inversion result, the dominant stability and the true rate.
@@ -88,6 +97,7 @@ def run_case(case: BenchmarkCase, spec: FacilitySpec) -> CaseResult:
     speed, direction = window_wind(series.times_s, series.wind_speed_m_s, series.wind_from_deg)
     stab = window_stability(series.stability, int(WINDOW_S / DT_S), len(starts))
     background = np.nanpercentile(means, _BACKGROUND_PERCENTILE, axis=0)
+    spread = window_direction_sd_deg(series.times_s, series.wind_from_deg) if meander else None
     result = invert(
         InversionInput(
             candidates=emission_candidates(spec),
@@ -98,20 +108,24 @@ def run_case(case: BenchmarkCase, spec: FacilitySpec) -> CaseResult:
             stability=stab,
             temp_k=float(np.mean(series.temp_k)),
             pressure_pa=spec.site.ambient_pressure_pa,
+            wind_dir_sd_deg=None if spread is None else spread.tolist(),
         )
     )
     true_rate = case.source.rate_kg_h if case.source else None
     return CaseResult(case, result, _mode(stab), true_rate)
 
 
-def run_all(cases: list[BenchmarkCase], spec: FacilitySpec) -> list[CaseResult]:
+def run_all(
+    cases: list[BenchmarkCase], spec: FacilitySpec, *, meander: bool = False
+) -> list[CaseResult]:
     """Run every case in order.
 
     Args:
         cases: The cases.
         spec: The facility spec.
+        meander: Run with the measured direction spread, see ``run_case``.
 
     Returns:
         One result per case, in the same order.
     """
-    return [run_case(c, spec) for c in cases]
+    return [run_case(c, spec, meander=meander) for c in cases]

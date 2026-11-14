@@ -913,6 +913,61 @@ Output: `same id 77 1.0 76`, `other id 77 1.0 67`, `NONE 9 0.663 0`. Whether to 
 calibration or false-assurance metric is a decision for the owner's improvement round; it is not
 added to `metrics.py` here.
 
+### Improvement round (pre-registered 2026-11-14)
+
+The published run (seed 20261112, revision 23b8703) stays the unchanged "before". The improvement
+round scores two methods on one fresh case set with the unchanged scoring code (`metrics.py`,
+`cases.py`) plus new calibration metrics. Everything below was fixed before any fresh run; the
+commit that contains it is the pre-registration commit, and the official run happens at that commit.
+
+**The change.** The Task 8 inversion assumes a narrow plume along the 10-minute mean wind
+direction, while the truth model meanders. The meander-aware method (Gaussian plume, Meander
+option) widens `sigma_y` by the circular standard deviation of the 10 s met-mast direction in each
+window (`window_direction_sd_deg`, from the truth output `wind_from_deg`), so the spread is measured
+from the data and never taken from the truth model's setting. `run_case(case, spec, meander=True)`
+passes it to the inversion; `meander=False`, the default, is the published path unchanged (the
+published files reproduce byte for byte apart from the date).
+
+**Metric definitions** (`calibration.py`; correctness is `metrics.is_correct`, unchanged; every rate
+is 0.0 on an empty denominator and the median is None):
+
+- named = leak cases that are conclusive with a top id other than `NONE`.
+- `confident_wrong_rate` = named cases wrong at k = 1 with `top_probability >= 0.95`, over named.
+- `missed_leak_rate` = conclusive leak cases with top `NONE`, over all leak cases.
+- good = named cases correct at k = 1 that report a rate.
+- `rate_in_interval` = good cases with `p05 <= true rate <= p95` (both ends inclusive), over good.
+- `grid_edge_share` = good cases with `rate_at_grid_edge`, over good.
+- `median_rate_ratio` = median of `rate / true rate` over good.
+- reliability, over named cases, in the bins `[0.6, 0.8)`, `[0.8, 0.95)` and `[0.95, 1.0]` (the last
+  bin has no upper edge, so a probability a rounding step above 1.0 stays in it): n and top-1
+  accuracy per bin (accuracy 0.0 for an empty bin).
+
+**Adoption rule** (`adopt_meander(t8, m)`, applied by the code, not by hand). Adopt the
+meander-aware method if and only if `m.top1_all >= t8.top1_all` (top-1 over all leak cases, from
+`summarize`) and `m.confident_wrong_rate <= t8.confident_wrong_rate` and `m.false_call_rate <=
+t8.false_call_rate` (from `summarize`). Ties adopt. Otherwise the app keeps the Task 8 method.
+
+**How the comparison is paired.** `benchmark.compare` generates the cases once with
+`generate_cases(spec, seed)` and runs `run_all` twice on them. Every `run_case` creates its own
+generator from `case.seed`, so both methods get identical weather, noise and meander, and the only
+difference is the direction spread given to the inversion. The seed is a required argument (there is
+no default). Only the `summary` of the published JSON is read, for the "published" column; the
+calibration rows show "not recorded" there.
+
+**Reproduce** (from `app/backend`; the official run is task 2.17 at the pre-registration commit H,
+not part of this change, and the seed below was not run by any test or by this change):
+`uv run python -m benchmark.compare --seed 20261114 --revision $(git rev-parse --short HEAD)`.
+It writes `docs/benchmark-improvement.md` and `docs/evidence/benchmark-improvement-<UTC date>.json`
+(options `--published-json`, `--out-md`, `--out-json`, `--quick`). Both files are generated and never
+edited by hand; two runs give identical files apart from the date.
+
+**Rules against tuning.**
+1. No run of seed 20261114 (test, manual or quick) before the pre-registration commit.
+2. One official run, at commit H, written to the evidence files above.
+3. If a bug is found after the run, the fix is code only, labelled post-hoc, the benchmark is rerun
+   once and both evidence files are kept; scoring, metrics, thresholds and the rule are not changed.
+4. No second improvement round.
+
 ## 4. Design decisions and assumptions
 
 Index of the assumptions and limits that matter when reading a result. Each points to the module
@@ -1051,6 +1106,13 @@ dilution). `test_truth_weather_edges.py`: `HourlyWeather` validation, `angular_d
 generator's draw order and three draws per hour, day and night, the clock shift, clipping and
 wrap-around over thousands of hours, and the interpolation. `app/backend/tests/facility/
 test_obstacles_edges.py`: obstacle order, sizes, flags, empty spec, rotation.
+`app/backend/tests/benchmark/test_calibration.py`: each calibration metric on hand-built results
+(including empty denominators, the `0.95` inclusive edge and the bin edges `0.8` and `0.95`), the
+reuse of `summarize`, and the adoption truth table (each condition failing alone, ties adopt).
+`test_compare.py`: `run_case(meander=False)` equals `run_case()`, `run_case(meander=True)` is valid
+and finite, the quick comparison on the published seed writes both files and is identical on a
+second run apart from the date, `--seed` is required, and no benchmark source or test holds the
+fresh seed.
 `app/backend/tests/engineering/test_meander.py` (32 tests): the circular sd of a window (constant
 direction is exactly 0.0, 350/10 degrees give 10.02556, a 180 degree rotation changes nothing, NaN
 where `window_wind` is NaN), `dir_sd_deg = 0.0` bit-identical to the default for both coefficient
@@ -1113,3 +1175,4 @@ every quantity with its unit suffix. Keep functions pure.
 - 2026-11-14: property-based and metamorphic tests of the physics laws added (Phase 2 Task 14).
 - 2026-11-14: Phase 2 gate documentation: intro, assumptions index and failure-behaviour sections rewritten for the whole core; the matched-physics check labelled post-hoc and not reproducible; a post-hoc reading of the benchmark evidence added (no code or scoring changed).
 - 2026-11-14: optional within-window wind-direction spread added: `window_direction_sd_deg`, `dir_sd_deg` on the plume, `wind_dir_sd_deg` on the inversion; `InversionInput` moved to `inversion_input.py` (Phase 2 improvement round 2.15). The default behaviour and the published benchmark are unchanged; the effect of the option on the benchmark is not yet measured.
+- 2026-11-14: benchmark improvement round prepared: calibration metrics, the adoption rule and `python -m benchmark.compare` (Phase 2 improvement round 2.16); scoring code and the published benchmark unchanged; no fresh run yet.
