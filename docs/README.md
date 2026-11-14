@@ -18,6 +18,7 @@
 | [reference/ENGINEERING.md](reference/ENGINEERING.md) | Engineering core: constants, unit conversions and (later) dispersion and inversion models |
 | [reference/TESTING.md](reference/TESTING.md) | Test layers, how to run the local checks, coverage thresholds |
 | [reference/FRONTEND.md](reference/FRONTEND.md) | React app scaffold: scripts, folder rules, design tokens, tests |
+| [reference/SECURITY.md](reference/SECURITY.md) | Security controls as implemented: outbound network calls (Open-Meteo), timeouts, TLS, what is sent |
 | [reference/DEPLOYMENT.md](reference/DEPLOYMENT.md) | Vercel settings and security headers, recorded for a later phase (not deployed) |
 | [superpowers/specs/2026-11-12-plumetrace-design.md](superpowers/specs/2026-11-12-plumetrace-design.md) | The approved design |
 | [superpowers/plans/2026-11-12-plumetrace-roadmap.md](superpowers/plans/2026-11-12-plumetrace-roadmap.md) | Roadmap and phase plans |

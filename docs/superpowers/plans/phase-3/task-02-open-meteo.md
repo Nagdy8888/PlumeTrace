@@ -126,8 +126,8 @@ def test_slice_reindexes_and_checks_length() -> None:
 ```
 
 ## Steps
-- [ ] Add httpx; `uv sync`. Write tests → FAIL. Implement `open_meteo.py`, `weather.py`, the script.
-- [ ] Run the script (network). If the request fails, STOP and report the error. Commit the generated JSON.
-- [ ] Full checks green (`check_structure.py`: `data_sources` imports only `engineering`/`facility`/`config`; `simulator` imports `engineering`/`facility`).
-- [ ] **Docs.** SIMULATOR.md → "Weather": source, period, fields, conversions, attribution text, how to refresh. `docs/reference/SECURITY.md` (create with a "Outbound network" section): Open-Meteo is the only outbound call besides OpenAI/LangSmith; timeout; TLS verified (httpx default). Add SECURITY.md to `docs/README.md`. Work-log; `STATUS.md` (last 3.2, next 3.3).
+- [x] Add httpx; `uv sync`. Write tests → FAIL. Implement `open_meteo.py`, `weather.py`, the script.
+- [x] Run the script (network). If the request fails, STOP and report the error. Commit the generated JSON.
+- [x] Full checks green (`check_structure.py`: `data_sources` imports only `engineering`/`facility`/`config`; `simulator` imports `engineering`/`facility`).
+- [x] **Docs.** SIMULATOR.md → "Weather": source, period, fields, conversions, attribution text, how to refresh. `docs/reference/SECURITY.md` (create with a "Outbound network" section): Open-Meteo is the only outbound call besides OpenAI/LangSmith; timeout; TLS verified (httpx default). Add SECURITY.md to `docs/README.md`. Work-log; `STATUS.md` (last 3.2, next 3.3).
 - [ ] **Commit** `feat(weather): add Open-Meteo client and KS-07 weather snapshot`.

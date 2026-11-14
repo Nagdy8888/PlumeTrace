@@ -255,3 +255,67 @@ in `docs/OWNER_ACTIONS.md`.
 - **Pipe ends:** the gaps at the ends of R-140 and R-500 (about 1.25 m and 0.5 m) are cosmetic and handled in Phase 4.
 
 Gate 1 is signed off.
+
+## Weather
+
+The plumes are driven by real hourly weather for the site's coordinates (design section 8). The
+data is fetched once, committed as a snapshot and read offline, so every scenario is reproducible.
+The station is simulated; **the weather is real** and is labelled real and attributed.
+
+| Item | Value |
+|---|---|
+| Source | Open-Meteo historical weather API (ERA5 reanalysis), `https://archive-api.open-meteo.com/v1/archive`, no API key |
+| Verified against | The official Open-Meteo documentation and licence pages, 2026-11-14: endpoint, variable names, units, `wind_speed_unit` options (default `kmh`) and `timezone` (default GMT) |
+| Location | `site.latitude_deg`, `site.longitude_deg` of KS-07 (39.10, 61.30; the site itself is fictional) |
+| Period | 2025-07-14 to 2025-07-20 inclusive, UTC, 168 hours; `start_utc` is `2025-07-14T00:00:00Z` |
+| Snapshot file | `app/backend/plumetrace/simulator/data/weather_ks07_2025-07-14_2025-07-20.json` (generated, never hand-edited) |
+| Licence | CC BY 4.0 (API data). Free for non-commercial use within the published rate limits |
+| Attribution text | `Weather data by Open-Meteo.com (CC BY 4.0), ERA5 reanalysis.` (constant `ATTRIBUTION`, stored in the snapshot). Open-Meteo asks for a link next to any place its data is shown; the UI must link the text to <https://open-meteo.com/> |
+
+### Fields and conversions
+
+The request asks for `wind_speed_unit=ms` and `timezone=UTC`, so the wind needs no conversion. The
+client refuses a response whose `hourly_units` says the wind is not in m/s.
+
+| Open-Meteo variable | Unit as requested | `HourlyWeather` field | Conversion |
+|---|---|---|---|
+| `wind_speed_10m` | m/s | `wind_speed_m_s` | none |
+| `wind_direction_10m` | degrees, direction the wind blows from | `wind_from_deg` | none |
+| `shortwave_radiation` | W/m2 (mean of the preceding hour) | `shortwave_w_m2` | none |
+| `cloud_cover` | percent | `cloud_fraction` | divide by 100 |
+| `temperature_2m` | degrees C | `temp_k` | add 273.15 |
+
+`hour_index` is the position in the series (0, 1, 2, ...).
+
+### Modules
+
+| Module | Responsibility |
+|---|---|
+| `plumetrace.data_sources.open_meteo` | `fetch_hourly(client, lat, lon, start, end)`: one GET, validation, unit conversion. Constants `ARCHIVE_URL`, `HOURLY_FIELDS`, `TIMEOUT_S`, `ATTRIBUTION`; error `OpenMeteoError`. The only network code for weather |
+| `plumetrace.simulator.weather` | `load_snapshot(path)` reads and validates the committed file; `slice_hours(snapshot, offset_h, hours)` returns re-indexed hours |
+| `scripts/fetch_weather.py` | Fetches the week and writes the snapshot (UTF-8, LF, sorted keys, indent 2) |
+
+### What is rejected
+
+| Situation | Result |
+|---|---|
+| `end` before `start` | `ValueError`, no request is sent |
+| HTTP error, timeout | `httpx.HTTPError` subclass, raised to the caller |
+| Body is not the expected JSON, no `hourly` block | `OpenMeteoError` |
+| `null` value, missing field, field shorter than the time axis | `OpenMeteoError` naming the field (and the time) |
+| Time axis empty, not starting at `start` 00:00, or not hourly | `OpenMeteoError` |
+| NaN, negative wind or radiation, cloud outside 0-100 % | `OpenMeteoError` naming the time |
+| Wrong number of hours (script: not 168) | the script exits 1 and writes nothing |
+| Snapshot with a `null`, a blank attribution, no hours, a naive `start_utc` or `hour_index` not 0..n-1 | `ValueError` from `load_snapshot` |
+| `slice_hours` with a negative offset, fewer than 1 hour, or more hours than the snapshot has | `ValueError` (`snapshot has N hours, need M`) |
+
+### How to refresh
+
+```
+cd app && uv run python ../scripts/fetch_weather.py
+```
+
+This makes one real request to the public API (free, no key, no cost). If it fails the script
+prints the reason and keeps the existing file; do not edit the JSON by hand. Review the diff
+before committing: the weather changes every scenario that uses these hours. Outbound-network
+controls are in `docs/reference/SECURITY.md`.
