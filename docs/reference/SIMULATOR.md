@@ -379,3 +379,69 @@ two ramped offsets for a leak on `K-20n`:
 | `packing_leak_effects` with a `unit_tag` that is not `K-201` to `K-203`, a non-positive or non-finite rate, a mass fraction outside (0, 1], a non-finite start or a bad ramp | `ValueError` |
 
 The simulator never returns NaN. Sensor dropout is not modelled here.
+
+## Scenarios: model and runner
+
+`plumetrace.simulator.scenario` holds the scenario definition and `plumetrace.simulator.runner`
+runs it. Both are pure simulation: no network, no database, deterministic for a seed. The station
+and the scenarios are simulated. All models are frozen and reject unknown fields.
+
+### Model (`scenario.py`)
+
+| Model | Fields (unit) | Rejected |
+|---|---|---|
+| `SourceSpec` | `anchor_id`, `rate_kg_h` (kg/h, >= 0), `start_s` (s, >= 0), `end_s` (s, default infinity, exclusive) | non-finite rate or start, `end_s` not after `start_s` |
+| `FaultSpec` | `sensor_id`, `drift_ppm_per_h` (ppm/h, may be negative), `start_s` (s, >= 0) | non-finite drift or start |
+| `InstrumentEffectSpec` | `tag`, `kind` (`offset` or `set`), `value`, `start_s`, `end_s`, `ramp_s` (s); `to_effect()` gives the `InstrumentEffect` | tag not in `BASELINES`, non-finite value or start, `end_s` not after `start_s`, bad ramp |
+| `LogEntry` | `t_s` (s, >= 0), `kind` (permit, gauging, maintenance, shift_note, calibration), `tag`, `text` | infinite time, blank text |
+| `ExpectedOutcome` | `triage` (leak, sensor_fault, planned_venting), `top_candidate`, `attributed_unit`, `rate_min_kg_h`, `rate_max_kg_h`, `rule_ids` | one rate bound without the other, non-finite, negative or `min > max` |
+| `ScenarioDefinition` | `id` (`s<digits>_<lowercase words>`), `title`, `seed` (>= 0), `weather_offset_h` (>= 0), `duration_h` (1-24), `sources`, `faults`, `instrument_effects`, `log`, `expected`, `variant_index` | unsorted `log`, any source, fault or effect start at or after the end, a log time after the end, a negative seed |
+
+Time model: every `t_s`, `start_s` and `end_s` is seconds from the scenario start. Second 0 is
+`snapshot.start_utc + weather_offset_h` hours (`ScenarioRun.sim_start_utc`). The step is
+`DT_S = 10.0` s. Several effects on one instrument overlap freely and are applied in list order
+(see "Effect model"); several faults on one sensor add up.
+
+The expected rate is stored only as an interval, never a single number, so a UI that shows it
+follows the rate display rule (interval, never a point value). The interval is the design intent,
+not a model output.
+
+### Runner (`runner.py`)
+
+`run_scenario(definition, spec, snapshot)` does, in this order:
+
+1. `rng = numpy.random.default_rng(definition.seed)`.
+2. Slices `duration_h + 1` weather hours from `weather_offset_h` (`slice_hours`). A snapshot that
+   is too short raises `ValueError` naming the scenario and the hours needed, for example
+   `scenario s9_long_one needs 173 weather hours (...), snapshot has 168`.
+3. Maps each source to a `TrueSource` at the emission-point anchor `anchor_id`; an unknown anchor
+   raises `KeyError("unknown anchor <id>")`. A fault on an unknown sensor raises `ValueError`.
+4. `simulate_sensors` with the default `TruthConfig`, the facility obstacles and the faults.
+5. `simulate_instruments` with the same `rng`.
+6. 10-minute window means, wind (mean speed, circular mean direction) and the most frequent
+   stability class per window (`window_mode_class`).
+7. `detect_events` on the absolute window means, with the site centre
+   (`site_center_xy`, the centre of the site bounds, `(100, 75)` for KS-07) and the window wind
+   directions. Detection holds a sensor for six windows after an event, so one sensor never has two
+   events inside that period.
+
+Random-draw order: the generator draws first inside `simulate_sensors` (one block of
+`steps x (2 + sensors)` standard normals, whatever the sources), then inside
+`simulate_instruments` (one normal series per tag in `BASELINES` order). So the instrument series
+do not change when a source is added. Same seed, same definition, same snapshot gives identical
+arrays and events.
+
+`ScenarioRun` holds the definition, `sim_start_utc`, the sensors, the 10 s `series`
+(`TruthSeries`), the instrument series, the window arrays (start, means, wind speed, wind
+direction, stability) and the events. For the meander-aware inversion (adopted at Gate 2) the
+caller builds `wind_dir_sd_deg` from `series.times_s` and `series.wind_from_deg` with
+`window_direction_sd_deg`, one value per window; the runner itself does not call the inversion.
+
+### What is rejected
+
+| Situation | Result |
+|---|---|
+| Invalid number, window or id in a model | `pydantic.ValidationError` (a `ValueError`) |
+| Source on an unknown or non-emission anchor | `KeyError("unknown anchor <id>")` |
+| Fault on an unknown sensor | `ValueError` naming it |
+| Scenario longer than the weather snapshot | `ValueError` naming the scenario and the hours needed |

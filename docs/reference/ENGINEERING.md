@@ -260,6 +260,12 @@ are compared with it; single samples carry turbulent noise the model does not de
   (there is no partial-coverage average). Alternating 350 and 10 degrees give 10.02556 degrees. A
   window whose directions cancel exactly (`R = 0`) would give infinity. This is the measured input
   of the plume's `dir_sd_deg` option; it describes the 10 s direction samples inside each window.
+- `window_mode_class(classes, steps_per_window, n_windows)` returns the most frequent stability class
+  in each of the first `n_windows` windows of `steps_per_window` steps (window k is
+  `classes[k * n : (k + 1) * n]`); a tie goes to the alphabetically first class, `n_windows = 0`
+  gives an empty list, and a requested window with no steps raises `ValueError`. It is the logic
+  that was private to `benchmark.runner` (`window_stability` now calls it); a Hypothesis test checks
+  it equals the old per-slice rule, ties and a partial last window included (Phase 3 Task 4).
 - `is_calm(speed_m_s)` is `speed_m_s < CALM_WIND_M_S` (1 m/s): the plume formula divides by wind
   speed, so calm windows are not modelled.
 
@@ -1262,3 +1268,4 @@ every quantity with its unit suffix. Keep functions pure.
 - 2026-11-14: optional within-window wind-direction spread added: `window_direction_sd_deg`, `dir_sd_deg` on the plume, `wind_dir_sd_deg` on the inversion; `InversionInput` moved to `inversion_input.py` (Phase 2 improvement round 2.15). The default behaviour and the published benchmark are unchanged; the effect of the option on the benchmark was not yet measured at that point (see the entry on the official run below).
 - 2026-11-14: benchmark improvement round prepared: calibration metrics, the adoption rule and `python -m benchmark.compare` (Phase 2 improvement round 2.16); scoring code and the published benchmark unchanged; no fresh run yet at that point (see the entry on the official run below).
 - 2026-11-14: the official improvement run was made once at the pre-registration commit `efc74af` (`python -m benchmark.compare --seed 20261114`, synthetic data, one seed per method): meander-aware top-1 0.69 against 0.48 for the Task 8 method, median rate error 0.177 against 1.34, confident-wrong rate 0.122 against 0.407, false-call rate 0 for both; the adoption rule printed "Adopted for the app: meander-aware". The probabilities and the 90 % rate intervals are not calibrated for either method. Results, reading and caveats are in "Improvement round results"; Gate 2 closed (delegated decision, `docs/evidence/2026-11-phase-2-gate-2.md`).
+- 2026-11-14: `window_mode_class` added to the averaging module; `benchmark.runner.window_stability` delegates to it (Phase 3 Task 4).

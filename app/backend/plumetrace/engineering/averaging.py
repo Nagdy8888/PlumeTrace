@@ -5,10 +5,14 @@ complete windows before they are compared with it. Pure numpy, no I/O.
 """
 
 import math
+from collections import Counter
+from collections.abc import Sequence
 from typing import Final
 
 import numpy as np
 import numpy.typing as npt
+
+from plumetrace.engineering.stability import StabilityClass
 
 # 10-minute window, the 1 m/s calm limit and the 50 % coverage rule: Phase 2 Task 6 values.
 WINDOW_S: Final[float] = 600.0
@@ -161,6 +165,35 @@ def window_direction_sd_deg(
     with np.errstate(divide="ignore"):
         sd: npt.NDArray[np.float64] = np.degrees(np.sqrt(-2.0 * np.log(resultant)))
     return sd
+
+
+def window_mode_class(
+    classes: Sequence[StabilityClass], steps_per_window: int, n_windows: int
+) -> list[StabilityClass]:
+    """Most frequent stability class in each window.
+
+    Window k covers ``classes[k * steps_per_window : (k + 1) * steps_per_window]``.
+
+    Args:
+        classes: One class per time step.
+        steps_per_window: Time steps in one window (> 0).
+        n_windows: Number of windows to return.
+
+    Returns:
+        One class per window; ties go to the alphabetically first class.
+
+    Raises:
+        ValueError: If a requested window holds no steps (``steps_per_window`` below 1 or
+            ``classes`` too short for ``n_windows``).
+    """
+    n = steps_per_window
+    modes: list[StabilityClass] = []
+    for k in range(n_windows):
+        counts = Counter(classes[k * n : (k + 1) * n])
+        if not counts:
+            raise ValueError(f"window {k} holds no steps")
+        modes.append(min(counts, key=lambda c: (-counts[c], c.value)))
+    return modes
 
 
 def is_calm(speed_m_s: float) -> bool:

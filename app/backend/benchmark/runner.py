@@ -10,6 +10,7 @@ from plumetrace.engineering.averaging import (
     WINDOW_S,
     window_direction_sd_deg,
     window_means,
+    window_mode_class,
     window_wind,
 )
 from plumetrace.engineering.inversion import InversionInput, InversionResult, invert
@@ -59,8 +60,7 @@ def window_stability(
     Returns:
         One class per window; ties go to the alphabetically first class.
     """
-    n = steps_per_window
-    return [_mode(classes[k * n : (k + 1) * n]) for k in range(n_windows)]
+    return window_mode_class(classes, steps_per_window, n_windows)
 
 
 def run_case(case: BenchmarkCase, spec: FacilitySpec, *, meander: bool = False) -> CaseResult:

@@ -112,6 +112,6 @@ def test_log_must_be_sorted() -> None:
 ```
 
 ## Steps
-- [ ] Tests → FAIL → implement (add `window_mode_class`; refactor `benchmark.runner.window_stability` to call it) → full checks green, including the Phase 2 benchmark tests.
-- [ ] **Docs.** SIMULATOR.md → "Scenarios: model and runner" (fields, units, the runner steps, random-draw order, time model). ENGINEERING.md → note `window_mode_class`. Work-log; `STATUS.md` (last 3.4, next 3.5).
+- [x] Tests → FAIL → implement (add `window_mode_class`; refactor `benchmark.runner.window_stability` to call it) → full checks green, including the Phase 2 benchmark tests.
+- [x] **Docs.** SIMULATOR.md → "Scenarios: model and runner" (fields, units, the runner steps, random-draw order, time model). ENGINEERING.md → note `window_mode_class`. Work-log; `STATUS.md` (last 3.4, next 3.5).
 - [ ] **Commit** `feat(simulator): add scenario model and runner`.
