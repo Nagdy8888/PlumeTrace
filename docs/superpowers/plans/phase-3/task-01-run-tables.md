@@ -158,8 +158,8 @@ def test_unknown_scenario_is_rejected(db_conn: psycopg.Connection[tuple[object, 
 (The existing `test_every_plumetrace_table_has_rls` and `test_no_client_policies_exist` now also cover the three new tables.)
 
 ## Steps
-- [ ] Write the test; with Supabase running: `uv run pytest backend/tests/db -q` → fails.
-- [ ] Write the migration; `npx --yes supabase@3.1.0 db reset`; implement the three modules (Google docstrings; typed with `psycopg.Connection[tuple[object, ...]]`).
-- [ ] Full checks green: `python scripts/ci_local.py --full` after `npx --yes supabase@3.1.0 db reset`.
-- [ ] **Docs.** DATABASE.md: the three tables (every column, type, meaning, constraints), indexes, cascade rules, NaN→NULL, transaction ownership. Work-log; `STATUS.md` (last 3.1, next 3.2).
+- [x] Write the test; with Supabase running: `uv run pytest backend/tests/db -q` → fails.
+- [x] Write the migration; `npx --yes supabase@3.1.0 db reset`; implement the three modules (Google docstrings; typed with `psycopg.Connection[tuple[object, ...]]`).
+- [x] Full checks green: `python scripts/ci_local.py --full` after `npx --yes supabase@3.1.0 db reset`.
+- [x] **Docs.** DATABASE.md: the three tables (every column, type, meaning, constraints), indexes, cascade rules, NaN→NULL, transaction ownership. Work-log; `STATUS.md` (last 3.1, next 3.2).
 - [ ] **Commit** `feat(db): add run, event and reading tables with repositories`.
