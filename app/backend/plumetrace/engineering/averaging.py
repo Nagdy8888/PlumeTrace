@@ -126,6 +126,43 @@ def window_wind(
     return speed.mean(axis=1), np.array([circular_mean_deg(row) for row in direction])
 
 
+def window_direction_sd_deg(
+    times_s: npt.NDArray[np.float64],
+    from_deg: npt.NDArray[np.float64],
+    window_s: float = WINDOW_S,
+) -> npt.NDArray[np.float64]:
+    """Circular standard deviation of the wind direction per complete window, in degrees.
+
+    ``sd = degrees(sqrt(-2 ln R))`` with ``R`` the mean resultant length of the unit vectors of
+    the directions in the window (``R = 1`` for a constant direction, so ``sd = 0``). ``R`` is
+    computed as the mean of ``cos(direction - circular mean)``, which equals the vector length and
+    is exactly 1 for identical directions; it is clipped to ``[0, 1]`` so rounding cannot give a
+    NaN. The windows are the same as in ``window_wind``, with the same NaN rule: a window with a
+    missing direction is NaN, so a window under ``MIN_COVERAGE`` valid samples is NaN too.
+
+    Args:
+        times_s: Sample times, shape ``(T,)``, constant step, in s.
+        from_deg: Direction the wind blows from, shape ``(T,)``, degrees.
+        window_s: Window length in s.
+
+    Returns:
+        Circular standard deviation per complete window, shape ``(W,)`` (empty when the series is
+        shorter than one window). A window whose directions cancel exactly (``R = 0``) gives inf.
+
+    Raises:
+        ValueError: If ``times_s`` has fewer than two samples or ``from_deg`` has a different
+            length from ``times_s``.
+    """
+    n = _samples_per_window(times_s, window_s, from_deg)
+    count = len(times_s) // n
+    rad = np.radians(np.asarray(from_deg, dtype=np.float64)[: count * n].reshape(count, n))
+    mean = np.arctan2(np.sin(rad).sum(axis=1), np.cos(rad).sum(axis=1))
+    resultant = np.clip(np.cos(rad - mean[:, None]).mean(axis=1), 0.0, 1.0)
+    with np.errstate(divide="ignore"):
+        sd: npt.NDArray[np.float64] = np.degrees(np.sqrt(-2.0 * np.log(resultant)))
+    return sd
+
+
 def is_calm(speed_m_s: float) -> bool:
     """Return True when the wind is below ``CALM_WIND_M_S``."""
     return speed_m_s < CALM_WIND_M_S

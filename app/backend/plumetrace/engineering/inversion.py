@@ -7,98 +7,48 @@ explicit ``inconclusive`` result, never a bare point estimate. Pure numpy, no I/
 """
 
 import math
-from typing import Final, Literal, Self
+from typing import Final, Literal
 
 import numpy as np
 import numpy.typing as npt
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel
 
 from plumetrace.engineering.averaging import CALM_WIND_M_S
-from plumetrace.engineering.dispersion import CoefficientSet
-from plumetrace.engineering.geometry import Candidate, Sensor
+from plumetrace.engineering.inversion_input import (
+    DEFAULT_MODEL_REL_ERROR,
+    DEFAULT_OBS_SIGMA_PPM,
+    MAX_ABS_OBS_PPM,
+    NO_SOURCE_ID,
+    InversionInput,
+)
 from plumetrace.engineering.inversion_model import (
     RATE_GRID_KG_H,
     log_likelihood,
     unit_response_ppm,
 )
-from plumetrace.engineering.stability import StabilityClass
 
-NO_SOURCE_ID: Final = "NONE"
+__all__ = [
+    "DEFAULT_MODEL_REL_ERROR",
+    "DEFAULT_OBS_SIGMA_PPM",
+    "MAX_ABS_OBS_PPM",
+    "MIN_CONCLUSIVE_PROBABILITY",
+    "MIN_SIGNAL_TO_NOISE",
+    "MIN_USABLE_WINDOWS",
+    "NO_SOURCE_ID",
+    "NO_SOURCE_PRIOR",
+    "CandidateScore",
+    "InversionInput",
+    "InversionResult",
+    "Reason",
+    "invert",
+]
+
 NO_SOURCE_PRIOR: Final = 0.5
 MIN_CONCLUSIVE_PROBABILITY: Final = 0.6
 MIN_SIGNAL_TO_NOISE: Final = 3.0
 MIN_USABLE_WINDOWS: Final = 2
-DEFAULT_OBS_SIGMA_PPM: Final = 0.1
-DEFAULT_MODEL_REL_ERROR: Final = 0.6
-MAX_ABS_OBS_PPM: Final = 1.0e6  # pure methane; a mole-fraction difference cannot exceed it
 
 Reason = Literal["calm", "too_few_windows", "ambiguous", "weak_signal"]
-
-
-class InversionInput(BaseModel):
-    """Everything the inversion needs for one event.
-
-    Attributes:
-        candidates: Possible emission points (``C``), ids unique and never ``NONE``.
-        sensors: Methane sensors (``S``).
-        observed_ppm_above_bg: Window means above background, ``W`` rows of ``S`` values; NaN or
-            infinite values are treated as missing. Every finite value must satisfy
-            ``abs(value) <= MAX_ABS_OBS_PPM``, otherwise the input is rejected.
-        wind_speed_m_s: Mean wind speed per window in m/s; NaN means unknown. A finite value must
-            be >= 0, otherwise the input is rejected.
-        wind_from_deg: Mean wind "from" bearing per window, degrees clockwise from north.
-        stability: Pasquill class per window.
-        temp_k: Air temperature in K.
-        pressure_pa: Air pressure in Pa.
-        obs_sigma_ppm: Observation noise, one sigma, in ppm (> 0).
-        model_rel_error: Relative one-sigma error of the plume model (>= 0).
-        coeff: Dispersion coefficient set.
-    """
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    candidates: list[Candidate]
-    sensors: list[Sensor]
-    observed_ppm_above_bg: list[list[float]]
-    wind_speed_m_s: list[float]
-    wind_from_deg: list[float]
-    stability: list[StabilityClass]
-    temp_k: float
-    pressure_pa: float
-    obs_sigma_ppm: float = DEFAULT_OBS_SIGMA_PPM
-    model_rel_error: float = DEFAULT_MODEL_REL_ERROR
-    coeff: CoefficientSet = CoefficientSet.BRIGGS_RURAL
-
-    @model_validator(mode="after")
-    def _check(self) -> Self:
-        """Reject empty or inconsistent input instead of returning a meaningless posterior."""
-        ids = [c.id for c in self.candidates]
-        if not ids or not self.sensors:
-            raise ValueError("candidates and sensors must not be empty")
-        if NO_SOURCE_ID in ids or len(set(ids)) != len(ids):
-            raise ValueError(f"candidate ids must be unique and not {NO_SOURCE_ID!r}")
-        n = len(self.observed_ppm_above_bg)
-        if not (len(self.wind_speed_m_s) == len(self.wind_from_deg) == len(self.stability) == n):
-            raise ValueError(
-                "wind, stability and observation arrays must have one entry per window"
-            )
-        if any(len(row) != len(self.sensors) for row in self.observed_ppm_above_bg):
-            raise ValueError("every observation row must have one value per sensor")
-        obs = np.array(self.observed_ppm_above_bg, dtype=np.float64)
-        if np.any(np.abs(obs[np.isfinite(obs)]) > MAX_ABS_OBS_PPM):
-            raise ValueError(
-                "finite observed_ppm_above_bg values must be within -1e6 and 1e6 ppm "
-                "(1e6 ppm is pure methane)"
-            )
-        speed = np.array(self.wind_speed_m_s, dtype=np.float64)
-        if np.any(speed[np.isfinite(speed)] < 0.0):
-            raise ValueError("wind_speed_m_s values must be >= 0 or NaN (unknown)")
-        positive = (self.obs_sigma_ppm, self.temp_k, self.pressure_pa)
-        if not all(v > 0.0 and math.isfinite(v) for v in positive):
-            raise ValueError("obs_sigma_ppm, temp_k and pressure_pa must be positive and finite")
-        if not (self.model_rel_error >= 0.0 and math.isfinite(self.model_rel_error)):
-            raise ValueError("model_rel_error must be >= 0 and finite")
-        return self
 
 
 class CandidateScore(BaseModel):
@@ -280,6 +230,7 @@ def invert(inp: InversionInput) -> InversionResult:
     speed_m_s = np.array(inp.wind_speed_m_s, dtype=np.float64)[idx]
     from_deg = np.array(inp.wind_from_deg, dtype=np.float64)[idx]
     classes = [inp.stability[i] for i in idx]
+    spread = None if inp.wind_dir_sd_deg is None else np.array(inp.wind_dir_sd_deg)[idx]
     response = unit_response_ppm(
         inp.candidates,
         inp.sensors,
@@ -289,6 +240,7 @@ def invert(inp: InversionInput) -> InversionResult:
         inp.temp_k,
         inp.pressure_pa,
         inp.coeff,
+        dir_sd_deg=spread,
     )
     ll = log_likelihood(
         obs[idx], response, RATE_GRID_KG_H / 3600.0, inp.obs_sigma_ppm, inp.model_rel_error

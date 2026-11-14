@@ -26,6 +26,8 @@ def unit_response_ppm(
     temp_k: float,
     pressure_pa: float,
     coeff: CoefficientSet,
+    *,
+    dir_sd_deg: npt.NDArray[np.float64] | None = None,
 ) -> npt.NDArray[np.float64]:
     """Plume response of every sensor to 1 kg/s from every candidate in every window.
 
@@ -38,6 +40,8 @@ def unit_response_ppm(
         temp_k: Air temperature in K.
         pressure_pa: Air pressure in Pa.
         coeff: Dispersion coefficient set.
+        dir_sd_deg: Wind-direction standard deviation per window in degrees, shape ``(W,)``, each
+            finite and >= 0; None (the default) uses the narrow plume in every window.
 
     Returns:
         Concentration above background in ppm for a unit rate of 1 kg/s, shape ``(C, W, S)``.
@@ -58,6 +62,7 @@ def unit_response_ppm(
                 coeff,
                 temp_k,
                 pressure_pa,
+                dir_sd_deg=0.0 if dir_sd_deg is None else float(dir_sd_deg[w]),
             )
     return out
 

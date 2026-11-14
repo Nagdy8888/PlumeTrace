@@ -204,9 +204,31 @@ from 180 has `along` = 100 m and `cross` = 0.
 Assumptions: steady state over the averaging period, flat terrain, no plume rise for vents, the 10 m
 wind used at all heights, total ground reflection (the second exponential is the image source at
 -H). Limits: `C = 0` wherever `along <= 0` (upwind of, or level with, the source); no buildings,
-no meander, no chemistry or deposition; spreads are clipped at 10 m, so the model is not valid
-within about 10 m of the source (value there equals the 10 m value). Reference: Turner,
-*Workbook of Atmospheric Dispersion Estimates*, 2nd ed., 1994.
+no meander (unless `dir_sd_deg` is given, see below), no chemistry or deposition; spreads are
+clipped at 10 m, so the model is not valid within about 10 m of the source (value there equals the
+10 m value). Reference: Turner, *Workbook of Atmospheric Dispersion Estimates*, 2nd ed., 1994.
+
+**Meander option (`dir_sd_deg`, project derivation, not a published formula).** Both concentration
+functions take a keyword-only `dir_sd_deg` (default 0.0), the standard deviation in degrees of the
+wind direction inside the averaging window. With `dir_sd_deg > 0` the horizontal spread becomes
+
+```
+sigma_y,eff^2 = sigma_y^2 + (x_c * radians(dir_sd_deg))^2
+```
+
+where `x_c` is the along-wind distance clipped to 10 to 1000 m exactly as `sigmas_m` clips it
+(`X_MIN_M`, `X_MAX_M`) and `sigma_z` is unchanged. Derivation: a plume whose axis wanders with
+direction standard deviation `s` (radians) is, averaged over the window, the narrow plume smeared
+sideways. At distance `x` the axis is displaced by `x tan(theta)`, about `x theta` for a small angle,
+so the displacement variance is `(x s)^2`; adding it to the plume's own `sigma_y^2` is the
+small-angle variance of a direction-averaged plume. The small-angle step is the limit: at 20 degrees
+`tan` differs from the angle by about 4 %, and it grows beyond that, so the option is meant for
+spreads of the order of 10 degrees. The crosswind integral of `C` is unchanged (a Gaussian in `y`
+integrates to the same value for any `sigma_y`), the centreline value falls by `sigma_y /
+sigma_y,eff`, and nothing changes for `along <= 0`. With exactly `dir_sd_deg = 0.0` the original
+code path runs with no extra arithmetic, so results are bit-identical to the version without the
+option. `ValueError` for a negative or non-finite `dir_sd_deg`. The spread is measured from data
+(`window_direction_sd_deg`), never taken from the truth model's setting.
 
 ### Averaging
 
@@ -229,6 +251,15 @@ are compared with it; single samples carry turbulent noise the model does not de
   empty array raises `ValueError`.
 - `window_wind(times_s, speed_m_s, from_deg, window_s=WINDOW_S)` returns per complete window the
   arithmetic mean speed and the circular mean direction. It has no NaN coverage rule.
+- `window_direction_sd_deg(times_s, from_deg, window_s=WINDOW_S)` returns per complete window the
+  circular standard deviation of the direction in degrees, `degrees(sqrt(-2 ln R))` with `R` the
+  mean resultant length of the unit vectors (`R = 1` for a constant direction, so exactly 0.0; `R`
+  is computed as the mean of `cos(direction - circular mean)` and clipped to `[0, 1]`). It uses the
+  same windows and the same `ValueError`s as `window_wind` and is NaN exactly where `window_wind`
+  is NaN: a window with any missing direction is NaN, so a window under 50 % coverage is NaN too
+  (there is no partial-coverage average). Alternating 350 and 10 degrees give 10.02556 degrees. A
+  window whose directions cancel exactly (`R = 0`) would give infinity. This is the measured input
+  of the plume's `dir_sd_deg` option; it describes the 10 s direction samples inside each window.
 - `is_calm(speed_m_s)` is `speed_m_s < CALM_WIND_M_S` (1 m/s): the plume formula divides by wind
   speed, so calm windows are not modelled.
 
@@ -280,7 +311,9 @@ sensors, window or wind arrays of the wrong length, `baseline_windows < 1` or a 
 
 ### Source inversion
 
-Modules `plumetrace.engineering.inversion` (public API and decisions) and `inversion_model`
+Modules `plumetrace.engineering.inversion` (public API and decisions), `inversion_input` (the
+`InversionInput` model and its checks, re-exported by `inversion` together with `NO_SOURCE_ID`,
+`MAX_ABS_OBS_PPM`, `DEFAULT_OBS_SIGMA_PPM` and `DEFAULT_MODEL_REL_ERROR`) and `inversion_model`
 (numerics). Answers: which of the emission candidates leaks, at what rate, and how sure are we.
 
 `invert(InversionInput) -> InversionResult`. `InversionInput` holds the candidates, the sensors,
@@ -290,6 +323,14 @@ bearing and stability class per window, `temp_k`, `pressure_pa`, `obs_sigma_ppm`
 `ValueError` for empty candidates or sensors, a candidate id of `NONE` or a duplicate id, any array
 whose length differs from the number of windows, a row whose width differs from the number of
 sensors, and a non-positive `obs_sigma_ppm`, `temp_k` or `pressure_pa`, or a negative `model_rel_error`.
+
+Optional `wind_dir_sd_deg: list[float] | None = None`: the within-window wind-direction standard
+deviation per window in degrees (from `window_direction_sd_deg`), passed to the plume as
+`dir_sd_deg` for each used window (see Gaussian plume, Meander option). `None`, the default, is the
+behaviour above, unchanged; all zeros gives exactly the same result as `None` (tested). It raises
+`ValueError` for a length different from the number of windows, a negative or infinite value, and a
+NaN value in a window whose wind direction is known (NaN is allowed where the direction is NaN; that
+window is not used). The model-error term `model_rel_error` is not changed by the option.
 
 - **Hypothesis space:** the 21 KS-07 emission candidates plus `NONE` (no source), so `C + 1 = 22`
   hypotheses.
@@ -890,6 +931,7 @@ section above that states it in full; the numbers are measured there.
 | Fusion | The likelihood ratios (0.05, 20, 4, 2 degC, `k = 1`) are project choices, not calibrated; evidence items are treated as independent (naive Bayes) | Evidence fusion limits |
 | Truth model | It is the same Gaussian formula as the inversion with another coefficient set, meander, gusts, wakes and noise, so the mismatch is partial: plume rise, buoyant or dense-gas behaviour, terrain and non-Gaussian profiles are not tested | Truth model limits |
 | Inventory | The component counts are an UNVERIFIED PROXY (Subpart W Table W-1B production and gathering defaults used for a transmission compressor station); the average factors are an early-1990s US production population | Inventory limits |
+| Meander option | Optional `dir_sd_deg` widens `sigma_y` by the measured within-window direction spread; small-angle approximation; a project derivation, not a citation; its effect on the benchmark is not yet measured | Gaussian plume, Averaging, Source inversion |
 | Benchmark | Synthetic data, one seed, 250 cases; rate error at this mismatch is large (median 113 %); not tuned | Benchmark |
 
 Smaller decisions: the ideal gas law is used for ppm and kg/m3 (at 288.15 K and 101325 Pa pure
@@ -908,6 +950,9 @@ rejections, by module (the module sections list the rest):
 - Wind: `concentration_kg_m3` rejects a wind speed `<= 0` and a negative rate. `invert` rejects a
   finite negative wind speed; an unknown wind is NaN. Calm windows (below 1 m/s) are not an error:
   they are not used, and `invert` returns an inconclusive `calm` or `too_few_windows` result.
+- Direction spread: both concentration functions reject a negative or non-finite `dir_sd_deg`;
+  `invert` rejects a `wind_dir_sd_deg` of the wrong length, with a negative or infinite value, or
+  with NaN where the wind direction is known.
 - Shapes and lengths: `window_means`, `window_wind`, `detect_events` and `invert` raise on an array
   whose length or width does not match the time axis or the sensor count; `window_means` and
   `window_wind` also on fewer than two samples; `circular_mean_deg` on an empty array. Nothing is
@@ -1006,6 +1051,15 @@ dilution). `test_truth_weather_edges.py`: `HourlyWeather` validation, `angular_d
 generator's draw order and three draws per hour, day and night, the clock shift, clipping and
 wrap-around over thousands of hours, and the interpolation. `app/backend/tests/facility/
 test_obstacles_edges.py`: obstacle order, sizes, flags, empty spec, rotation.
+`app/backend/tests/engineering/test_meander.py` (32 tests): the circular sd of a window (constant
+direction is exactly 0.0, 350/10 degrees give 10.02556, a 180 degree rotation changes nothing, NaN
+where `window_wind` is NaN), `dir_sd_deg = 0.0` bit-identical to the default for both coefficient
+sets, the ground-level centreline ratio `sigma_y / sigma_y,eff` at both clip edges, the unchanged
+crosswind integral, rejection of a negative or non-finite spread, the inversion unchanged for `None`
+and all zeros, every `wind_dir_sd_deg` check, and a recovery of 10 kg/h from VS-250.tip on data made
+with an 8 degree spread (same plume model for data and inversion, so it checks the plumbing, not
+mismatch). `test_inversion_reexport.py`: `inversion` still exports the same names and the moved ones
+are the same objects.
 Run from `app/`: `uv run pytest backend/tests/engineering -q`.
 
 ### Physical laws tested
@@ -1058,3 +1112,4 @@ every quantity with its unit suffix. Keep functions pure.
 - 2026-11-13: model-mismatch benchmark (250 cases) and its report added (Phase 2 Task 13).
 - 2026-11-14: property-based and metamorphic tests of the physics laws added (Phase 2 Task 14).
 - 2026-11-14: Phase 2 gate documentation: intro, assumptions index and failure-behaviour sections rewritten for the whole core; the matched-physics check labelled post-hoc and not reproducible; a post-hoc reading of the benchmark evidence added (no code or scoring changed).
+- 2026-11-14: optional within-window wind-direction spread added: `window_direction_sd_deg`, `dir_sd_deg` on the plume, `wind_dir_sd_deg` on the inversion; `InversionInput` moved to `inversion_input.py` (Phase 2 improvement round 2.15). The default behaviour and the published benchmark are unchanged; the effect of the option on the benchmark is not yet measured.
