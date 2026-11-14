@@ -555,3 +555,69 @@ station; it is not evidence of real-world accuracy. Probabilities are model prob
   scenario issue on this point. The probability 0.912 is a model probability (see the Gate 2 caveat above).
 - For information only (scratch check, not part of the pipeline): the same windows without the direction
   spread give the same top candidate (probability 0.712) but a rate interval of 95.7 to 393.0 kg/h.
+
+## Variants
+
+`plumetrace.simulator.variants.generate_variants(base, n=20, seed=VARIANT_SEED)` turns one MVP scenario
+into a family of randomised variants. The agent evaluation (Phase 5) runs the agents on every variant so
+the result does not rest on one hand-picked story (design section 6). The station and every variant are
+simulated. The ranges and distractor texts below are Task 6 values (no cited source).
+
+### What varies and why
+
+| Parameter | Range | Why |
+|---|---|---|
+| `weather_offset_h` | integer, 0 to 168 - `duration_h` - 1 (the run fits the 168 h snapshot) | different wind speed, direction and stability |
+| rate scale | log-uniform in `RATE_SCALE_RANGE` = 0.5 to 2.0 | leak sizes from half to double the base rate; log-uniform so halving and doubling are equally likely |
+| time shift | uniform in `TIME_SHIFT_RANGE_S` = -1800 s to +1800 s | the event does not always start at the same minute |
+| distractor log entries | 0 to 2 of the six in `DISTRACTOR_LOG`, each at a random time inside the run | irrelevant but plausible lines the agent must ignore |
+| `seed` | integer 0 to 2^31 - 1 | different sensor noise and wind-direction wander |
+
+What the scale multiplies: every source `rate_kg_h`, the `offset` value of the FT-250 effects (the vent
+header signature scales with the leak) and the expected rate interval. What the shift moves: source,
+instrument-effect and fault start times (and finite end times), and `permit` log entries. Source and fault
+starts and source ends are clamped at 0; permit times are clamped to 0 to the scenario length. Other base
+log entries stay where they are. The temperature effects (TT-20xP) are shifted but not scaled.
+
+### Draw order
+
+The generator is `np.random.default_rng([seed, h])` with `h` the first four bytes of the SHA-256 of
+`base.id` as a big-endian integer, so two scenarios with the same seed draw differently. For each variant
+`i` in `range(n)` it draws, in this order: (1) `offset`, (2) `scale = exp(uniform(ln 0.5, ln 2.0))`,
+(3) `shift = uniform(-1800, 1800)`, (4) `k = integers(0, 3)` then `choice(6, size=k, replace=False)` and one
+`uniform(0, duration_h * 3600)` time per chosen entry, (5) the variant seed `integers(2**31)`. The same
+base, `n` and seed give identical variants, and the first `m` variants of a family do not depend on `n`.
+
+### Distractor list
+
+1. `shift_note`: "Radio check with the dispatch centre completed."
+2. `maintenance` E-232: "Fin-fan E-232 belt tension checked; no action needed."
+3. `gauging` TK-401: "TK-401 gauged; hatch closed and latched."
+4. `calibration` AT-102: "AT-102 bump test passed."
+5. `shift_note`: "Contractor vehicle entered the site for scaffolding inspection."
+6. `maintenance` FG-501: "Fuel gas filter differential pressure logged at 0.3 bar."
+
+### Ids and expected outcomes
+
+- A variant keeps the base `id`; `(id, variant_index)` with `variant_index` 0 to `n - 1` is its unique,
+  stable key (the same inputs always give the same key and content).
+- The expected outcome comes from the scenario design, never from running the inversion: triage class,
+  top candidate and attributed unit are those of the base. The expected rate interval is the base interval
+  multiplied by the variant's rate scale (for S1, 7.5 to 30.0 kg/h times 0.5 to 2.0). No variant stores a
+  single point rate for display (rate display rule R1-R4); S4 and S5 have no expected rate.
+- The variant code never calls the inversion.
+
+### Validation
+
+`model_copy(update=...)` does not validate, so every generated variant is re-validated with
+`ScenarioDefinition.model_validate(variant.model_dump())`. A shift that pushes a start to or past the end
+of the scenario, or collapses a source window to zero length at t = 0, raises `pydantic.ValidationError`
+(a `ValueError`) instead of returning an invalid scenario. A negative `n` raises `ValueError`. The three
+MVP scenarios give 20 valid variants each at the default seed.
+
+### Known limit
+
+Base log entries other than permits do not move with the shift. In S4 the "K-201 discharge valve replaced;
+unit restarted" entry stays at 9000 s, so in 7 of the 20 default variants the blowdown is still venting at
+that time. This follows the Task 6 specification; an evaluation that reads that line should not treat the
+order of the two as a designed signal.

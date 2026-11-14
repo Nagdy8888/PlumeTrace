@@ -81,6 +81,6 @@ def test_logs_stay_sorted_with_distractors() -> None:
 ```
 
 ## Steps
-- [ ] Tests → FAIL → implement → full checks green.
-- [ ] **Docs.** SIMULATOR.md → "Variants": what varies and why, the draw order, the distractor list, how variants feed the evaluation (Phase 5). Work-log; `STATUS.md` (last 3.6, next 3.7).
+- [x] Tests → FAIL → implement → full checks green.
+- [x] **Docs.** SIMULATOR.md → "Variants": what varies and why, the draw order, the distractor list, how variants feed the evaluation (Phase 5). Work-log; `STATUS.md` (last 3.6, next 3.7).
 - [ ] **Commit** `feat(simulator): add scenario variant generator`.
