@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "scope": "Phase 1 foundations: repo, root .env handling and checks, local Supabase schema plumetrace (scenarios), frontend shell, facility spec KS-07, type contract, local check runner. No API, agents, LLM calls or replay build exist yet.",
-  "revision": "52349b2 + Gate 1 working tree (2026-11-13)",
-  "environment": "local-dev Windows 11 (Phase 1 only)",
+  "scope": "Phase 1 foundations plus Phase 2 engineering core (pure physics, benchmark); no API, agents, LLM calls or replay build exist yet.",
+  "revision": "a3c12c5 + docs working tree (2026-11-14)",
+  "environment": "local-dev Windows 11, Python 3.12",
   "assessments": [
     {
       "id": "B01",
@@ -199,8 +199,16 @@
     {
       "id": "B33",
       "status": "Planned",
-      "reason": "Exact pins and lockfiles exist and pip-audit is clean; 11 moderate npm dev findings are open. Next action: audit stage in Phase 6 Task 6.",
-      "evidence": []
+      "reason": "Exact pins and lockfiles exist and pip-audit is clean; 10 moderate npm dev findings are open (11 in Phase 1), none high or critical. Next action: audit stage in Phase 6 Task 6. Phase 2 check: pip-audit reports no known vulnerabilities, npm audit reports no high or critical finding (10 moderate, eslint toolchain), and numpy==2.5.4 is pinned in app/uv.lock (docs/evidence/2026-11-phase-2-checks.md).",
+      "evidence": [
+        {
+          "kind": "runtime",
+          "path": "docs/evidence/2026-11-phase-2-checks.md",
+          "result": "observed",
+          "revision": "a3c12c5 + docs working tree (2026-11-14)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        }
+      ]
     },
     {
       "id": "B34",
@@ -223,20 +231,43 @@
     {
       "id": "B37",
       "status": "Planned",
-      "reason": "SI units with suffixes are the rule. Next action: units.py (Phase 2 Task 1); cost arithmetic later.",
-      "evidence": []
+      "reason": "Units: SI with suffixes enforced; every conversion goes through units.py with cited constants; unit tests plus a Hypothesis ppm round trip pass (docs/evidence/2026-11-phase-2-checks.md). Remaining: USD cost arithmetic and rounding in plumetrace.llm_calls (Phase 5) and timezone handling for run timestamps.",
+      "evidence": [
+        {
+          "kind": "code",
+          "path": "app/backend/plumetrace/engineering/units.py",
+          "result": "observed",
+          "revision": "a3c12c5 + docs working tree (2026-11-14)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        },
+        {
+          "kind": "test",
+          "path": "docs/evidence/2026-11-phase-2-checks.md",
+          "result": "passed",
+          "revision": "a3c12c5 + docs working tree (2026-11-14)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        }
+      ]
     },
     {
       "id": "B38",
       "status": "Planned",
-      "reason": "No third-party clients yet. Next action: validate Open-Meteo (Phase 3 Task 2) and OpenAI structured outputs (rule 5).",
+      "reason": "No third-party clients yet. Next action: validate Open-Meteo (Phase 3 Task 2) and OpenAI structured outputs (rule 5). The engineering functions already reject NaN, infinity and out-of-range values, which Phase 3 Open-Meteo validation will rely on.",
       "evidence": []
     },
     {
       "id": "B39",
       "status": "Planned",
-      "reason": "Phase 1 has negative facility and config tests. Remaining: deny, race and restart tests through the API.",
-      "evidence": []
+      "reason": "Function-level negative and boundary tests exist for the engineering core (several hundred, 489 engineering and benchmark tests in docs/evidence/2026-11-phase-2-checks.md) and the Phase 1 facility and config tests. Remaining: deny, race and restart tests through the API and graph.",
+      "evidence": [
+        {
+          "kind": "test",
+          "path": "docs/evidence/2026-11-phase-2-checks.md",
+          "result": "passed",
+          "revision": "a3c12c5 + docs working tree (2026-11-14)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        }
+      ]
     },
     {
       "id": "B40",

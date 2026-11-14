@@ -1,19 +1,38 @@
 # Engineering core
 
-The pure physics of PlumeTrace: constants, unit conversions and (added by later Phase 2 tasks)
-dispersion, inversion and emission quantification. Design reference: section 5 of
-`docs/superpowers/specs/2026-11-12-plumetrace-design.md`. Package: `plumetrace.engineering`.
+The pure physics of PlumeTrace, in package `plumetrace.engineering`: constants and unit conversions,
+gas properties, Pasquill stability classes, dispersion coefficients, the Gaussian plume forward
+model, window averaging, event detection, source inversion, evidence fusion, flare slip, blowdown
+vented mass, the emission-factor inventory, methane intensity and a truth model that generates
+synthetic sensor data. The model-mismatch benchmark in `app/backend/benchmark/` (a separate
+package) scores the inversion against that truth model. Design reference: section 5 of
+`docs/superpowers/specs/2026-11-12-plumetrace-design.md`.
 
 ## 1. Purpose and scope
 
-Does: hold every physical constant once, with its source, and convert units at the edges so the
-rest of the core works in SI. Does not: call an LLM, read files, touch the network or keep global
-state. Later Phase 2 tasks add their own sections to this page.
+Does: hold every physical constant once, with its source; convert units at the edges so the rest of
+the core works in SI; and answer the engineering questions behind the product with tested
+calculations: how much a plume of a given rate reads at a sensor, whether a sensor series rose,
+which emission candidate leaks and at what rate, how process evidence shifts that ranking, and how
+much methane a flare, a blowdown, a component inventory or a found leaker emits. Does not: call an
+LLM, read files, touch the network or keep global state. The agents never produce an engineering
+number themselves; every number comes from one of these functions through a tool (project rule 4).
 
 ## 2. How it works
 
+Data path for a leak event: raw sensor and weather samples go through `averaging` (10-minute
+windows, NaN where coverage is poor, circular mean wind) into `detection` (a CUSUM per sensor says
+something rose) and `inversion`. The inversion calls the Gaussian `plume` forward model, which takes
+its spreads from `dispersion` using a Pasquill class from `stability`, for every candidate source
+and a grid of rates, and returns ranked candidates with probabilities and a rate with a 90 %
+interval, or an explicit inconclusive result. `fusion` then updates that ranking with process
+evidence (header flow, packing temperatures) and shares a vent probability among compressor units.
+Quantification side: `flare` (methane slip), `blowdown` (vented mass, uses `gas`), `inventory` with
+`emission_factors` (bottom-up site total and OGI leaker rates) and `intensity` (methane intensity in
+percent). `truth_model` and its helper modules generate sensor data with deliberately different
+physics; the simulator (Phase 3) and the benchmark use it, so the demo is not an inverse crime.
 `constants.py` defines named `Final[float]` values; `units.py` imports them and exposes pure
-functions. Gas concentration conversions use the ideal gas law.
+functions (ideal gas law for the concentration conversions).
 
 ## 3. Public interface
 
@@ -785,10 +804,12 @@ written by the program and are never edited by hand.
   a few tens of metres from the source sees hits from a plume whose direction wanders (meander),
   while the inversion places a narrow plume along the 10-minute mean direction; to explain a hit
   it considers unlikely it needs a very large rate. We read this as model mismatch, not a coding
-  fault: a one-off check on the first 40 cases (not part of the repo) with matched physics
-  (Briggs coefficients, no meander, gusts or wake, low noise) named the true source in 31 of 40 cases (15 of 40 with the full
-  truth model) with a median estimate-to-truth ratio of 0.76 (2.4 with the full truth model),
-  consistent with the low bias Task 8 found on clean data.
+  fault: a one-off check on the first 40 cases with matched physics (Briggs coefficients, no
+  meander, gusts or wake, low noise) named the true source in 31 of 40 cases (15 of 40 with the
+  full truth model) with a median estimate-to-truth ratio of 0.76 (2.4 with the full truth model),
+  consistent with the low bias Task 8 found on clean data. This check is **post-hoc, indicative
+  only and not reproducible from the repo** (no script or evidence file was kept); do not cite it
+  as a result.
 - The false-call rate is 0 partly because 35 of the 50 no-leak cases are inconclusive
   (`ambiguous` or `weak_signal`); 15 are conclusive `NONE` and none names a source. The "never
   cry wolf" result is therefore also a "often says nothing" result.
@@ -806,21 +827,110 @@ model is another Gaussian plume (see Truth model above); it does not test plume 
 buoyancy, terrain or non-Gaussian profiles. The weather is synthetic, the station is simulated and
 no real leak data were used.
 
+### Post-hoc reading of the committed evidence (not part of the published scoring)
+
+The headline false-call rate of 0 counts only the 50 no-leak cases. Reading the committed JSON
+`docs/evidence/benchmark-2026-11-13.json` for the 200 leak cases shows how the conclusive calls
+behave. This is a reading made after the run; no code, constant, threshold or scoring changed, and
+`docs/benchmark.md` is unchanged.
+
+- 163 of the 200 leak cases are conclusive. In 9 of them the top is `NONE` (a conclusive "no
+  leak" on a real leak: a missed leak, median top probability 0.663, highest 0.81). In the other
+  154 a source id is named: 77 times the true candidate id and 77 times another id (one of these
+  is an off-list case whose named candidate lies within 10 m of the true source, which the
+  published metric counts as correct; the metric also looks past a top `NONE` to the next ranked
+  id, which the JSON does not store, so the exact count of correct calls, 80, comes from the
+  summary and not from the case list).
+- Of the 77 calls that name another id, 8 name a candidate within 10 m of the true source
+  (recomputed with `generate_cases(spec, 20261112)` and the committed JSON): one off-list case at
+  9.1 m, which counts as correct under the metric, and seven on-list cases at 7.0 m, which count as
+  wrong because an on-list case requires the exact id. The JSON alone does not hold the positions.
+- The posterior does not separate right from wrong. The median `top_probability` is 1.0 both for the
+  77 calls that name the true id and for the 77 that name another id; 76 of the first and 67 of the
+  second have probability 0.95 or more. A wrong call is typically as confident as a right one: the
+  probabilities are overconfident and should not be read as calibrated. This reading does not
+  establish why.
+
+Reproduce (from the repository root, standard library only):
+
+```python
+import json
+import statistics as st
+
+cases = json.load(open("docs/evidence/benchmark-2026-11-13.json"))["cases"]
+leak = [c for c in cases if c["kind"] != "no_leak" and not c["inconclusive"]]
+none = [c for c in leak if c["top_id"] == "NONE"]
+named = [c for c in leak if c["top_id"] != "NONE"]
+same = [c for c in named if c["top_id"] == c["true_candidate_id"]]
+other = [c for c in named if c["top_id"] != c["true_candidate_id"]]
+for name, group in (("same id", same), ("other id", other), ("NONE", none)):
+    p = [c["top_probability"] for c in group]
+    print(name, len(group), round(st.median(p), 3), sum(x >= 0.95 for x in p))
+```
+
+Output: `same id 77 1.0 76`, `other id 77 1.0 67`, `NONE 9 0.663 0`. Whether to add a
+calibration or false-assurance metric is a decision for the owner's improvement round; it is not
+added to `metrics.py` here.
+
 ## 4. Design decisions and assumptions
 
-- Ideal gas law for ppm and kg/m3; at 288.15 K and 101325 Pa pure methane is 0.67850 kg/m3.
-- `scf_to_sm3` ignores the 60 °F versus 15 °C reference difference (about 0.2 %).
-- Z uses the closed-form Papay correlation (no iteration) with Kay's rule, not AGA8; adequate for
-  the sweet KS-07 gas, not for sour or rich gas.
-- The 600 and 300 W/m2 insolation bins, the 10 W/m2 day/night split and the cloud fractions are
-  Phase 2 Task 3 thresholds (project choices, not Turner's own W/m2 values). Split cells of the
-  Pasquill table resolve to the more stable class (see Stability).
-- GWP values are AR6 fossil methane (29.8 over 100 years, 82.5 over 20 years).
+Index of the assumptions and limits that matter when reading a result. Each points to the module
+section above that states it in full; the numbers are measured there.
+
+| Topic | Assumption or limit | Where |
+|---|---|---|
+| Plume model | Gaussian, steady state over the averaging period, flat terrain, no plume rise for vents, no buildings, meander, chemistry or deposition | Gaussian plume |
+| Wind | The 10 m wind is used at all heights | Gaussian plume |
+| Ground | Total reflection (image source), `C = 0` wherever `along <= 0` | Gaussian plume |
+| Dispersion | Briggs rural and Martin fits are extrapolated below 100 m; distances clipped to 10 to 1000 m, so within 10 m the value equals the 10 m value and beyond 1 km the spread stops growing; sigmas floored at 0.5 m | Dispersion coefficients, Truth model limits |
+| Averaging | 10-minute windows, a window with under 50 % valid samples is NaN, a trailing partial window is dropped; a wind below 1 m/s is calm and not modelled | Averaging |
+| Stability | Pasquill class from wind, shortwave and cloud; the W/m2 and cloud thresholds are project choices (Task 3); split cells resolve to the more stable class; in the truth model the class changes only on the hour | Stability, Truth model limits |
+| Gas | Z from the closed-form Papay correlation with Kay's rule: sweet natural gas at moderate reduced pressures only, not AGA8, not sour or rich gas | Gas properties, Blowdown limits |
+| Inversion | On clean data (the same plume model) the rate median sits about 25 % below the truth, and the 90 % interval narrows as windows accumulate until it no longer covers the truth; candidates that no sensor sees tie with `NONE` | Source inversion limits |
+| Fusion | The likelihood ratios (0.05, 20, 4, 2 degC, `k = 1`) are project choices, not calibrated; evidence items are treated as independent (naive Bayes) | Evidence fusion limits |
+| Truth model | It is the same Gaussian formula as the inversion with another coefficient set, meander, gusts, wakes and noise, so the mismatch is partial: plume rise, buoyant or dense-gas behaviour, terrain and non-Gaussian profiles are not tested | Truth model limits |
+| Inventory | The component counts are an UNVERIFIED PROXY (Subpart W Table W-1B production and gathering defaults used for a transmission compressor station); the average factors are an early-1990s US production population | Inventory limits |
+| Benchmark | Synthetic data, one seed, 250 cases; rate error at this mismatch is large (median 113 %); not tuned | Benchmark |
+
+Smaller decisions: the ideal gas law is used for ppm and kg/m3 (at 288.15 K and 101325 Pa pure
+methane is 0.67850 kg/m3); `scf_to_sm3` ignores the 60 degF versus 15 degC reference difference
+(about 0.2 %); GWP values are AR6 fossil methane (29.8 over 100 years, 82.5 over 20 years).
 
 ## 5. Limits and failure behaviour
 
-No input validation: temperature and pressure must be positive (division by `T`, `P`, `M`
-otherwise yields inf or nan). Callers pass physically valid values.
+Policy: a function that takes external data checks it and raises `ValueError` with a message that
+names the rejected input; it does not fill a default or return NaN. Pydantic models (for example
+`GasComposition`, `EvidenceItem`, `HourlyWeather`, `TruthConfig`) reject bad values when they are
+built (`pydantic.ValidationError` is a `ValueError`). NaN and infinity are used on purpose only as
+"missing" in the window averages, the detection series and the inversion readings. Notable
+rejections, by module (the module sections list the rest):
+
+- Wind: `concentration_kg_m3` rejects a wind speed `<= 0` and a negative rate. `invert` rejects a
+  finite negative wind speed; an unknown wind is NaN. Calm windows (below 1 m/s) are not an error:
+  they are not used, and `invert` returns an inconclusive `calm` or `too_few_windows` result.
+- Shapes and lengths: `window_means`, `window_wind`, `detect_events` and `invert` raise on an array
+  whose length or width does not match the time axis or the sensor count; `window_means` and
+  `window_wind` also on fewer than two samples; `circular_mean_deg` on an empty array. Nothing is
+  truncated.
+- NaN and infinity: `flare_ch4_slip_kg_h`, `vented_mass`, `methane_intensity_percent`, the
+  inventory functions, `fuse` and the truth model reject non-finite inputs. `invert` accepts them
+  as missing readings but rejects a finite reading above `MAX_ABS_OBS_PPM` (1e6 ppm, inclusive
+  bound) in absolute value, and raises when the log-posterior is not finite (for example an absurd
+  `obs_sigma_ppm`) instead of returning a made-up distribution.
+- Durations and steps: the truth model rejects `dt_s` or `pressure_pa` that is not positive and
+  finite, a duration shorter than one step (zero steps is an error) and more than 200 000 steps.
+- Unknown ids and names: `invert` rejects an empty candidate or sensor list, the id `NONE` and
+  duplicate ids; the truth model rejects repeated sensor ids and a fault on an unknown sensor; the
+  inventory rejects an unknown leaker component or location and a missing, negative or non-integer
+  count; `GasComposition` rejects an unknown component. `fuse` ignores evidence about an id that is
+  not in the prior (documented, not an error).
+- Physical consistency: `vented_mass` rejects a final pressure above the initial one, a non-positive
+  density (Papay out of range) and a final gas denser than the initial; `HourlyWeather` rejects a
+  negative speed, a cloud fraction outside 0 to 1 and a temperature not above 0 K.
+
+Not validated (callers pass physically valid values): `units` conversions (a zero temperature or
+pressure gives inf or nan), `pasquill_class`, `sigmas_m`, `downwind_crosswind_m`, and
+`z_factor_papay` outside its range (only a non-positive density is detected, in `vented_mass`).
 
 ## 6. Configuration
 
@@ -947,3 +1057,4 @@ every quantity with its unit suffix. Keep functions pure.
 - 2026-11-13: truth model (weather, meander, gusts, wakes, noise, drift) for the simulator and the benchmark added (Phase 2 Task 12).
 - 2026-11-13: model-mismatch benchmark (250 cases) and its report added (Phase 2 Task 13).
 - 2026-11-14: property-based and metamorphic tests of the physics laws added (Phase 2 Task 14).
+- 2026-11-14: Phase 2 gate documentation: intro, assumptions index and failure-behaviour sections rewritten for the whole core; the matched-physics check labelled post-hoc and not reproducible; a post-hoc reading of the benchmark evidence added (no code or scoring changed).
