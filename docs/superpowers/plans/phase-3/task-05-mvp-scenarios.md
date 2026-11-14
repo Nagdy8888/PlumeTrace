@@ -91,9 +91,9 @@ def test_s4_vented_mass_comes_from_the_blowdown_tool() -> None:
 ```
 
 ## Steps
-- [ ] **1.** Write `selection.py`, the three scenario modules with `WEATHER_OFFSET_H = 0` temporarily, the registry, and the script.
-- [ ] **2.** Run `cd app && uv run python ../scripts/select_scenario_windows.py`. Paste the full output.
-- [ ] **3.** Set each `WEATHER_OFFSET_H` to the **first** passing offset printed for that scenario. If a scenario has no passing offset, STOP and report the output (do not change any other value).
-- [ ] **4.** Write the tests → run → all pass. Full checks green.
-- [ ] **5. Docs.** SIMULATOR.md → "MVP scenarios": each story, every value, the selected offsets and the matching UTC start times, the selection criteria and why. Work-log (paste the selection output); `STATUS.md` (last 3.5, next 3.6).
+- [x] **1.** Write `selection.py`, the three scenario modules with `WEATHER_OFFSET_H = 0` temporarily, the registry, and the script.
+- [x] **2.** Run `cd app && uv run python ../scripts/select_scenario_windows.py`. Paste the full output.
+- [x] **3.** Set each `WEATHER_OFFSET_H` to the **first** passing offset printed for that scenario. If a scenario has no passing offset, STOP and report the output (do not change any other value).
+- [x] **4.** Write the tests → run → all pass. Full checks green.
+- [x] **5. Docs.** SIMULATOR.md → "MVP scenarios": each story, every value, the selected offsets and the matching UTC start times, the selection criteria and why. Work-log (paste the selection output); `STATUS.md` (last 3.5, next 3.6).
 - [ ] **6. Commit** `feat(scenarios): add MVP scenarios S1, S4, S5 with selected weather windows`.

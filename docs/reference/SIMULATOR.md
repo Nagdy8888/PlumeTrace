@@ -445,3 +445,113 @@ caller builds `wind_dir_sd_deg` from `series.times_s` and `series.wind_from_deg`
 | Source on an unknown or non-emission anchor | `KeyError("unknown anchor <id>")` |
 | Fault on an unknown sensor | `ValueError` naming it |
 | Scenario longer than the weather snapshot | `ValueError` naming the scenario and the hours needed |
+
+## MVP scenarios
+
+The three demo stories (design section 7) live in `plumetrace.simulator.scenarios`
+(`s1_rod_packing.py`, `s4_planned_blowdown.py`, `s5_sensor_drift.py`). `SCENARIOS` is a read-only
+mapping from id to `ScenarioDefinition`; `get_scenario(id)` raises `KeyError("unknown scenario <id>")`.
+The station and all three stories are simulated. Titles, the instrument signature and the
+expected-rate interval are Task 5 values (no cited source); the log texts are the Task 5 texts.
+Every scenario is deterministic for its seed on the committed weather snapshot.
+
+### Values
+
+| | S1 `s1_rod_packing` | S4 `s4_planned_blowdown` | S5 `s5_sensor_drift` |
+|---|---|---|---|
+| Story | K-202 rod-packing leak, routed through the vent header to VS-250 | Planned blowdown of K-201 under permit PTW-0412, vented to VS-250 | Slow drift on AT-106; no methane released |
+| Seed | 101 | 104 | 105 |
+| Duration | 6 h | 4 h | 6 h |
+| `WEATHER_OFFSET_H` | 0 | 0 | 0 |
+| Source | `VS-250.tip`, 15.0 kg/h from 7200 s, no end | `VS-250.tip`, 933.67 kg/h from 7200 s to 8100 s | none |
+| Fault | none | none | `AT-106`, 0.6 ppm/h from 3600 s |
+| Instrument effects | FT-250 offset +17.39 kg/h (CH4 rate / CH4 mass fraction of the KS-07 gas), TT-202P offset +6.0 degC; both ramp over 1800 s from 7200 s | none | none |
+| Expected | triage `leak`, top candidate `VS-250.tip`, unit `K-202`, rate interval 7.5 to 30.0 kg/h | triage `planned_venting`, no top candidate | triage `sensor_fault`, no top candidate |
+
+Log lines (`t_s`, kind, tag, text), exactly as in the files:
+
+- S1: (600, shift_note, none, "Day shift handover: K-201, K-202 and K-203 running; VRU-410 online."), (4000, gauging, TK-402, "TK-402 gauged by the operator; thief hatch closed and latched after gauging."), (5000, maintenance, AT-103, "Instrument technician completed a routine check of AT-103.").
+- S4: (6600, permit, K-201, "PTW-0412: planned blowdown of K-201 for discharge valve maintenance, minutes 120-135 of this shift, vented to VS-250."), (9000, maintenance, K-201, "K-201 discharge valve replaced; unit restarted.").
+- S5: (300, calibration, AT-106, "AT-106 last bump test 2025-03-02; next test overdue."), (3000, shift_note, none, "No work permits open on the north fence today.").
+
+S4 blowdown size: `BLOWDOWN_VOLUME_M3 = 8.0` goes through the engineering tool `vented_mass` from the
+suction pressure (4.5 MPa absolute) at the operating gas temperature (300 K) down to the site ambient
+pressure (98.9 kPa) at the same temperature, with the KS-07 gas composition. Result:
+`S4_VENTED_CH4_KG = 233.42 kg` of methane. The source rate is that mass divided by 0.25 h, so the
+15 minute source (7200 s to 8100 s) releases exactly that mass. The constant is exported for the tests and
+for the agents' `log_vented_volume` tool. The permit text says minutes 120-135 of the shift, which is
+7200-8100 s of the scenario.
+
+### Weather windows: how they were selected
+
+The window is not guessed. `simulator/selection.py` holds one criterion per story and
+`scripts/select_scenario_windows.py` evaluates every candidate offset
+(`CANDIDATE_OFFSETS_H`: every 2 h from 0 to 160 h; an offset is skipped when
+`offset + duration_h + 1` exceeds the 168 snapshot hours) with the scenario run on the real weather.
+The **first** passing offset is the one written into the scenario file. The script reads only the committed
+snapshot (no network) and prints `<scenario>: offset <h> h PASS|FAIL` for each candidate, then
+`<scenario>: first passing offset <h> h`; the exit code is 1 if a scenario has none. Run:
+`cd app && uv run python ../scripts/select_scenario_windows.py`.
+
+| Scenario | Criterion (all must hold) | Why |
+|---|---|---|
+| S1 `s1_passes` | (a) a detection event on any methane sensor starts between 7200 s and 7200 + 5400 s; (b) mean window wind speed over windows 12 to 35 is at least 2.0 m/s; (c) the meander-aware inversion (Briggs rural, default constants) over windows 12 to `first_event.window_index + 3`, both ends included, with the background taken as the 5th percentile of each sensor over windows 0 to 11, ranks `VS-250.tip` first and is not inconclusive | (a) the leak must be seen soon after it starts; (b) calm air gives no usable plume; (c) the story needs the location to be found from the first event |
+| S4 `s4_passes` | an event with window start between 7200 s and 8100 + 1200 s, and no event before 7200 s | the blowdown is seen during its window and nothing is seen before it, so the permit explains the only event |
+| S5 `s5_passes` | at least one `AT-106` event and no event on any other sensor | only the drifting sensor may alarm |
+
+Meander-aware inversion (Gate 2 decision): the S1 inversion input carries
+`wind_dir_sd_deg = window_direction_sd_deg(series.times_s, series.wind_from_deg)`, computed over the whole
+10 s wind series and cut to the same windows as the observations (one value per complete window, 36
+for 6 h). An infinite spread (directions that cancel exactly in a window) is rejected by `InversionInput`
+and raised as `ValueError` instead of being hidden. Reading of the plan text: "windows `[12, first_event.window_index + 3]`"
+includes both ends.
+
+Result of the selection run on the committed snapshot (full output in the work log): S1 passes at
+offsets 0, 2, 24, 26, 28, 34, 36, 122, 124 and 128 h; S4 passes at 77 of the 81 candidates (fails at
+74, 94, 116 and 118 h); S5 passes at every candidate. The first passing offset is **0 h** for all
+three, so every `WEATHER_OFFSET_H` is 0.
+The S4 and S5 pass criteria are loose: they pass at almost every candidate offset, so the selection
+does not discriminate between windows for these two scenarios; the first passing offset (0 h) is a
+default, not an optimum.
+
+| Scenario | Offset | Scenario start (UTC) |
+|---|---|---|
+| S1 | 0 h | 2025-07-14 00:00 |
+| S4 | 0 h | 2025-07-14 00:00 |
+| S5 | 0 h | 2025-07-14 00:00 |
+
+The weather is the first hours of the real week (Open-Meteo, CC BY 4.0). Offset 0 is midnight UTC,
+about 05:00 local time at the site longitude (the site is fictional); the plan's log texts say
+"Day shift handover" and were kept as given.
+
+### Detection and the S1 inversion at the selected window (truth physics)
+
+| Scenario | Events (sensor, window start) |
+|---|---|
+| S1 | AT-101 at 7800 s (mean 2.06 ppm), AT-102 at 10200 s, AT-101 at 16800 s |
+| S4 | AT-101 and AT-102 at 7200 s |
+| S5 | AT-106 at 7800 s and at 14400 s |
+
+S1 first event: AT-101, window 13 (7800 s). The mean wind over windows 12 to 35 is 3.86 m/s. The
+meander-aware inversion over windows 12 to 16 (5 windows) gives top `VS-250.tip`, model probability
+0.912, rate interval 14.6 to 39.0 kg/h (median 23.7 kg/h), not inconclusive, not at the grid edge.
+The second candidate is `K-203.engine_exhaust` (0.079).
+
+Caveat (Gate 2): the meander-aware correction models the same wind-direction process the truth model
+injects into the simulated data, so this result is optimistic and partly self-consistent for a simulated
+station; it is not evidence of real-world accuracy. Probabilities are model probabilities, not calibrated.
+
+### Rate display rule (R1-R4) for S1
+
+- The expected rate is stored only as the interval 7.5 to 30.0 kg/h in `ExpectedOutcome`
+  (`rate_min_kg_h`, `rate_max_kg_h`); no single expected rate exists. The 15.0 kg/h in `SourceSpec` is the
+  simulation input (the truth), never shown as an AI result.
+- An inversion rate is shown as `p05 to p95 kg/h (median p50)` (R1) with the label "model estimate" (R3).
+  It is shown as "rate not quantified" when the result is inconclusive, the top is `NONE` or
+  `rate_at_grid_edge` is true (R2).
+- S1 outcome under this rule: the result at the selected window is conclusive and not at the grid edge, so it
+  is shown as an interval (14.6 to 39.0 kg/h, median 23.7). The interval contains the true 15.0 kg/h; its
+  upper end is above the designed 30.0 kg/h bound. No grid-edge issue arises, so there is no Gate 3
+  scenario issue on this point. The probability 0.912 is a model probability (see the Gate 2 caveat above).
+- For information only (scratch check, not part of the pipeline): the same windows without the direction
+  spread give the same top candidate (probability 0.712) but a rate interval of 95.7 to 393.0 kg/h.
