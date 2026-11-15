@@ -1,6 +1,6 @@
 # Phase 3 scenarios
 
-Date: 2026-11-15. Evidence label: **local / synthetic**: the station is fictional and simulated;
+Date: 2026-11-15. Evidence label: **local / synthetic + public-data (weather)**: the station is fictional and simulated;
 sensor, instrument and scenario data are synthetic. Only the weather snapshot is real
 (Open-Meteo, attributed in the replay files). Python 3.12.11, run from `app/` on the committed
 tree of Phase 3 Tasks 1 to 7 plus Task 8.
@@ -20,7 +20,7 @@ within-window wind direction spread passed to the meander-aware inversion.
 | Scenario | Offset (h) | Sim start (UTC) | Duration | Detection events | Replay file |
 |---|---|---|---|---|---|
 | `s1_rod_packing` | 0 | 2025-07-14 00:00 | 6 h | 3 (AT-101 w13, AT-102 w17, AT-101 w28) | 445,852 bytes |
-| `s4_planned_blowdown` | 0 | 2025-07-14 00:00 | 4 h | 2 (AT-101 w12, AT-102 w12) | 294,733 bytes |
+| `s4_planned_blowdown` | 0 | 2025-07-14 00:00 | 4 h | 2 (AT-101 w12, AT-102 w12) | 294,773 bytes |
 | `s5_sensor_drift` | 0 | 2025-07-14 00:00 | 6 h | 2 (both AT-106: w13, w24) | 440,244 bytes |
 
 All three selection criteria (Task 5) pass at the first candidate offset, 0 h.
@@ -34,7 +34,7 @@ All three selection criteria (Task 5) pass at the first candidate offset, 0 h.
 | Model probability | 0.912 |
 | Inconclusive | no |
 | Rate at grid edge | no |
-| Model estimate of the rate, p05 / p50 / p95 (2 significant figures) | 15 / 24 / 39 kg/h |
+| Model estimate of the rate (2 significant figures) | 15–39 kg/h (median 24) |
 | Simulated true rate (scenario file) | 15.0 kg/h |
 
 The probability is the model's posterior for the hypothesis, not a measured certainty, and the
@@ -114,7 +114,7 @@ Output (raw tool output, not for display; full-precision values):
    top_id=VS-250.tip model_probability=0.912 inconclusive=False reason=None at_grid_edge=False
    model estimate interval p05/p50/p95 kg/h = 14.56/23.74/39.02
    truth rate_kg_h: [15.0]
-== s4_planned_blowdown: weather_offset_h=0 sim_start_utc=2025-07-14T00:00:00+00:00 duration_h=4 replay_bytes=294733
+== s4_planned_blowdown: weather_offset_h=0 sim_start_utc=2025-07-14T00:00:00+00:00 duration_h=4 replay_bytes=294773
    events=2
    event sensor=AT-101 window=12 start_s=7200 mean_ppm=5.654 baseline_ppm=1.958
    event sensor=AT-102 window=12 start_s=7200 mean_ppm=17.139 baseline_ppm=1.951

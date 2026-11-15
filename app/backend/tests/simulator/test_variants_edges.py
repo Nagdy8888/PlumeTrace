@@ -130,19 +130,65 @@ def test_s5_has_no_rate_and_the_fault_moves() -> None:
         assert v.faults[0].drift_ppm_per_h == base.faults[0].drift_ppm_per_h
 
 
-def test_non_permit_base_entries_unchanged_and_distractors_from_the_list() -> None:
-    """Base entries other than permits are kept as they are; 0 to 2 distractors, inside the run."""
+def test_distractors_from_the_list_and_base_entries_move_with_the_shift() -> None:
+    """0 to 2 distractors drawn from the list; every base entry moves by the shift (clamped)."""
     base = get_scenario("s1_rod_packing")
     texts = {e.text for e in DISTRACTOR_LOG}
+    base_texts = {e.text for e in base.log}
     counts = set()
     for v in generate_variants(base):
-        assert all(e in v.log for e in base.log)
-        extra = [e for e in v.log if e not in base.log]
+        shift = v.sources[0].start_s - base.sources[0].start_s
+        moved = {e.text: e.t_s for e in v.log if e.text in base_texts}
+        assert moved == pytest.approx(
+            {e.text: min(max(0.0, e.t_s + shift), v.duration_h * 3600.0) for e in base.log}
+        )
+        extra = [e for e in v.log if e.text not in base_texts]
         counts.add(len(extra))
         assert all(e.text in texts for e in extra)
         assert len({e.text for e in extra}) == len(extra)
         assert all(0.0 <= e.t_s <= v.duration_h * 3600.0 for e in v.log)
     assert counts <= {0, 1, 2} and len(counts) > 1
+
+
+def test_s4_permit_lead_and_restart_lag_hold_for_50_seeds_x_20_variants() -> None:
+    """S4 permit stays 600 s before the blowdown and the restart line 900 s after it ends."""
+    base = get_scenario("s4_planned_blowdown")
+    for seed in range(50):
+        for v in generate_variants(base, seed=seed):
+            src = v.sources[0]
+            permit = next(e for e in v.log if e.kind == "permit")
+            restart = next(e for e in v.log if e.kind == "maintenance" and e.tag == "K-201")
+            assert permit.t_s == pytest.approx(src.start_s - 600.0)
+            assert restart.t_s == pytest.approx(src.end_s + 900.0)
+
+
+def test_s4_base_permit_text_matches_the_source_lead_and_duration() -> None:
+    """The permit text states the 600 s lead and 900 s duration the source definition has."""
+    base = get_scenario("s4_planned_blowdown")
+    src = base.sources[0]
+    permit = next(e for e in base.log if e.kind == "permit")
+    assert src.start_s - permit.t_s == 600.0 and src.end_s - src.start_s == 900.0
+    assert "venting starts 10 minutes after this entry" in permit.text
+    assert "lasts about 15 minutes" in permit.text
+
+
+@pytest.mark.parametrize(
+    ("scenario_id", "start"), [("s1_rod_packing", "source"), ("s5_sensor_drift", "fault")]
+)
+def test_s1_and_s5_base_entries_keep_their_offset_to_the_event(
+    scenario_id: str, start: str
+) -> None:
+    """Base log entries keep their offset to the source or fault start (unless clamped)."""
+    base = get_scenario(scenario_id)
+    ref = base.sources[0].start_s if start == "source" else base.faults[0].start_s
+    for seed in range(50):
+        for v in generate_variants(base, seed=seed):
+            vref = v.sources[0].start_s if start == "source" else v.faults[0].start_s
+            moved = {e.text: e.t_s for e in v.log}
+            for e in base.log:
+                t = moved[e.text]
+                if 0.0 < t < v.duration_h * 3600.0:
+                    assert t - vref == pytest.approx(e.t_s - ref)
 
 
 def test_permit_stays_inside_the_scenario() -> None:

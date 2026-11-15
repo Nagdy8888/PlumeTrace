@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "scope": "Phase 1 foundations plus Phase 2 engineering core (pure physics, benchmark, improvement round); no API, agents, LLM calls or replay build exist yet.",
-  "revision": "efc74af + docs working tree (2026-11-14)",
+  "scope": "Phase 1 foundations, Phase 2 engineering core and Phase 3 simulator, replay export and run persistence (local, simulated station); no API, agents, LLM calls or replay build exist yet.",
+  "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
   "environment": "local-dev Windows 11, Python 3.12",
   "assessments": [
     {
@@ -49,8 +49,16 @@
     {
       "id": "B08",
       "status": "Planned",
-      "reason": "The root .env, env_set, check_env and secret_scan exist. Remaining: a key-scan test of the static build and app/replay, and trace redaction.",
-      "evidence": []
+      "reason": "The root .env, env_set, check_env and secret_scan exist, and tests scan the committed replay files and the export bytes for keys (a planted key is caught). Remaining: a key scan of the built static site and trace redaction.",
+      "evidence": [
+        {
+          "kind": "test",
+          "path": "app/backend/tests/simulator/test_export_edges.py",
+          "result": "passed",
+          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        }
+      ]
     },
     {
       "id": "B09",
@@ -73,14 +81,58 @@
     {
       "id": "B12",
       "status": "Planned",
-      "reason": "Parameterised SQL in plumetrace.db is not written yet. Next action: injection tests through tools and reports.",
-      "evidence": []
+      "reason": "All SQL in plumetrace.db (runs, events, readings) uses %s placeholders; no value is formatted into a query string. Remaining: injection-payload tests through the repositories, tools and report generation (none are written yet).",
+      "evidence": [
+        {
+          "kind": "code",
+          "path": "app/backend/plumetrace/db/runs.py",
+          "result": "observed",
+          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        },
+        {
+          "kind": "code",
+          "path": "app/backend/plumetrace/db/events.py",
+          "result": "observed",
+          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        },
+        {
+          "kind": "code",
+          "path": "app/backend/plumetrace/db/readings.py",
+          "result": "observed",
+          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        }
+      ]
     },
     {
       "id": "B13",
-      "status": "Planned",
-      "reason": "Outbound hosts must be fixed in code. Next action: verify that no input chooses a destination (Open-Meteo client, Phase 3 Task 2).",
-      "evidence": []
+      "status": "Covered",
+      "reason": "Covered for the one outbound client that exists, the Open-Meteo archive client: the host is the constant ARCHIVE_URL (HTTPS), no caller input chooses a destination, the request carries only weather parameters, a timeout is set, TLS verification is not disabled, and the tests use httpx.MockTransport. Limits of this claim: redirect, DNS/IP-change and response-size tests are not written, and the OpenAI and LangSmith clients are not built yet; widen the claim and add those tests when they land (Phase 5/6).",
+      "evidence": [
+        {
+          "kind": "code",
+          "path": "app/backend/plumetrace/data_sources/open_meteo.py",
+          "result": "observed",
+          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        },
+        {
+          "kind": "design",
+          "path": "docs/reference/SECURITY.md",
+          "result": "observed",
+          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        },
+        {
+          "kind": "test",
+          "path": "app/backend/tests/data_sources/test_open_meteo_edges.py",
+          "result": "passed",
+          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        }
+      ]
     },
     {
       "id": "B14",
@@ -115,8 +167,16 @@
     {
       "id": "B19",
       "status": "Planned",
-      "reason": "No decision endpoint yet. Next action: a duplicate decision must not issue two work orders; test it.",
-      "evidence": []
+      "reason": "Row-level idempotency only: re-inserting the same events or readings into a run adds no rows (primary keys with ON CONFLICT DO NOTHING), and re-saving a scenario run creates a new run. No decision endpoint exists, so a duplicate decision issuing two work orders is not tested. Next action: duplicate-decision tests with the decision flow.",
+      "evidence": [
+        {
+          "kind": "test",
+          "path": "app/backend/tests/db/test_run_store_idempotent.py",
+          "result": "passed",
+          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        }
+      ]
     },
     {
       "id": "B20",
@@ -127,8 +187,23 @@
     {
       "id": "B21",
       "status": "Planned",
-      "reason": "One table exists (scenarios). Next action: constraints plus invalid-write tests as migrations are added.",
-      "evidence": []
+      "reason": "Run tables (runs, events, sensor_readings) have check, foreign-key, primary-key and unique constraints with ON DELETE CASCADE and RLS, tested with invalid writes against the real local Postgres. Remaining: constraints and invalid-write tests for the tables the later phases add (agent steps, drafts, decisions, work orders, reports, llm_calls).",
+      "evidence": [
+        {
+          "kind": "config",
+          "path": "app/supabase/migrations/20261120090000_create_run_tables.sql",
+          "result": "observed",
+          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        },
+        {
+          "kind": "test",
+          "path": "app/backend/tests/db/test_run_tables_edges.py",
+          "result": "passed",
+          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        }
+      ]
     },
     {
       "id": "B22",
@@ -231,7 +306,7 @@
     {
       "id": "B37",
       "status": "Planned",
-      "reason": "Units: SI with suffixes enforced; every conversion goes through units.py with cited constants; unit tests plus a Hypothesis ppm round trip pass (docs/evidence/2026-11-phase-2-checks.md). Remaining: USD cost arithmetic and rounding in plumetrace.llm_calls (Phase 5) and timezone handling for run timestamps.",
+      "reason": "Units: SI with suffixes enforced; every conversion goes through units.py with cited constants; unit tests plus a Hypothesis ppm round trip pass. Timezones: the weather snapshot rejects a naive start_utc, the Open-Meteo request asks for UTC and rejects timestamps with an offset, and replay start times end in Z. Remaining: USD cost arithmetic and rounding in plumetrace.llm_calls (Phase 5).",
       "evidence": [
         {
           "kind": "code",
@@ -253,19 +328,48 @@
           "result": "passed",
           "revision": "efc74af + docs working tree (2026-11-14)",
           "environment": "local-dev Windows 11, Python 3.12"
+        },
+        {
+          "kind": "test",
+          "path": "app/backend/tests/simulator/test_weather_edges.py",
+          "result": "passed",
+          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        },
+        {
+          "kind": "test",
+          "path": "app/backend/tests/simulator/test_export_edges.py",
+          "result": "passed",
+          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "environment": "local-dev Windows 11, Python 3.12"
         }
       ]
     },
     {
       "id": "B38",
       "status": "Planned",
-      "reason": "No third-party clients yet. Next action: validate Open-Meteo (Phase 3 Task 2) and OpenAI structured outputs (rule 5). The engineering functions already reject NaN, infinity and out-of-range values, which Phase 3 Open-Meteo validation will rely on.",
-      "evidence": []
+      "reason": "Open-Meteo contract is validated on every response (time axis, array lengths, missing or non-finite or unphysical values, wind unit guard, API error body) with contract tests on mocked responses. Remaining: OpenAI structured outputs (rule 5) and retries; no OpenAI client exists yet.",
+      "evidence": [
+        {
+          "kind": "test",
+          "path": "app/backend/tests/data_sources/test_open_meteo.py",
+          "result": "passed",
+          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        },
+        {
+          "kind": "test",
+          "path": "app/backend/tests/data_sources/test_open_meteo_edges.py",
+          "result": "passed",
+          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        }
+      ]
     },
     {
       "id": "B39",
       "status": "Planned",
-      "reason": "Function-level negative and boundary tests exist for the engineering core (several hundred, 489 engineering and benchmark tests in docs/evidence/2026-11-phase-2-checks.md) and the Phase 1 facility and config tests. Remaining: deny, race and restart tests through the API and graph.",
+      "reason": "Negative and boundary tests exist for the engineering core, the Phase 1 facility and config tests, and the Phase 3 simulator (scenario model, instruments, weather, runner, export, selection, variants *_edges tests) and run tables, plus Hypothesis laws for the plume grid codec. All are function-level or fixture-level; no deny, race or restart test goes through a real API or graph interface yet.",
       "evidence": [
         {
           "kind": "test",
@@ -280,6 +384,27 @@
           "result": "passed",
           "revision": "efc74af + docs working tree (2026-11-14)",
           "environment": "local-dev Windows 11, Python 3.12"
+        },
+        {
+          "kind": "test",
+          "path": "app/backend/tests/simulator/test_variants_edges.py",
+          "result": "passed",
+          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        },
+        {
+          "kind": "test",
+          "path": "app/backend/tests/simulator/test_export_edges.py",
+          "result": "passed",
+          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        },
+        {
+          "kind": "test",
+          "path": "app/backend/tests/engineering/test_plume_field_properties.py",
+          "result": "passed",
+          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "environment": "local-dev Windows 11, Python 3.12"
         }
       ]
     },
@@ -292,8 +417,16 @@
     {
       "id": "B41",
       "status": "Planned",
-      "reason": "The static replay has no backend, keys or live actions. Next action: a build key-scan test.",
-      "evidence": []
+      "reason": "The committed replay files are static JSON without a backend, keys or live actions and are scanned for keys by a test. Remaining: the same scan on the built static site and tests that live actions are denied on the public build (Phase 4 onward).",
+      "evidence": [
+        {
+          "kind": "test",
+          "path": "app/backend/tests/simulator/test_export_edges.py",
+          "result": "passed",
+          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        }
+      ]
     },
     {
       "id": "B42",

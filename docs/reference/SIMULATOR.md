@@ -471,7 +471,7 @@ Every scenario is deterministic for its seed on the committed weather snapshot.
 Log lines (`t_s`, kind, tag, text), exactly as in the files:
 
 - S1: (600, shift_note, none, "Day shift handover: K-201, K-202 and K-203 running; VRU-410 online."), (4000, gauging, TK-402, "TK-402 gauged by the operator; thief hatch closed and latched after gauging."), (5000, maintenance, AT-103, "Instrument technician completed a routine check of AT-103.").
-- S4: (6600, permit, K-201, "PTW-0412: planned blowdown of K-201 for discharge valve maintenance, minutes 120-135 of this shift, vented to VS-250."), (9000, maintenance, K-201, "K-201 discharge valve replaced; unit restarted.").
+- S4: (6600, permit, K-201, "PTW-0412: planned blowdown of K-201 for discharge valve maintenance, vented to VS-250; venting starts 10 minutes after this entry and lasts about 15 minutes."), (9000, maintenance, K-201, "K-201 discharge valve replaced; unit restarted.").
 - S5: (300, calibration, AT-106, "AT-106 last bump test 2025-03-02; next test overdue."), (3000, shift_note, none, "No work permits open on the north fence today.").
 
 S4 blowdown size: `BLOWDOWN_VOLUME_M3 = 8.0` goes through the engineering tool `vented_mass` from the
@@ -479,8 +479,9 @@ suction pressure (4.5 MPa absolute) at the operating gas temperature (300 K) dow
 pressure (98.9 kPa) at the same temperature, with the KS-07 gas composition. Result:
 `S4_VENTED_CH4_KG = 233.42 kg` of methane. The source rate is that mass divided by 0.25 h, so the
 15 minute source (7200 s to 8100 s) releases exactly that mass. The constant is exported for the tests and
-for the agents' `log_vented_volume` tool. The permit text says minutes 120-135 of the shift, which is
-7200-8100 s of the scenario.
+for the agents' `log_vented_volume` tool. The permit text is relative to its own entry ("venting starts
+10 minutes after this entry and lasts about 15 minutes"), which matches the 600 s lead (entry at 6600 s,
+source from 7200 s) and the 900 s duration, and stays true when a variant moves the entry.
 
 ### Weather windows: how they were selected
 
@@ -534,8 +535,10 @@ about 05:00 local time at the site longitude (the site is fictional); the plan's
 
 S1 first event: AT-101, window 13 (7800 s). The mean wind over windows 12 to 35 is 3.86 m/s. The
 meander-aware inversion over windows 12 to 16 (5 windows) gives top `VS-250.tip`, model probability
-0.912, rate interval 14.6 to 39.0 kg/h (median 23.7 kg/h), not inconclusive, not at the grid edge.
-The second candidate is `K-203.engine_exhaust` (0.079).
+0.912 (model probability), model estimate of the rate 15–39 kg/h (median 24), not inconclusive, not at
+the grid edge. The second candidate is `K-203.engine_exhaust` (model probability 0.079). Rates are shown
+to 2 significant figures; the meaning of "model estimate" and the limits of these probabilities are in
+[`docs/benchmark-improvement.md`](../benchmark-improvement.md).
 
 Caveat (Gate 2): the meander-aware correction models the same wind-direction process the truth model
 injects into the simulated data, so this result is optimistic and partly self-consistent for a simulated
@@ -550,11 +553,12 @@ station; it is not evidence of real-world accuracy. Probabilities are model prob
   It is shown as "rate not quantified" when the result is inconclusive, the top is `NONE` or
   `rate_at_grid_edge` is true (R2).
 - S1 outcome under this rule: the result at the selected window is conclusive and not at the grid edge, so it
-  is shown as an interval (14.6 to 39.0 kg/h, median 23.7). The interval contains the true 15.0 kg/h; its
+  is shown as an interval (15–39 kg/h, median 24, a model estimate). The interval contains the true 15.0 kg/h; its
   upper end is above the designed 30.0 kg/h bound. No grid-edge issue arises, so there is no Gate 3
   scenario issue on this point. The probability 0.912 is a model probability (see the Gate 2 caveat above).
 - For information only (scratch check, not part of the pipeline): the same windows without the direction
-  spread give the same top candidate (probability 0.712) but a rate interval of 95.7 to 393.0 kg/h.
+  spread give the same top candidate (model probability 0.712) but a model estimate interval of
+  96–390 kg/h. This is a scratch comparison only, not a result of the pipeline.
 
 ## Replay export
 
@@ -573,7 +577,7 @@ encoding, the size budget and how to regenerate are in `docs/reference/REPLAY.md
   result added later: interval only, "not quantified" when inconclusive, top `NONE` or at the grid
   edge, "model estimate" and "model probability" wording. `keyframes[].sources[].rate_kg_h` is the
   simulation input used to draw the plume, never shown as a result.
-- Sizes on 2026-11-15: S1 445 852 bytes, S4 294 733 bytes, S5 440 244 bytes.
+- Sizes on 2026-11-15: S1 445 852 bytes, S4 294 773 bytes, S5 440 244 bytes.
 
 ## Saving a run and the Phase 3 evidence
 
@@ -583,6 +587,9 @@ readings of every sensor and instrument) to the local database; see "Saving scen
 the S1 inversion on the event windows and the replay file sizes) are recorded in
 `docs/evidence/2026-11-phase-3-scenarios.md`, with the throwaway snippet and its output. The inversion
 there is shown as a model estimate interval with a model probability, as the rate display rule requires.
+Re-saving a scenario run creates a new run (a new run id with its own rows). A saved run stays
+`status = 'running'` with `finished_at` null: known and accepted at Gate 3; Phase 5 Task 10 ends every
+run in a terminal status.
 
 ## Variants
 
@@ -603,9 +610,9 @@ simulated. The ranges and distractor texts below are Task 6 values (no cited sou
 
 What the scale multiplies: every source `rate_kg_h`, the `offset` value of the FT-250 effects (the vent
 header signature scales with the leak) and the expected rate interval. What the shift moves: source,
-instrument-effect and fault start times (and finite end times), and `permit` log entries. Source and fault
-starts and source ends are clamped at 0; permit times are clamped to 0 to the scenario length. Other base
-log entries stay where they are. The temperature effects (TT-20xP) are shifted but not scaled.
+instrument-effect and fault start times (and finite end times), and every base log entry. Source and fault
+starts and source ends are clamped at 0; log entry times are clamped to 0 to the scenario length. The
+distractor entries stay where they were drawn. The temperature effects (TT-20xP) are shifted but not scaled.
 
 ### Draw order
 
@@ -643,9 +650,19 @@ of the scenario, or collapses a source window to zero length at t = 0, raises `p
 (a `ValueError`) instead of returning an invalid scenario. A negative `n` raises `ValueError`. The three
 MVP scenarios give 20 valid variants each at the default seed.
 
-### Known limit
+### S4 and FT-250, and the S4 plume rate in variants (Gate 3 disclosure)
 
-Base log entries other than permits do not move with the shift. In S4 the "K-201 discharge valve replaced;
-unit restarted" entry stays at 9000 s, so in 7 of the 20 default variants the blowdown is still venting at
-that time. This follows the Task 6 specification; an evaluation that reads that line should not treat the
-order of the two as a designed signal.
+FT-250 meters the packing vent header only, so the S4 blowdown line bypasses it and S4 shows no FT-250
+rise (an assumption of the simulated station). S4 variants scale the plume rate (rate scale 0.5 to 2.0)
+for detection diversity, while the mass a log tool reports stays the volume-based estimate
+(`S4_VENTED_CH4_KG`, about 233 kg CH4); no evaluator compares the two, and no prompt, evaluator or fake
+may expect an S4 FT-250 signature.
+
+### Former limit, fixed at Gate 3
+
+The Task 6 plan moved only `permit` entries with the shift, so the "K-201 discharge valve replaced; unit
+restarted" entry stayed at 9000 s and in 7 of the 20 default S4 variants the blowdown was still venting
+when the line said the unit restarted. Gate 3 (2026-11-15) changed `_log` to move every base log entry by
+the shift (deviation from the plan, owner decision). Now in every S4 variant the permit entry is exactly
+600 s before the blowdown start and the restart entry exactly 900 s after its end (tested over 50 seeds
+x 20 variants); S1 and S5 base entries keep their offset to the source or fault start (unless clamped).

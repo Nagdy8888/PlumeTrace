@@ -99,7 +99,7 @@ Four laws are checked for every input by Hypothesis tests
 At most 5 MB per file (`MAX_REPLAY_BYTES = 5_000_000`; design section 10). `replay_bytes` raises
 `ValueError("<id> replay is <n> bytes, budget 5000000")` over the budget and
 `scripts/export_scenarios.py` then writes nothing for that scenario. Generated sizes (run 2026-11-15):
-`s1_rod_packing` 445 852 bytes, `s4_planned_blowdown` 294 733 bytes, `s5_sensor_drift` 440 244 bytes.
+`s1_rod_packing` 445 852 bytes, `s4_planned_blowdown` 294 773 bytes, `s5_sensor_drift` 440 244 bytes.
 
 ## Determinism and format of the bytes
 

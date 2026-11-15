@@ -59,7 +59,8 @@ S4_PLANNED_BLOWDOWN: Final = ScenarioDefinition(
             tag="K-201",
             text=(
                 "PTW-0412: planned blowdown of K-201 for discharge valve maintenance, "
-                "minutes 120-135 of this shift, vented to VS-250."
+                "vented to VS-250; venting starts 10 minutes after this entry and lasts about "
+                "15 minutes."
             ),
         ),
         LogEntry(

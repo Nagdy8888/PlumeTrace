@@ -113,13 +113,8 @@ def _effect(e: InstrumentEffectSpec, scale: float, shift: float) -> InstrumentEf
 
 
 def _log(entries: list[LogEntry], shift: float, duration_s: float) -> list[LogEntry]:
-    """Move permit entries with the event, clamped to the scenario; leave the others."""
-    return [
-        e.model_copy(update={"t_s": min(max(0.0, e.t_s + shift), duration_s)})
-        if e.kind == "permit"
-        else e
-        for e in entries
-    ]
+    """Move every base log entry by the shift, clamped to the scenario; distractors stay."""
+    return [e.model_copy(update={"t_s": min(max(0.0, e.t_s + shift), duration_s)}) for e in entries]
 
 
 def _expected(x: ExpectedOutcome, scale: float) -> ExpectedOutcome:
@@ -162,7 +157,8 @@ def generate_variants(
     168 h snapshot), a rate scale (log-uniform in ``RATE_SCALE_RANGE``), a time shift (uniform in
     ``TIME_SHIFT_RANGE_S``), 0 to 2 distractor log entries with their times, and the noise seed.
     The leak rate, the FT-250 offset and the expected rate interval are multiplied by the scale;
-    source, effect and fault times and permit entries move by the shift. Every variant keeps the
+    source, effect and fault times and the base log entries move by the shift (the distractors stay
+    where they were drawn). Every variant keeps the
     base ``id`` and gets ``variant_index`` 0 to ``n - 1``; the pair is its unique, stable key.
 
     Args:

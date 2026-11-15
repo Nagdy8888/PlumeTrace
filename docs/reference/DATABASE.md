@@ -122,7 +122,9 @@ simulated scenario run. It does not commit: the caller owns the transaction.
   `window_means` as the replay export) for the 8 methane sensors (unit `ppm`) and the 9 instruments
   (unit from `BASELINES`); `t_s` is the window start. A minute with too few samples is NaN and is
   stored as `NULL`. A 6 h scenario gives 360 readings per tag, 6 120 in all.
-- No duplicates: every call to `save_scenario_run` makes a new run id with its own rows. Inserting
+- No duplicates: every call to `save_scenario_run` makes a new run id with its own rows (re-saving a
+  scenario run creates a new run). A saved run stays `status = 'running'` with `finished_at` null: known
+  and accepted at Gate 3; Phase 5 Task 10 ends every run in a terminal status. Inserting
   the same events or readings again into the same run adds nothing (`on conflict do nothing` on the
   primary keys `(run_id, sensor_id, window_index)` and `(run_id, tag, t_s)`).
 - No inversion result is stored. Any inversion result stored later must follow the rate display rule
