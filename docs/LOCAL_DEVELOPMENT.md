@@ -56,6 +56,7 @@ Everything runs locally. There is no GitHub Actions CI and no deployment.
 | @fontsource/ibm-plex-sans, @fontsource/ibm-plex-mono | 5.3.0 | Phase 4 Task 2 — local font files (OFL-1.1) |
 | clsx / tailwind-merge / class-variance-authority | 2.1.1 / 3.7.0 / 0.7.1 | Phase 4 Task 2 — `cn()` and variants |
 | lucide-react | 1.72.0 | Phase 4 Task 2 — the one icon set |
+| zustand | 5.1.0 | Phase 4 Task 3 — the scenario, clock and selection stores |
 | radix-ui | 1.8.1 | Phase 4 Task 2 — added by the shadcn CLI 4.23.0 (single package, not `@radix-ui/*`) |
 | shadcn (CLI, not a dependency) | 4.23.0 | `npx --yes shadcn@4.23.0 add <component>` from `app/frontend` |
 
@@ -135,6 +136,22 @@ npm run typecheck
 npm run test
 npm run build        # type-check + production build into dist/
 ```
+
+### Run the UI without the backend
+
+The replay files in `app/replay/` are copied to `app/frontend/public/replay/` (git-ignored) before
+`dev` and `build`. To run the UI on them alone, with no FastAPI process:
+
+```bash
+cd app/frontend
+npm run dev -- --mode replay     # ReplaySource: static files under /replay/
+npm run build:replay             # replay-only build (no live-API code)
+npm run check:replay-bundle      # must print "replay bundle OK"
+```
+
+Plain `npm run dev` uses the live source (`/api/...`, proxied to `127.0.0.1:8000`); with the backend
+stopped the data layer reports the error kind `unreachable`; the panels (Phase 4 Task 4) render
+"Backend not reachable - start it with ..." from it. No UI shows that text yet.
 
 Details: [reference/FRONTEND.md](reference/FRONTEND.md). Nothing is deployed; the Vercel settings
 are recorded in [reference/DEPLOYMENT.md](reference/DEPLOYMENT.md) for a later phase.

@@ -47,4 +47,4 @@ def test_contract_schema_describes_facility_spec() -> None:
     mod = _load_script()
     schema = mod.build_contract_schema()
     assert schema["title"] == "Contract"
-    assert {"facility", "replay_scenario"} <= set(schema["properties"])
+    assert {"facility", "replay_scenario", "replay_index"} <= set(schema["properties"])

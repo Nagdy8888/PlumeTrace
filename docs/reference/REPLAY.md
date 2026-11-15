@@ -94,6 +94,32 @@ Four laws are checked for every input by Hypothesis tests
 4. **Byte count.** One byte per cell, so `len(encode(grid))` is `ny * nx`, and decode restores the
    `(ny, nx)` shape.
 
+## index.json
+
+`app/replay/scenarios/index.json` lists the scenario files the static build ships, so the replay
+build needs no directory listing. It is generated with the scenario files (`scripts/export_scenarios.py`)
+and never edited by hand.
+
+```json
+{"scenarios":[{"duration_h":6,"id":"s1_rod_packing","is_mvp":true,"title":"..."}, ...],"schema_version":1}
+```
+
+| Field | Type | Meaning |
+|---|---|---|
+| `schema_version` | `1` | Format version |
+| `scenarios[].id` | string | Scenario id; the file is `<id>.json` |
+| `scenarios[].title` | string | Display title |
+| `scenarios[].duration_h` | int | Scenario length in hours |
+| `scenarios[].is_mvp` | bool | `true` for every registered scenario in this phase |
+
+Entries are sorted by `id`. The models are `ReplayIndexEntry` and `ReplayIndex`
+(`plumetrace.simulator.replay_schema`, same `extra="forbid"` rule), built by
+`plumetrace.simulator.export.build_index` and serialised by `index_bytes` (same byte format as
+`replay_bytes`: compact JSON, sorted keys, UTF-8, one trailing LF; no size check). A test checks
+that the live API's `ScenarioSummary` and `ReplayIndexEntry` have identical properties, so the
+frontend uses one type for the live list and the replay list. Current size: 341 bytes.
+The frontend reads it through `ReplaySource.listScenarios` (see FRONTEND.md, Data layer).
+
 ## Size budget
 
 At most 5 MB per file (`MAX_REPLAY_BYTES = 5_000_000`; design section 10). `replay_bytes` raises
@@ -112,8 +138,8 @@ second test scans them for keys (`secret_scan.py` patterns).
 
 ```
 cd app
-uv run python ../scripts/export_scenarios.py      # writes app/replay/scenarios/*.json, prints sizes
-uv run python ../scripts/export_contract.py       # schema: facility + replay_scenario
+uv run python ../scripts/export_scenarios.py      # writes app/replay/scenarios/*.json and index.json, prints sizes
+uv run python ../scripts/export_contract.py       # schema: facility + replay_scenario + replay_index
 cd frontend && npm run gen:types                  # TypeScript types
 ```
 

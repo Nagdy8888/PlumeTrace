@@ -26,6 +26,7 @@ Exact versions are in `app/frontend/package.json` and `package-lock.json`; the f
 | @fontsource/ibm-plex-sans, @fontsource/ibm-plex-mono | 5.3.0 |
 | clsx, tailwind-merge, class-variance-authority | 2.1.1, 3.7.0, 0.7.1 |
 | lucide-react, radix-ui | 1.72.0, 1.8.1 |
+| zustand | 5.1.0 |
 | shadcn CLI (run with `npx`, not installed) | 4.23.0 |
 
 Node `>=22.13.0` (`engines` in `package.json`).
@@ -36,8 +37,11 @@ Run from `app/frontend/`.
 
 | Script | What it does |
 |---|---|
-| `npm run dev` | Vite dev server on `http://localhost:5173` |
-| `npm run build` | Type-check, then `vite build` into `dist/` (git-ignored) |
+| `npm run copy:replay` | Copy `app/replay/` to `public/replay/` (git-ignored); runs before `dev`, `build` and `build:replay` |
+| `npm run dev` | Vite dev server on `http://localhost:5173`; `npm run dev -- --mode replay` runs without the backend |
+| `npm run build` | Type-check, then `vite build` into `dist/` (git-ignored); the live build |
+| `npm run build:replay` | Copy replay files, type-check, `vite build --mode replay` (no live-API code) |
+| `npm run check:replay-bundle` | Fail if a `dist/assets/*.js` file contains `/api/`; prints `replay bundle OK` |
 | `npm run preview` | Serve `dist/` locally |
 | `npm run lint` | ESLint (typescript-eslint, react-hooks, react-refresh, jsdoc) |
 | `npm run typecheck` | `tsc --noEmit` (strict, `noUncheckedIndexedAccess`) |
@@ -53,7 +57,10 @@ tests at most 400). A feature folder is used through its `index.ts` only. The fu
 `frontend-structure` skill.
 
 - `src/app/` holds `AppShell.tsx`, the top-level layout.
-- `src/shared/testing/setup.ts` is the Vitest setup file (jest-dom matchers, cleanup after each test).
+- `src/shared/testing/setup.ts` is the Vitest setup file (jest-dom matchers, cleanup after each test);
+  `replayFixture.ts` builds a valid replay for tests.
+- `src/shared/data/`, `src/shared/playback/` and `src/shared/selection/` are the data layer (see
+  Data layer); each has an `index.ts` that is its public API.
 - `src/shared/lib/` holds `cn.ts` (class merging) and `format.ts` (units and time formatting).
 - `src/shared/ui/` holds the shadcn primitives (lower-case file names, generated) and our own
   shared primitives `Panel.tsx` and `StatusBadge.tsx` (PascalCase).
@@ -187,6 +194,123 @@ Display rules owned by the callers (Gate 3 owner decisions, 2026-11-15):
 and type-scale specimen injected into the DOM for the screenshot only (no specimen code is in the
 repo).
 
+## Data layer
+
+Every feature gets scenario data through one interface in `src/shared/data/`. Features import
+`@/shared/data`, `@/shared/playback` and `@/shared/selection` only, never an inner file. The three
+stores are business-neutral containers; the shell and features read them through hooks.
+
+### The `DataSource` interface
+
+```ts
+interface DataSource {
+  readonly mode: "live" | "replay";
+  listScenarios(signal?: AbortSignal): Promise<ReplayIndexEntry[]>;   // sorted by id
+  loadScenario(id: string, signal?: AbortSignal): Promise<ReplayScenario>;
+}
+```
+
+The types come from the generated contract (`ReplayScenario`, `ReplayIndex`, `ReplayIndexEntry`);
+none is redeclared. Phase 5 adds agent runs to the same interface.
+
+| Implementation | Reads | Used when |
+|---|---|---|
+| `ReplaySource` | `/replay/scenarios/index.json`, `/replay/scenarios/<id>.json` (static files) | `import.meta.env.MODE === "replay"` |
+| `LiveSource` | `GET /api/scenarios`, `GET /api/scenarios/<id>/replay` (FastAPI through the Vite proxy) | every other mode (`npm run dev`, `npm run build`) |
+
+Both check the id against `^s[0-9]+_[a-z0-9_]+$` before building a URL (`not_found` without a
+request), validate the body with `parseReplayScenario` / `parseReplayIndex` (`validateReplay.ts`)
+and accept a `ReplayIndex` object or a bare array as the scenario list (the live API answers a bare
+array). `fetchJson.ts` is the only code that calls `fetch`.
+
+### Error kinds
+
+Every method rejects with `DataSourceError(kind, message)`; the UI chooses its text from `kind` and
+never shows `message` verbatim. An aborted request re-throws the original `AbortError`, which the
+store ignores.
+
+| `kind` | Meaning | Raised when |
+|---|---|---|
+| `unreachable` | No server answered | `fetch` rejected, or any non-OK status other than 404 (the Vite proxy answers 5xx while the backend is down) |
+| `not_found` | The id or file does not exist | status 404, or an id that is not a scenario id |
+| `invalid` | The answer is not a usable replay | body is not JSON, or a check in `validateReplay.ts` failed (schema version, `simulated`, id, `step_s`, list lengths, units) |
+
+Required UI state (Phase 4 review focus 1): with the backend down in live mode the panels show
+"Backend not reachable" with the start command, not a crash. `error.kind === "unreachable"` selects
+that state. Verified by hand on 2026-11-15: with the backend running, `GET /api/scenarios` through
+the Vite dev server answered 200 with the three scenarios; after stopping the backend the same
+request answered 502, which `fetchJson` maps to `unreachable`.
+
+### Choosing the source: `getDataSource()`
+
+`getDataSource()` returns a memoised `Promise<DataSource>`. `vite build --mode replay` replaces
+`import.meta.env.MODE` with `"replay"`, so the live branch and its dynamic `import("./LiveSource")`
+are dropped from the bundle. `data/index.ts` deliberately does not export the two classes: a
+static import would pull `LiveSource` into the replay bundle. `npm run check:replay-bundle` reads
+every `dist/assets/*.js` and fails when one contains the `/api/` string. That check proves
+something only once the app imports `getDataSource` (until then the whole data layer is tree-shaken
+away). Verified on 2026-11-15 with a scratch entry that imports it: the `replay` build emitted a
+`ReplaySource` chunk, no `LiveSource` chunk and no `/api/` string; the `production` build emitted
+the `LiveSource` chunk with `/api/`.
+
+Replay files are copied from `app/replay/` to `app/frontend/public/replay/` (git-ignored) by
+`npm run copy:replay`, which runs before `dev`, `build` and `build:replay`.
+
+### Stores
+
+| Store | State | Actions |
+|---|---|---|
+| `useScenarioStore` (`data/scenarioStore.ts`) | `index`, `indexStatus`, `activeId`, `scenario`, `status` (`idle`, `loading`, `ready`, `error`), `error`, `requestSeq` | `loadIndex(source)`, `selectScenario(source, id)` |
+| `useClockStore` (`playback/clockStore.ts`) | `tSeconds`, `durationS`, `playing`, `speed` | `play`, `pause`, `setSpeed`, `seek`, `reset`, `tick` |
+| `useSelectionStore` (`selection/selectionStore.ts`) | `selectedTag`, `hoveredTag` | `select(tag or null)`, `hover(tag or null)` |
+
+Hooks: `useActiveScenario()`, `useScenarioStatus()`, `useSampleIndex()`, `usePlaybackLoop()`.
+
+`selectScenario` is the rule behind "a switch never mixes old and new data": abort the previous
+request; increment `requestSeq`; set `activeId`, `scenario: null`, `status: "loading"`,
+`error: null`; reset the clock to 0 (paused, duration 0); load; only when `requestSeq` still equals
+this call's number set `scenario` and `status: "ready"` and reset the clock to the scenario's
+`duration_s`. A slow earlier response, or a late failure of it, is dropped. `loadIndex` sets
+`indexStatus` and, on failure, `error` (kind `unreachable` when the backend is down); `error` always
+holds the most recent failure. Selecting the already-selected tag clears the selection; `hover` is
+independent of it.
+
+### Playback rules
+
+- Speeds `SPEEDS = [1, 10, 60, 120]` (simulated seconds per real second), default 60;
+  `SAMPLE_STEP_S = 60`.
+- `play()` does nothing on an empty timeline (`durationS === 0`); at the end it restarts from 0.
+- `reset(durationS)` sets `t = 0`, pauses and keeps the speed. `seek(t)` clamps to
+  `[0, durationS]` and ignores a non-finite `t`.
+- `tick(dtRealS)` adds `dtRealS * speed` while playing, stops at the end and ignores a step that is
+  not in `(0, 1]` s: a tab that slept must not make the clock jump (1 s gap guard).
+- The clock is the single time source. Panels re-render once per 60 s sample: `useSampleIndex()`
+  selects `clamp(floor(t / 60), 0, n - 1)` with `n = max(1, round(durationS / 60))`. It is a
+  number, so React re-renders only when the index changes. The 3D layer reads
+  `useClockStore.getState()` inside `useFrame`; nothing animates through React state.
+- `usePlaybackLoop()` is one `requestAnimationFrame` loop that calls `tick((now - last) / 1000)`;
+  the shell mounts it once (Task 4). It holds no React state and cancels on unmount.
+
+### What the data layer must not expose
+
+A loaded scenario also holds `keyframes[].sources` (`anchor_id`, `rate_kg_h`): the simulation input
+used only to draw the plume. It is not a measurement and not an estimate. No store selector or
+hook returns it as text, and nothing passes it to a format helper; views must not render it. The
+data layer stores no rate. Any rate display must follow R1 to R4 (see `formatRate` under
+Formatting helpers), and every clock shown carries a zone label (`formatUtc` ends in " UTC";
+`formatClock` is elapsed time).
+
+### Data layer tests
+
+`data/*.test.ts` covers validation, both sources, `fetchJson`, `getDataSource` (and that the two
+classes are not exported), and the store (stale response, typed error, backend down, switch during
+playback, abort). `playback/*.test.ts(x)` covers the clock rules, the sample-index re-render rule
+and the rAF loop; `selection/selectionStore.test.ts` the selection. `src/shared/testing/replayFixture.ts`
+builds a small valid `ReplayScenario` (10 samples). Docs checked on 2026-11-15 (Context7): Zustand
+v5.0.14 (latest listed there; the repo pins 5.1.0 exactly; `create<T>()(...)`, `getInitialState`,
+`setState`, `getState`) and Vite 8.3.5 (`import.meta.env.MODE`, `--mode`, static replacement for
+tree shaking).
+
 ## Anti-slop gate
 
 Every UI task runs `python -I .claude/skills/frontend-design/scripts/check_slop.py app/frontend/src`,
@@ -206,7 +330,7 @@ never hand-copies a type or the facility data; it uses three generated files:
 
 | File | Produced by |
 |---|---|
-| `src/shared/types/generated/contract.schema.json` | `scripts/export_contract.py` (`FacilitySpec.model_json_schema()`) |
+| `src/shared/types/generated/contract.schema.json` | `scripts/export_contract.py` (`Contract`: `facility`, `replay_scenario`, `replay_index`) |
 | `src/shared/types/generated/contract.ts` | `npm run gen:types` (from the schema) |
 | `src/shared/facility/ks07.json` | `scripts/export_contract.py` (`load_facility()` as JSON) |
 

@@ -20,7 +20,7 @@ from pydantic import BaseModel, ConfigDict
 
 from plumetrace.facility.loader import load_facility
 from plumetrace.facility.spec import FacilitySpec
-from plumetrace.simulator.replay_schema import ReplayScenario
+from plumetrace.simulator.replay_schema import ReplayIndex, ReplayScenario
 
 REPO_ROOT: Final[Path] = Path(__file__).resolve().parents[1]
 SCHEMA_OUT: Final[Path] = REPO_ROOT / "app/frontend/src/shared/types/generated/contract.schema.json"
@@ -28,11 +28,12 @@ FACILITY_OUT: Final[Path] = REPO_ROOT / "app/frontend/src/shared/facility/ks07.j
 
 
 class Contract(BaseModel):
-    """The types shared with the frontend: the facility and one replay scenario.
+    """The types shared with the frontend: the facility, a replay scenario and the replay index.
 
     Attributes:
         facility: The KS-07 facility spec.
         replay_scenario: The replay file format.
+        replay_index: The ``scenarios/index.json`` format (also the live scenario list entry).
     """
 
     # No extra keys, so the generated TypeScript has no ``[k: string]: unknown`` index signature.
@@ -40,6 +41,7 @@ class Contract(BaseModel):
 
     facility: FacilitySpec
     replay_scenario: ReplayScenario
+    replay_index: ReplayIndex
 
 
 def _tuples_as_items(node: object) -> object:
@@ -71,7 +73,7 @@ def _tuples_as_items(node: object) -> object:
 
 
 def build_contract_schema() -> dict[str, object]:
-    """Build the JSON Schema of the contract (facility and replay scenario).
+    """Build the JSON Schema of the contract (facility, replay scenario and replay index).
 
     Returns:
         The ``Contract`` JSON Schema with ``title`` set to ``Contract`` and fixed-length

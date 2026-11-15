@@ -47,7 +47,9 @@ Invalid parameter shapes are answered by FastAPI with `422`. `redoc` is disabled
 
 `Health` (`plumetrace/api/schemas.py`): `status` (always `"ok"`), `version` (package version).
 
-`ScenarioSummary`: `id`, `title`, `duration_h` (int, hours), `is_mvp` (true for S1, S4, S5).
+`ScenarioSummary`: `id`, `title`, `duration_h` (int, hours), `is_mvp` (true for S1, S4, S5). Its
+properties equal those of the replay `ReplayIndexEntry` (a test pins it), so the frontend parses the
+live list and `scenarios/index.json` with one type (see [REPLAY.md](REPLAY.md#indexjson)).
 
 `ReplayScenario` (`plumetrace/simulator/replay_schema.py`; field-by-field format in
 [REPLAY.md](REPLAY.md)): `schema_version`, `scenario_id`, `title`, `simulated` (always true),

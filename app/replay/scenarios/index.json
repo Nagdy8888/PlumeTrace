@@ -1,0 +1,1 @@
+{"scenarios":[{"duration_h":6,"id":"s1_rod_packing","is_mvp":true,"title":"K-202 rod-packing leak via vent stack VS-250"},{"duration_h":4,"id":"s4_planned_blowdown","is_mvp":true,"title":"Planned blowdown of K-201 vented to VS-250"},{"duration_h":6,"id":"s5_sensor_drift","is_mvp":true,"title":"Sensor drift on AT-106"}],"schema_version":1}

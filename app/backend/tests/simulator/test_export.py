@@ -30,3 +30,18 @@ def test_s1_replay_structure_and_budget() -> None:
     assert len(data) <= MAX_REPLAY_BYTES
     assert json.loads(data)["scenario_id"] == "s1_rod_packing"
     assert replay.sim_start_utc.endswith("Z")
+
+
+def test_index_lists_registered_scenarios_sorted() -> None:
+    """index.json lists the three MVP scenarios, sorted by id."""
+    from plumetrace.simulator.export import build_index
+    from plumetrace.simulator.scenarios import SCENARIOS
+
+    index = build_index(SCENARIOS.values())
+    assert index.schema_version == 1
+    assert [e.id for e in index.scenarios] == [
+        "s1_rod_packing",
+        "s4_planned_blowdown",
+        "s5_sensor_drift",
+    ]
+    assert [e.duration_h for e in index.scenarios] == [6, 4, 6]

@@ -47,3 +47,14 @@ def test_cors_allows_only_the_dev_origin() -> None:
     assert ok.headers.get("access-control-allow-origin") == "http://localhost:5173"
     bad = client.get("/api/health", headers={"Origin": "https://evil.example"})
     assert "access-control-allow-origin" not in bad.headers
+
+
+def test_scenario_summary_matches_replay_index_entry() -> None:
+    """Live and replay scenario lists share one shape, so the frontend uses one type."""
+    from plumetrace.api.schemas import ScenarioSummary
+    from plumetrace.simulator.replay_schema import ReplayIndexEntry
+
+    assert (
+        ScenarioSummary.model_json_schema()["properties"]
+        == ReplayIndexEntry.model_json_schema()["properties"]
+    )

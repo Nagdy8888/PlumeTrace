@@ -79,6 +79,12 @@ export type Id2 = string;
 export type LatitudeDeg = number;
 export type LongitudeDeg = number;
 export type Name = string;
+export type DurationH = number;
+export type Id3 = string;
+export type IsMvp = boolean;
+export type Title = string;
+export type Scenarios = ReplayIndexEntry[];
+export type SchemaVersion = 1;
 export type Attribution = string;
 export type DurationS = number;
 export type BaselinePpm = number;
@@ -110,8 +116,8 @@ export type Tag2 = string | null;
 export type Text = string;
 export type Log = ReplayLogEntry[];
 export type ScenarioId = string;
-export type SchemaVersion = 1;
-export type Id3 = string;
+export type SchemaVersion1 = 1;
+export type Id4 = string;
 export type XM = number;
 export type YM = number;
 export type ZM = number;
@@ -120,19 +126,21 @@ export type SimStartUtc = string;
 export type Simulated = true;
 export type Stability1 = string[];
 export type StepS = number;
-export type Title = string;
+export type Title1 = string;
 export type WindFromDeg1 = number[];
 export type WindSpeedMS1 = number[];
 
 /**
- * The types shared with the frontend: the facility and one replay scenario.
+ * The types shared with the frontend: the facility, a replay scenario and the replay index.
  *
  * Attributes:
  *     facility: The KS-07 facility spec.
  *     replay_scenario: The replay file format.
+ *     replay_index: The ``scenarios/index.json`` format (also the live scenario list entry).
  */
 export interface Contract {
   facility: FacilitySpec;
+  replay_index: ReplayIndex;
   replay_scenario: ReplayScenario;
 }
 /**
@@ -283,6 +291,32 @@ export interface SiteBounds {
   y_min_m: YMinM;
 }
 /**
+ * The list of replay files the static build ships (``scenarios/index.json``).
+ *
+ * Attributes:
+ *     schema_version: Format version, 1.
+ *     scenarios: One entry per scenario, sorted by ``id``.
+ */
+export interface ReplayIndex {
+  scenarios: Scenarios;
+  schema_version: SchemaVersion;
+}
+/**
+ * One scenario in ``index.json`` (same shape as the live API's ``ScenarioSummary``).
+ *
+ * Attributes:
+ *     id: Scenario id, for example ``s1_rod_packing``; the file is ``<id>.json``.
+ *     title: Display title.
+ *     duration_h: Scenario length in hours.
+ *     is_mvp: Whether the scenario is part of the MVP set.
+ */
+export interface ReplayIndexEntry {
+  duration_h: DurationH;
+  id: Id3;
+  is_mvp: IsMvp;
+  title: Title;
+}
+/**
  * A complete replayable scenario (simulated station).
  *
  * Every list is sampled every ``step_s`` seconds (60 s means; a missing mean is ``None``).
@@ -318,14 +352,14 @@ export interface ReplayScenario {
   keyframes: Keyframes;
   log: Log;
   scenario_id: ScenarioId;
-  schema_version: SchemaVersion;
+  schema_version: SchemaVersion1;
   sensors: Sensors;
   series: Series;
   sim_start_utc: SimStartUtc;
   simulated: Simulated;
   stability: Stability1;
   step_s: StepS;
-  title: Title;
+  title: Title1;
   units: Units;
   wind_from_deg: WindFromDeg1;
   wind_speed_m_s: WindSpeedMS1;
@@ -428,7 +462,7 @@ export interface ReplayLogEntry {
  *     z_m: Height in m.
  */
 export interface ReplaySensor {
-  id: Id3;
+  id: Id4;
   x_m: XM;
   y_m: YM;
   z_m: ZM;

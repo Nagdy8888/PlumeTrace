@@ -225,3 +225,31 @@ class ReplayScenario(_Strict):
                 raise ValueError(
                     f"keyframe at {frame.t_s} s has {size} grid bytes, expected {cells}"
                 )
+
+
+class ReplayIndexEntry(_Strict):
+    """One scenario in ``index.json`` (same shape as the live API's ``ScenarioSummary``).
+
+    Attributes:
+        id: Scenario id, for example ``s1_rod_packing``; the file is ``<id>.json``.
+        title: Display title.
+        duration_h: Scenario length in hours.
+        is_mvp: Whether the scenario is part of the MVP set.
+    """
+
+    id: str
+    title: str
+    duration_h: int
+    is_mvp: bool
+
+
+class ReplayIndex(_Strict):
+    """The list of replay files the static build ships (``scenarios/index.json``).
+
+    Attributes:
+        schema_version: Format version, 1.
+        scenarios: One entry per scenario, sorted by ``id``.
+    """
+
+    schema_version: Literal[1]
+    scenarios: list[ReplayIndexEntry]

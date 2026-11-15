@@ -9,6 +9,7 @@ inversion result. The format is in ``plumetrace.simulator.replay_schema``.
 import base64
 import json
 import math
+from collections.abc import Iterable
 from datetime import UTC
 from typing import Final
 
@@ -29,12 +30,15 @@ from plumetrace.simulator.replay_schema import (
     PlumeKeyframe,
     ReplayEvent,
     ReplayGrid,
+    ReplayIndex,
+    ReplayIndexEntry,
     ReplayLogEntry,
     ReplayScenario,
     ReplaySensor,
     ReplaySource,
 )
 from plumetrace.simulator.runner import DT_S, ScenarioRun, _true_sources
+from plumetrace.simulator.scenario import ScenarioDefinition
 
 # Task 7 wording: the real-versus-synthetic label every replay file carries (design section 10).
 DATA_LABEL: Final = (
@@ -221,3 +225,36 @@ def replay_bytes(replay: ReplayScenario) -> bytes:
             f"{replay.scenario_id} replay is {len(data)} bytes, budget {MAX_REPLAY_BYTES}"
         )
     return data
+
+
+def build_index(definitions: Iterable[ScenarioDefinition]) -> ReplayIndex:
+    """Build the replay index: one entry per scenario, sorted by id.
+
+    Args:
+        definitions: The scenario definitions to list (for example ``SCENARIOS.values()``).
+
+    Returns:
+        The index; every entry has ``is_mvp=True`` because every registered scenario is part of
+        the MVP set in this phase.
+    """
+    entries = [
+        ReplayIndexEntry(id=d.id, title=d.title, duration_h=d.duration_h, is_mvp=True)
+        for d in sorted(definitions, key=lambda d: d.id)
+    ]
+    return ReplayIndex(schema_version=REPLAY_SCHEMA_VERSION, scenarios=entries)
+
+
+def index_bytes(index: ReplayIndex) -> bytes:
+    """Serialise the index the way ``replay_bytes`` serialises a scenario (no size check).
+
+    Args:
+        index: The index.
+
+    Returns:
+        Compact JSON with sorted keys, UTF-8, one trailing LF; the same index always gives the
+        same bytes.
+    """
+    text = json.dumps(
+        index.model_dump(mode="json"), sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
+    return text.encode("utf-8") + b"\n"

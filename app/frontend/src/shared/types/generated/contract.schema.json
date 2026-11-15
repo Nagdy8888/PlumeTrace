@@ -491,6 +491,60 @@
       "title": "ReplayGrid",
       "type": "object"
     },
+    "ReplayIndex": {
+      "additionalProperties": false,
+      "description": "The list of replay files the static build ships (``scenarios/index.json``).\n\nAttributes:\n    schema_version: Format version, 1.\n    scenarios: One entry per scenario, sorted by ``id``.",
+      "properties": {
+        "scenarios": {
+          "items": {
+            "$ref": "#/$defs/ReplayIndexEntry"
+          },
+          "title": "Scenarios",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "schema_version",
+        "scenarios"
+      ],
+      "title": "ReplayIndex",
+      "type": "object"
+    },
+    "ReplayIndexEntry": {
+      "additionalProperties": false,
+      "description": "One scenario in ``index.json`` (same shape as the live API's ``ScenarioSummary``).\n\nAttributes:\n    id: Scenario id, for example ``s1_rod_packing``; the file is ``<id>.json``.\n    title: Display title.\n    duration_h: Scenario length in hours.\n    is_mvp: Whether the scenario is part of the MVP set.",
+      "properties": {
+        "duration_h": {
+          "title": "Duration H",
+          "type": "integer"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "is_mvp": {
+          "title": "Is Mvp",
+          "type": "boolean"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "duration_h",
+        "is_mvp"
+      ],
+      "title": "ReplayIndexEntry",
+      "type": "object"
+    },
     "ReplayLogEntry": {
       "additionalProperties": false,
       "description": "One line of the station log.\n\nAttributes:\n    t_s: Time in scenario seconds.\n    kind: Entry type (permit, gauging, maintenance, shift_note, calibration).\n    tag: Equipment or instrument tag the entry is about, if any.\n    text: Entry text.",
@@ -797,10 +851,13 @@
     }
   },
   "additionalProperties": false,
-  "description": "The types shared with the frontend: the facility and one replay scenario.\n\nAttributes:\n    facility: The KS-07 facility spec.\n    replay_scenario: The replay file format.",
+  "description": "The types shared with the frontend: the facility, a replay scenario and the replay index.\n\nAttributes:\n    facility: The KS-07 facility spec.\n    replay_scenario: The replay file format.\n    replay_index: The ``scenarios/index.json`` format (also the live scenario list entry).",
   "properties": {
     "facility": {
       "$ref": "#/$defs/FacilitySpec"
+    },
+    "replay_index": {
+      "$ref": "#/$defs/ReplayIndex"
     },
     "replay_scenario": {
       "$ref": "#/$defs/ReplayScenario"
@@ -808,7 +865,8 @@
   },
   "required": [
     "facility",
-    "replay_scenario"
+    "replay_scenario",
+    "replay_index"
   ],
   "title": "Contract",
   "type": "object"

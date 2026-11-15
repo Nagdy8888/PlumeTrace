@@ -3,6 +3,8 @@
 For each scenario the script runs the simulation against the committed weather snapshot, builds
 the replay document and writes ``app/replay/scenarios/<id>.json`` (UTF-8, LF, sorted keys, at most
 5 MB; a larger file is an error and nothing is written for it). It prints ``<id>: <n> bytes``.
+It then writes ``app/replay/scenarios/index.json`` (the list of the scenarios above, sorted by
+id) and prints ``index.json: <n> bytes``.
 No network is used and the output is deterministic.
 
 Run it from the repo root::
@@ -17,7 +19,7 @@ from typing import Final
 
 from plumetrace.facility.loader import load_facility
 from plumetrace.facility.spec import FacilitySpec
-from plumetrace.simulator.export import build_replay, replay_bytes
+from plumetrace.simulator.export import build_index, build_replay, index_bytes, replay_bytes
 from plumetrace.simulator.runner import run_scenario
 from plumetrace.simulator.scenarios import SCENARIOS
 from plumetrace.simulator.weather import WeatherSnapshot, load_snapshot
@@ -54,7 +56,7 @@ def export_scenario(
 
 
 def main() -> int:
-    """Export every registered scenario and print one size line each.
+    """Export every registered scenario, then the index, and print one size line each.
 
     Returns:
         Exit code 0.
@@ -64,6 +66,9 @@ def main() -> int:
     for scenario_id in SCENARIOS:
         size = export_scenario(scenario_id, OUT_DIR, spec, snapshot)
         print(f"{scenario_id}: {size} bytes")
+    index = index_bytes(build_index(SCENARIOS.values()))
+    (OUT_DIR / "index.json").write_bytes(index)
+    print(f"index.json: {len(index)} bytes")
     return 0
 
 

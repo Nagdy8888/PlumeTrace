@@ -422,11 +422,11 @@ describe("clockStore", () => {
 ```
 
 ## Steps
-- [ ] Backend: tests → FAIL → implement `ReplayIndexEntry`, `ReplayIndex`, `build_index`, `index_bytes`, script + contract changes → `uv run pytest app/backend -q` green. Run `cd app && uv run python ../scripts/export_scenarios.py` and `uv run python ../scripts/export_contract.py`, then `cd frontend && npm run gen:types`.
-- [ ] Confirm `.gitignore` contains `app/frontend/public/replay/`.
-- [ ] Frontend: add `zustand` (exact), scripts; write the tests → FAIL → implement every file above.
-- [ ] `npm run lint && npm run typecheck && npm run test`, then `npm run build:replay && npm run check:replay-bundle` → must print `replay bundle OK`; then `npm run build` (live build) succeeds.
-- [ ] Manual: start the backend (Task 1 command) and `npm run dev`; in the browser console `fetch("/api/scenarios").then(r => r.json())` lists three scenarios. Stop the backend and confirm the same call now fails (proves the "unreachable" path is real).
-- [ ] Repo checks (structure, secrets, env); `check_slop.py` → `no slop found`.
-- [ ] **Docs.** FRONTEND.md → "Data layer": the interface, both implementations, the error kinds and their meaning, the mode switch and bundle check, the three stores (state + actions), the playback rules (speeds, sample-index re-render rule, 1 s gap guard). REPLAY.md → "index.json". LOCAL_DEVELOPMENT → "Run the UI without the backend" (`npm run dev -- --mode replay`). Work-log; `STATUS.md` (last 4.3, next 4.4).
+- [x] Backend: tests → FAIL → implement `ReplayIndexEntry`, `ReplayIndex`, `build_index`, `index_bytes`, script + contract changes → `uv run pytest app/backend -q` green. Run `cd app && uv run python ../scripts/export_scenarios.py` and `uv run python ../scripts/export_contract.py`, then `cd frontend && npm run gen:types`.
+- [x] Confirm `.gitignore` contains `app/frontend/public/replay/`.
+- [x] Frontend: add `zustand` (exact), scripts; write the tests → FAIL → implement every file above.
+- [x] `npm run lint && npm run typecheck && npm run test`, then `npm run build:replay && npm run check:replay-bundle` → must print `replay bundle OK`; then `npm run build` (live build) succeeds.
+- [x] Manual: start the backend (Task 1 command) and `npm run dev`; in the browser console `fetch("/api/scenarios").then(r => r.json())` lists three scenarios. Stop the backend and confirm the same call now fails (proves the "unreachable" path is real).
+- [x] Repo checks (structure, secrets, env); `check_slop.py` → `no slop found`.
+- [x] **Docs.** FRONTEND.md → "Data layer": the interface, both implementations, the error kinds and their meaning, the mode switch and bundle check, the three stores (state + actions), the playback rules (speeds, sample-index re-render rule, 1 s gap guard). REPLAY.md → "index.json". LOCAL_DEVELOPMENT → "Run the UI without the backend" (`npm run dev -- --mode replay`). Work-log; `STATUS.md` (last 4.3, next 4.4).
 - [ ] **Commit** `feat(frontend): add data sources, playback clock and scenario store`.

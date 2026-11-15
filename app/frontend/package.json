@@ -7,8 +7,13 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "copy:replay": "node -e \"const fs=require('node:fs');fs.rmSync('public/replay',{recursive:true,force:true});fs.cpSync('../replay','public/replay',{recursive:true});console.log('replay files copied')\"",
+    "predev": "npm run copy:replay",
     "dev": "vite",
+    "prebuild": "npm run copy:replay",
     "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "build:replay": "npm run copy:replay && tsc --noEmit -p tsconfig.json && vite build --mode replay",
+    "check:replay-bundle": "node -e \"const fs=require('node:fs');const p=require('node:path');const d='dist/assets';const bad=fs.readdirSync(d).filter(f=>f.endsWith('.js')&&fs.readFileSync(p.join(d,f),'utf8').includes('/api/'));if(bad.length){console.error('live API code in replay bundle: '+bad.join(', '));process.exit(1)}console.log('replay bundle OK')\"",
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -25,7 +30,8 @@
     "radix-ui": "1.8.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "tailwind-merge": "3.7.0"
+    "tailwind-merge": "3.7.0",
+    "zustand": "5.1.0"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
