@@ -8,6 +8,7 @@ import {
   usePlaybackKeys,
   useScenarioBootstrap,
 } from "@/features/scenarios";
+import { StationView } from "@/features/station3d";
 import { TrendsPanel } from "@/features/trends";
 import { useActiveScenario, useScenarioStore, type DataSourceMode } from "@/shared/data";
 import { usePlaybackLoop } from "@/shared/playback";
@@ -60,8 +61,11 @@ export function AppShell(): JSX.Element {
         </div>
         <main
           aria-label="Station view"
-          className="col-start-2 row-span-2 row-start-1 flex min-h-0 items-center justify-center p-6 min-[1280px]:row-span-1"
+          className="relative col-start-2 row-span-2 row-start-1 flex min-h-0 items-center justify-center p-6 min-[1280px]:row-span-1"
         >
+          <div className="absolute inset-0">
+            <StationView />
+          </div>
           <StationStatus mode={mode} />
         </main>
         <div className="col-start-1 row-start-2 grid min-h-0 grid-rows-[minmax(0,1fr)] min-[1280px]:col-start-3 min-[1280px]:row-start-1">

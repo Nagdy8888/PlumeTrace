@@ -2,6 +2,30 @@
 
 Everything runs locally. There is no GitHub Actions CI and no deployment.
 
+## Setup at a glance
+
+```mermaid
+flowchart TD
+    A["Install Python 3.12, uv, Node 22.13 or newer, Docker Desktop, git"] --> B["git clone, then python scripts/install_git_hooks.py"]
+    B --> C["cd app, then uv sync --frozen"]
+    C --> D["cd app/frontend, then npm ci"]
+    D --> E["Start Docker Desktop, then npx --yes supabase@3.1.0 start (in app/)"]
+    E --> F["Create the root .env: env_set.py set SUPABASE_DB_URL, owner adds the API keys"]
+    F --> G["python scripts/ci_local.py"]
+    G --> H{"all stages passed?"}
+    H -->|"yes"| I["Ready: run the backend and npm run dev"]
+    H -->|"no"| J["Read the FAILED line, fix, rerun with --only name"]
+    J --> G
+```
+
+Caption: the order of the first-time setup. Steps E and F are only needed for the database tests
+and the live backend; the replay UI and most tests run without them.
+
+Pages with the details of each part: [reference/WORKSPACE.md](reference/WORKSPACE.md) (workspace,
+Supabase, frontend shell), [reference/CONFIGURATION.md](reference/CONFIGURATION.md) (`.env` and
+settings), [reference/CHECKS.md](reference/CHECKS.md) (check runner and hook),
+[reference/FACILITY.md](reference/FACILITY.md) and [reference/CONTRACT.md](reference/CONTRACT.md).
+
 ## Prerequisites
 
 - Python 3.12
@@ -9,6 +33,37 @@ Everything runs locally. There is no GitHub Actions CI and no deployment.
 - Node >= 22.13
 - Docker Desktop
 - git
+
+## Windows and PowerShell notes
+
+The project is developed on Windows 11. Commands in this file work in Git Bash and in PowerShell
+unless a note says otherwise.
+
+- Windows PowerShell 5.1 has no `&&`. Use `;` between commands (`cd app; uv sync`) or run them on
+  separate lines.
+- Set an environment variable for one session with `$env:NAME = "value"`; in Git Bash use
+  `NAME=value command`.
+- Keep files UTF-8 with LF line endings. `.gitattributes` (`* text=auto eol=lf`) normalises them
+  on commit; generated files are written as bytes so Windows never adds CRLF.
+- `npm` and `npx` are `.cmd` shims on Windows. `scripts/ci_local.py` handles this; when you call
+  them yourself, plain `npm` works in both shells.
+- The git pre-commit hook is a `sh` script that Git for Windows runs. `python` must be on that
+  shell's `PATH` (check with `python --version`; expect 3.12).
+- Docker Desktop must be running before `supabase start`. Check with `docker info`.
+- Never print `.env`. To see which names exist, run
+  `python -I .claude/skills/security-checks/scripts/env_set.py names`.
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `db` tests skip with "Supabase not running" | Database is down or `SUPABASE_DB_URL` is missing | `npx --yes supabase@3.1.0 start` in `app/`, check the name with `env_set.py names` |
+| The same tests fail with "database required but unavailable" | `PLUMETRACE_REQUIRE_DB=1` (full mode) and no database | Start Supabase, then rerun |
+| `ConfigurationError: SUPABASE_DB_URL is not set` | No value in the root `.env` | `python -I .claude/skills/security-checks/scripts/env_set.py set SUPABASE_DB_URL postgresql://postgres:postgres@127.0.0.1:54322/postgres` |
+| `check_env.py` prints `stray env file` | An env file exists outside the repo root | Move its names to the root `.env` and delete it |
+| `contract-drift` fails | Generated files differ from the models, or other files under `app/frontend/src/shared` are uncommitted | Run the export and `npm run gen:types` (see [reference/CONTRACT.md](reference/CONTRACT.md)) |
+| `structure` fails with `god file` | A file passed a size limit | Split it by responsibility; never raise the limit |
+| Commit aborted by the hook | A quick stage failed | Read the `FAILED:` line, fix, commit again. Never use `--no-verify` |
 
 ## Pinned versions
 
@@ -23,6 +78,9 @@ Everything runs locally. There is no GitHub Actions CI and no deployment.
 | psycopg[binary,pool] | 3.3.9 | |
 | psycopg-pool | 3.3.3 | |
 | numpy | 2.5.4 | added in Phase 2 |
+| httpx | 0.28.1 | backend dependency (outbound HTTP for Open-Meteo) |
+| fastapi | 0.162.5 | backend dependency (API) |
+| uvicorn[standard] | 0.54.0 | backend dependency (server) |
 | hatchling | 1.33.0 | build backend |
 | pytest | 9.2.0 | dev |
 | ruff | 0.17.5 | dev |
@@ -57,6 +115,7 @@ Everything runs locally. There is no GitHub Actions CI and no deployment.
 | clsx / tailwind-merge / class-variance-authority | 2.1.1 / 3.7.0 / 0.7.1 | Phase 4 Task 2 — `cn()` and variants |
 | lucide-react | 1.72.0 | Phase 4 Task 2 — the one icon set |
 | zustand | 5.1.0 | Phase 4 Task 3 — the scenario, clock and selection stores |
+| uplot | 1.6.32 | Phase 4 Task 4 — trend charts |
 | radix-ui | 1.8.1 | Phase 4 Task 2 — added by the shadcn CLI 4.23.0 (single package, not `@radix-ui/*`) |
 | shadcn (CLI, not a dependency) | 4.23.0 | `npx --yes shadcn@4.23.0 add <component>` from `app/frontend` |
 
@@ -76,6 +135,13 @@ Only the root `.env` is read; never create other `.env` files. Values are never 
 held as `SecretStr` and hidden from `repr`/`str`. Without a `.env` the settings load with defaults,
 and database code raises `ConfigurationError` naming `SUPABASE_DB_URL`. Tests build
 `Settings(_env_file=None)` so they never read the real `.env`.
+
+The root `.env` and `.env.example` also list `OPENAI_MODEL_FAST`, `OPENAI_MODEL_REASONING` and
+`PLUMETRACE_SPEND_CAP_USD`. `plumetrace.config` has no fields for them yet (it ignores unknown
+names), so no Python code reads them today. `PLUMETRACE_REQUIRE_DB` is a test switch set by
+`ci_local.py --full`, not a `.env` value. Add or change a name only through
+`python -I .claude/skills/security-checks/scripts/env_set.py` (names only are printed). Details,
+sequence diagram and the extension steps: [reference/CONFIGURATION.md](reference/CONFIGURATION.md).
 
 ## Python
 
@@ -150,11 +216,22 @@ npm run check:replay-bundle      # must print "replay bundle OK" (fails on a liv
 ```
 
 Plain `npm run dev` uses the live source (`/api/...`, proxied to `127.0.0.1:8000`); with the backend
-stopped the data layer reports the error kind `unreachable`; the panels (Phase 4 Task 4) render
-"Backend not reachable - start it with ..." from it. No UI shows that text yet.
+stopped the data layer reports the error kind `unreachable`; the station area (Phase 4 Task 4) then
+shows the heading "Backend not reachable", the start command and a Retry button
+([reference/UI_PANELS.md](reference/UI_PANELS.md)).
 
 Details: [reference/FRONTEND.md](reference/FRONTEND.md). Nothing is deployed; the Vercel settings
 are recorded in [reference/DEPLOYMENT.md](reference/DEPLOYMENT.md) for a later phase.
+
+## Blender (3D station generator)
+
+Blender **4.5.16 LTS** is installed by the owner from blender.org (checksum verified) and is **not
+on PATH**. Path used on this machine:
+`C:\Users\Nagdy\Tools\blender-4.5.16\blender-4.5.16-windows-x64\blender.exe`
+(`blender.exe --version` prints `Blender 4.5.16 LTS`). The build script refuses any other 4.x line.
+Commands, modules and the asset download: [../scripts/blender/README.md](../scripts/blender/README.md)
+and [reference/ASSETS.md](reference/ASSETS.md). The generator is optional for running the UI: the
+generated `app/frontend/public/models/ks07.glb` is committed.
 
 ## Checks
 
@@ -199,4 +276,10 @@ python -I .claude/skills/security-checks/scripts/secret_scan.py .
 ```
 
 Expected output: `structure OK`, `env OK`, `no secrets found`. Details of the test layers:
-[reference/TESTING.md](reference/TESTING.md).
+[reference/TESTING.md](reference/TESTING.md); what each stage proves, the hook sequence and how to
+add a stage: [reference/CHECKS.md](reference/CHECKS.md).
+
+To check only the generated frontend files against the Python models (no database needed):
+`python scripts/ci_local.py --only contract-drift`. It compares the working tree with the git
+index, so uncommitted edits under `app/frontend/src/shared` also fail it (see
+[reference/CONTRACT.md](reference/CONTRACT.md)).

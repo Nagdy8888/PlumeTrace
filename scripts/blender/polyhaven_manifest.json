@@ -1,0 +1,49 @@
+{
+  "resolution": "1k",
+  "textures": {
+    "metal_plate": [
+      "nor_gl",
+      "Rough"
+    ],
+    "concrete_floor_02": [
+      "Diffuse",
+      "nor_gl",
+      "Rough"
+    ],
+    "gravel_floor_02": [
+      "Diffuse",
+      "nor_gl",
+      "Rough"
+    ],
+    "corrugated_iron_02": [
+      "Diffuse",
+      "nor_gl",
+      "Rough"
+    ],
+    "metal_grate_rusty": [
+      "Diffuse",
+      "nor_gl",
+      "Rough"
+    ]
+  },
+  "hdris": {
+    "industrial_sunset_puresky": "hdr"
+  },
+  "sha256": {
+    "app/frontend/public/textures/env/industrial_sunset_puresky_1k.hdr": "ce8235e4b1b10b620120ceeb32eb3e80af15ea29b09a8625a4bdae647dff328d",
+    "build/polyhaven/concrete_floor_02/concrete_floor_02_diff_1k.jpg": "6db84a6d87dc50508b9d134d6fbd2b7e876b8081a5f43a118a249ca18de73af5",
+    "build/polyhaven/concrete_floor_02/concrete_floor_02_nor_gl_1k.jpg": "fcda391b57a816d646ae15544688be53790478da5cd48dbe514b3c6901415e61",
+    "build/polyhaven/concrete_floor_02/concrete_floor_02_rough_1k.jpg": "c7f026a611b7859903c61ec7fd4574944157223e9e7796413dd6e2a66eaeac7a",
+    "build/polyhaven/corrugated_iron_02/corrugated_iron_02_diff_1k.jpg": "7a7b43099d015c1b08ebb175da5965caeae44b86de65a727b3fffa20a7c69a93",
+    "build/polyhaven/corrugated_iron_02/corrugated_iron_02_nor_gl_1k.jpg": "9743c93668689c36a67e9c4dc8d6a0870fe91202f82dcdaf70ddc330c12f9ecb",
+    "build/polyhaven/corrugated_iron_02/corrugated_iron_02_rough_1k.jpg": "56ec8d8b04bac56b5d85ee2f35256b7b00d8c7a0ef13e6791cdabc5c05ed2f4b",
+    "build/polyhaven/gravel_floor_02/gravel_floor_02_diff_1k.jpg": "ac9874264762a9e8d337e684259d51dac41a012933f0d8013033fee7076383f3",
+    "build/polyhaven/gravel_floor_02/gravel_floor_02_nor_gl_1k.jpg": "7db09804733f912bd120a1a3179bb867a01819ab9539a1c80eadfaff7e22509e",
+    "build/polyhaven/gravel_floor_02/gravel_floor_02_rough_1k.jpg": "5efe350a5e27408bf85c6aebdf725127d7ef064e2c4eaf888fc1a1744e2d7bb6",
+    "build/polyhaven/metal_grate_rusty/metal_grate_rusty_diff_1k.jpg": "dc24176c7cdc8f526611fca206e852179b5fe2be157eea8a180ddd8985347df8",
+    "build/polyhaven/metal_grate_rusty/metal_grate_rusty_nor_gl_1k.jpg": "3bb15a5408a33b6291a7d6ded358c1426d4d3d166bd0ff43c14c4102e1638483",
+    "build/polyhaven/metal_grate_rusty/metal_grate_rusty_rough_1k.jpg": "5784f8e8e8d309382b343b17344ec7a9902ec84b737a6be5f9a4b36195715a8b",
+    "build/polyhaven/metal_plate/metal_plate_nor_gl_1k.jpg": "994f851a84d52b51e97906021a1b7070ee6eac9a789fef041132268de47d8e6b",
+    "build/polyhaven/metal_plate/metal_plate_rough_1k.jpg": "756308485ce742a52831453c296452f48cf0adead7d85adfffd34c08dce23ec1"
+  }
+}

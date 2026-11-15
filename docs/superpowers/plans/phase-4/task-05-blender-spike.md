@@ -228,13 +228,13 @@ If the file is over 2 MB, rerun `optimize` with `--texture-size 512` once and re
 | Bake time | wall-clock of `--bake high`; record |
 
 ## Steps
-- [ ] Confirm prerequisites (Blender version; download permission). STOP if either is missing.
-- [ ] Pure helpers + `check_glb.py`: tests → FAIL → implement → `uv run pytest app/backend -q` green; `uv run ruff check --config pyproject.toml ../scripts` clean.
-- [ ] `cd app && uv run python ../scripts/fetch_polyhaven.py --record`; commit the manifest and the HDRI.
-- [ ] Write the bpy modules. Run `blender --background --factory-startup --python scripts/blender/build_station.py -- --spec app/frontend/src/shared/facility/ks07.json --out build/ks07_raw.glb --bake low --only K-202,VS-250` until it completes without errors; then `--bake high`. Optimise + check (commands above).
-- [ ] Frontend: add deps (exact); coords test → FAIL → implement the viewer files; `npm run lint && npm run typecheck && npm run test && npm run build`.
-- [ ] Measure (table above) and take the screenshots: `docs/evidence/2026-11-spike-review.png` (review camera) and `docs/evidence/2026-11-spike-close.png` (orbit to 10 m from the distance pieces).
-- [ ] Repo checks (structure, secrets, env); `check_slop.py`.
-- [ ] **Docs.** `scripts/blender/README.md` (what each module does, the commands, Blender version, assets and licence, coordinate convention). FRONTEND.md → "3D station" (pipeline summary, coordinate mapping, review camera, no-Draco rule). `docs/reference/ASSETS.md` (new; add to `docs/README.md`): every Poly Haven asset, licence CC0, source URL, where it is used. Work-log with the measurements.
+- [x] Confirm prerequisites (Blender version; download permission). STOP if either is missing.
+- [x] Pure helpers + `check_glb.py`: tests → FAIL → implement → `uv run pytest app/backend -q` green; `uv run ruff check --config pyproject.toml ../scripts` clean.
+- [x] `cd app && uv run python ../scripts/fetch_polyhaven.py --record`; commit the manifest and the HDRI.
+- [x] Write the bpy modules. Run `blender --background --factory-startup --python scripts/blender/build_station.py -- --spec app/frontend/src/shared/facility/ks07.json --out build/ks07_raw.glb --bake low --only K-202,VS-250` until it completes without errors; then `--bake high`. Optimise + check (commands above).
+- [x] Frontend: add deps (exact); coords test → FAIL → implement the viewer files; `npm run lint && npm run typecheck && npm run test && npm run build`.
+- [x] Measure (table above) and take the screenshots: `docs/evidence/2026-11-spike-review.png` (review camera) and `docs/evidence/2026-11-spike-close.png` (orbit to 10 m from the distance pieces).
+- [x] Repo checks (structure, secrets, env); `check_slop.py`.
+- [x] **Docs.** `scripts/blender/README.md` (what each module does, the commands, Blender version, assets and licence, coordinate convention). FRONTEND.md → "3D station" (pipeline summary, coordinate mapping, review camera, no-Draco rule). `docs/reference/ASSETS.md` (new; add to `docs/README.md`): every Poly Haven asset, licence CC0, source URL, where it is used. Work-log with the measurements.
 - [ ] **Commit** `feat(3d): add Blender spike for K-202 and VS-250`.
 - [ ] `STATUS.md`: "Phase 4 Task 5 done — waiting for owner spike review (approach B go / no-go)". **STOP.** Owner answer **go** → next task `task-06-bpy-equipment.md`. Owner answer **no-go** → next task `task-05b-fallback-procedural.md`; Tasks 6–7 are then skipped.
