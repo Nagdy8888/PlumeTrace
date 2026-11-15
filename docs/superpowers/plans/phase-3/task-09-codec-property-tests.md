@@ -78,7 +78,7 @@ def test_byte_count_matches_the_grid(ny: int, nx: int, data: st.DataObject) -> N
 ```
 
 ## Steps
-- [ ] Copy → `cd app && uv run pytest backend/tests/engineering/test_plume_field_properties.py -q` → `4 passed`.
-- [ ] `python scripts/ci_local.py` green.
+- [x] Copy → `cd app && uv run pytest backend/tests/engineering/test_plume_field_properties.py -q` → `4 passed`.
+- [x] `python scripts/ci_local.py` green.
 - [ ] **Docs.** REPLAY.md → "Plume grid encoding": add the four laws; `docs/reference/TESTING.md` → property-tests row. Work-log; `STATUS.md`: "Phase 3 complete — waiting for Gate 3 (scenario scripts)".
 - [ ] **Commit** `test(replay): add property tests for the plume grid codec`.

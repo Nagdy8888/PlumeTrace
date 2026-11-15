@@ -31,7 +31,7 @@ python scripts/ci_local.py --list
 | Layer | Tool | Where | Proves | Stage |
 |---|---|---|---|---|
 | Unit | pytest | `app/backend/tests/**`, `app/agents/tests/**` | one function or class against hand-checked values | quick + full |
-| Property-based / metamorphic | Hypothesis 6.170.14 | `app/backend/tests/engineering/test_properties.py` | laws that hold for every valid input | quick + full |
+| Property-based / metamorphic | Hypothesis 6.170.14 | `app/backend/tests/engineering/test_properties.py`, `test_plume_field_properties.py` | laws that hold for every valid input | quick + full |
 | Integration (database) | pytest + local Supabase, `db` marker | `app/backend/tests/db/**` | SQL, constraints, RLS, grants | quick (skips without DB) / full (fails without DB) |
 | API | FastAPI `TestClient` | `app/backend/tests/api/**` (planned) | status codes, error bodies, WebSocket protocol | quick + full |
 | Graph branches | scripted LLM + fake tools (planned) | `app/agents/tests/graph/**` | every edge and branch of the graph | quick + full |
@@ -67,13 +67,15 @@ environment).
 
 ## Property-based tests
 
-All property tests use `settings(max_examples=200, derandomize=True, deadline=None, database=None)`:
-the same 200 inputs on every run, no per-example time limit, no example database (nothing is stored
+All property tests use `settings(max_examples=200, derandomize=True, deadline=None, database=None)`
+(the codec file uses 300 examples):
+the same inputs on every run, no per-example time limit, no example database (nothing is stored
 or replayed between runs; Hypothesis may still create a gitignored `.hypothesis/constants` cache).
 
 | File | Laws |
 |---|---|
 | `app/backend/tests/engineering/test_properties.py` | plume linear in rate; plume inversely proportional to wind speed; nothing upwind; crosswind mirror symmetry; rotation of scene and wind changes nothing; ppm round trip; circular mean rotates with the data; fusion is a probability and order-free; neutral evidence keeps the prior; unlit flare slips at least as much as lit; pipeline gas Z and CH4 mass fraction stay physical |
+| `app/backend/tests/engineering/test_plume_field_properties.py` | plume grid codec (`encode_log_u8` / `decode_log_u8`): round trip within half a log step; monotonic coding; out-of-range values clamp to byte 0 and 255; one byte per cell and the grid shape is restored. Uses `max_examples=300` instead of 200 |
 
 ## Full-stack live e2e
 

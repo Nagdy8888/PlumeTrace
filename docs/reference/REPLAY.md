@@ -83,6 +83,17 @@ Byte 1 is 0.1 ppm, byte 255 is 1000 ppm; larger values are clamped to 255. A val
 range decodes within half a step (a factor of 1.018, about 1.8 %). `decode_log_u8(data, ny, nx)`
 raises `ValueError` when `len(data) != ny * nx`.
 
+Four laws are checked for every input by Hypothesis tests
+(`app/backend/tests/engineering/test_plume_field_properties.py`):
+
+1. **Round trip.** For any value from 0.1 to 1000 ppm, `decode(encode(x))` is within half a log
+   step of `x` (`abs(log10(y / x))` at most `4 / 254 / 2` decades).
+2. **Monotonic.** A larger concentration never gets a smaller byte.
+3. **Clamping.** Below 0.1 ppm gives byte 0, which decodes to 0.0. Above 1000 ppm gives byte 255,
+   which decodes to 1000 ppm.
+4. **Byte count.** One byte per cell, so `len(encode(grid))` is `ny * nx`, and decode restores the
+   `(ny, nx)` shape.
+
 ## Size budget
 
 At most 5 MB per file (`MAX_REPLAY_BYTES = 5_000_000`; design section 10). `replay_bytes` raises
