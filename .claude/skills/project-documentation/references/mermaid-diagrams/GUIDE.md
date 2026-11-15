@@ -7,11 +7,12 @@ description: Comprehensive guide for creating software diagrams using Mermaid sy
 
 ## Project integration
 
-Apply root AGENTS.md and project-documentation first. Maintain focused editable
-Mermaid source under docs/diagrams, embedded guide views and locally rendered SVG
-previews using the repository diagram commands. Review diagrams against actual
+Apply the root CLAUDE.md and project-documentation first. Embed Mermaid inline in the
+`docs/reference` page it explains (`.mmd` plus SVG under docs/diagrams only for a
+diagram reused in several pages). Validate with a local parse in a throwaway folder
+outside the repo. Review diagrams against actual
 code and distinguish implemented, optional, unverified and planned paths. Do not
-upload project diagrams to an external renderer or install global tooling as a
+upload project diagrams to an external renderer (mermaid.live, Mermaid Chart) or install global tooling as a
 side effect. Use diagrams where relationships or state add understanding; trivial
 prose changes do not require decorative diagrams. Local rule details live in the
 project-documentation visual standard.
@@ -206,7 +207,7 @@ flowchart LR
 ## Common Pitfalls
 
 - **Breaking characters** - Avoid `{}` in comments, use proper escape sequences for special characters
-- **Syntax errors** - Misspellings break diagrams; validate syntax in Mermaid Live
+- **Syntax errors** - Misspellings break diagrams; validate syntax with a local parse (never paste project diagrams into Mermaid Live)
 - **Overcomplexity** - Split complex diagrams into multiple focused views
 - **Missing relationships** - Document all important connections between entities
 

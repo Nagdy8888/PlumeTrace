@@ -1,8 +1,43 @@
 # Simulator and facility
 
-Phase 1 Task 6 delivers the facility part. The scenario simulator (S1-S6) is added in Phase 2 and
-extends this page. Source of truth for the station: `app/backend/plumetrace/facility/data/ks07.yaml`;
-design reference: section 4 (facility, instruments, gas composition).
+## Purpose and scope
+
+`plumetrace.simulator` runs the simulated station: it takes a scenario definition and the real
+weather snapshot and produces what the station's instruments would read (methane sensors,
+non-methane instruments), the detection events and the station log. Nothing in it is an AI result.
+The station is **fictional and simulated**; the weather is real and attributed; the rates,
+signatures and log texts are project values chosen for the demo stories. Source of truth for the
+station: `app/backend/plumetrace/facility/data/ks07.yaml`; design reference: section 4 (facility,
+instruments, gas composition), sections 7 and 8 (scenarios, real data).
+
+This page is the hub. The facility tables are in the first half, the instruments, the scenario
+model and the runner in the second. Each Phase 3 area has its own page:
+
+| Page | What it covers |
+|---|---|
+| [FACILITY.md](FACILITY.md) | The facility model: YAML spec, loader, validation, emission candidates |
+| [WEATHER.md](WEATHER.md) | Open-Meteo client, fetch script, committed snapshot, attribution, licence |
+| [SCENARIOS.md](SCENARIOS.md) | S1, S4 and S5: timelines, values, events, window selection, limits, how to add one |
+| [VARIANTS.md](VARIANTS.md) | The variant generator: draws, clamps, distractors, validation, Phase 5 use |
+| [REPLAY.md](REPLAY.md) | Replay file format, plume grid encoding, size budget, export |
+| [DATABASE.md](DATABASE.md) | `runs`, `events`, `sensor_readings`, `save_scenario_run` |
+
+## How a scenario run works
+
+```mermaid
+flowchart LR
+    Snap[("Weather snapshot<br/>real, committed")] --> Run
+    Def["ScenarioDefinition<br/>sources, faults, effects, log, expected"] --> Run
+    Spec["FacilitySpec<br/>anchors, sensors, obstacles"] --> Run
+    Run["run_scenario<br/>seeded, pure"] --> SR["ScenarioRun"]
+    SR --> Events["Detection events"]
+    SR --> Exp["Replay export"]
+    SR -.-> Save["save_scenario_run<br/>available, not wired"]
+    Exp --> Files[("app/replay/scenarios")]
+    Save --> DB[("plumetrace.runs, events, sensor_readings")]
+```
+
+*Simulator overview: one deterministic run feeds the replay files. `save_scenario_run` can store a run in the local database (dotted edge), but nothing outside the tests calls it yet. The simulator itself does no I/O.*
 
 ## Facility KS-07
 
@@ -256,77 +291,14 @@ in `docs/OWNER_ACTIONS.md`.
 
 Gate 1 is signed off.
 
-## Weather
-
-The plumes are driven by real hourly weather for the site's coordinates (design section 8). The
-data is fetched once, committed as a snapshot and read offline, so every scenario is reproducible.
-The station is simulated; **the weather is real** and is labelled real and attributed.
-
-| Item | Value |
-|---|---|
-| Source | Open-Meteo historical weather API (ERA5 reanalysis), `https://archive-api.open-meteo.com/v1/archive`, no API key |
-| Verified against | The official Open-Meteo documentation and licence pages, 2026-11-14: endpoint, variable names, units, `wind_speed_unit` options (default `kmh`) and `timezone` (default GMT) |
-| Location | `site.latitude_deg`, `site.longitude_deg` of KS-07 (39.10, 61.30; the site itself is fictional) |
-| Period | 2025-07-14 to 2025-07-20 inclusive, UTC, 168 hours; `start_utc` is `2025-07-14T00:00:00Z` |
-| Snapshot file | `app/backend/plumetrace/simulator/data/weather_ks07_2025-07-14_2025-07-20.json` (generated, never hand-edited) |
-| Licence | CC BY 4.0 (API data). Free for non-commercial use within the published rate limits |
-| Attribution text | `Weather data by Open-Meteo.com (CC BY 4.0), ERA5 reanalysis.` (constant `ATTRIBUTION`, stored in the snapshot). Open-Meteo asks for a link next to any place its data is shown; the UI must link the text to <https://open-meteo.com/> |
-
-### Fields and conversions
-
-The request asks for `wind_speed_unit=ms` and `timezone=UTC`, so the wind needs no conversion. The
-client refuses a response whose `hourly_units` says the wind is not in m/s.
-
-| Open-Meteo variable | Unit as requested | `HourlyWeather` field | Conversion |
-|---|---|---|---|
-| `wind_speed_10m` | m/s | `wind_speed_m_s` | none |
-| `wind_direction_10m` | degrees, direction the wind blows from | `wind_from_deg` | none |
-| `shortwave_radiation` | W/m2 (mean of the preceding hour) | `shortwave_w_m2` | none |
-| `cloud_cover` | percent | `cloud_fraction` | divide by 100 |
-| `temperature_2m` | degrees C | `temp_k` | add 273.15 |
-
-`hour_index` is the position in the series (0, 1, 2, ...).
-
-### Modules
-
-| Module | Responsibility |
-|---|---|
-| `plumetrace.data_sources.open_meteo` | `fetch_hourly(client, lat, lon, start, end)`: one GET, validation, unit conversion. Constants `ARCHIVE_URL`, `HOURLY_FIELDS`, `TIMEOUT_S`, `ATTRIBUTION`; error `OpenMeteoError`. The only network code for weather |
-| `plumetrace.simulator.weather` | `load_snapshot(path)` reads and validates the committed file; `slice_hours(snapshot, offset_h, hours)` returns re-indexed hours |
-| `scripts/fetch_weather.py` | Fetches the week and writes the snapshot (UTF-8, LF, sorted keys, indent 2) |
-
-### What is rejected
-
-| Situation | Result |
-|---|---|
-| `end` before `start` | `ValueError`, no request is sent |
-| HTTP error, timeout | `httpx.HTTPError` subclass, raised to the caller |
-| Body is not the expected JSON, no `hourly` block | `OpenMeteoError` |
-| `null` value, missing field, field shorter than the time axis | `OpenMeteoError` naming the field (and the time) |
-| Time axis empty, not starting at `start` 00:00, or not hourly | `OpenMeteoError` |
-| NaN, negative wind or radiation, cloud outside 0-100 % | `OpenMeteoError` naming the time |
-| Wrong number of hours (script: not 168) | the script exits 1 and writes nothing |
-| Snapshot with a `null`, a blank attribution, no hours, a naive `start_utc` or `hour_index` not 0..n-1 | `ValueError` from `load_snapshot` |
-| `slice_hours` with a negative offset, fewer than 1 hour, or more hours than the snapshot has | `ValueError` (`snapshot has N hours, need M`) |
-
-### How to refresh
-
-```
-cd app && uv run python ../scripts/fetch_weather.py
-```
-
-This makes one real request to the public API (free, no key, no cost). If it fails the script
-prints the reason and keeps the existing file; do not edit the JSON by hand. Review the diff
-before committing: the weather changes every scenario that uses these hours. Outbound-network
-controls are in `docs/reference/SECURITY.md`.
-
 ## Instruments
 
 `plumetrace.simulator.instruments` produces the non-methane process readings that triage and
 fusion use as evidence (design section 4). It is pure simulation: no network, no database, and
 deterministic for a seed because the caller passes the `numpy` generator. The baselines are
 **Task 3 values** (chosen for the simulation, not taken from a published source). The station is
-simulated and so are these readings.
+simulated and so are these readings. The methane sensors are not here: they come from the truth
+model (`plumetrace.engineering.truth_model`, see `docs/reference/ENGINEERING.md`).
 
 ### Tags
 
@@ -341,6 +313,10 @@ simulated and so are these readings.
 | `PT-401` | Tank TK-401 pressure | kPag | 2.0 | 0.05 |
 | `PT-402` | Tank TK-402 pressure | kPag | 2.0 | 0.05 |
 | `FT-701` | Throughput meter M-701 | Sm3/h | 41667.0 | 200.0 |
+
+In the three MVP scenarios only S1 changes an instrument (`FT-250` and `TT-202P`). The flare, tank
+and throughput tags carry baseline plus noise only. They are in the replay files and the database
+so that later stretch scenarios (unlit flare, open thief hatch) can change them.
 
 ### Effect model
 
@@ -369,6 +345,12 @@ two ramped offsets for a leak on `K-20n`:
 - `TT-20nP` rises by +6.0 degC (a Task 3 value). A leaking packing runs hot, and the temperature
   of the leaking unit is what separates K-201, K-202 and K-203.
 
+Worked example, S1 (K-202, start 7200 s, ramp 1800 s). At 8100 s the weight is
+`(8100 - 7200) / 1800 = 0.5`, so the mean level is `0.9 + 0.5 x 17.39 = 9.6 kg/h` for `FT-250` and
+`80.0 + 0.5 x 6.0 = 83.0 degC` for `TT-202P`. In the committed run the 10 s samples at that time are
+9.58 kg/h and 82.87 degC (noise included). From 9000 s the weight is 1: `FT-250` about 18.3 kg/h,
+`TT-202P` about 86 degC, while `TT-201P` and `TT-203P` stay near 80 degC.
+
 ### What is rejected
 
 | Situation | Result |
@@ -378,13 +360,66 @@ two ramped offsets for a leak on `K-20n`:
 | Effect with a `kind` other than `offset`/`set`, non-finite `value` or `start_s`, NaN `end_s`, `end_s <= start_s`, or `ramp_s` negative or not finite | `ValueError` naming the tag; nothing is drawn from the generator |
 | `packing_leak_effects` with a `unit_tag` that is not `K-201` to `K-203`, a non-positive or non-finite rate, a mass fraction outside (0, 1], a non-finite start or a bad ramp | `ValueError` |
 
-The simulator never returns NaN. Sensor dropout is not modelled here.
+The simulator never returns NaN. Sensor dropout is not modelled here. Tests:
+`app/backend/tests/simulator/test_instruments.py` and `test_instruments_edges.py`.
 
 ## Scenarios: model and runner
 
 `plumetrace.simulator.scenario` holds the scenario definition and `plumetrace.simulator.runner`
 runs it. Both are pure simulation: no network, no database, deterministic for a seed. The station
 and the scenarios are simulated. All models are frozen and reject unknown fields.
+
+```mermaid
+classDiagram
+    class ScenarioDefinition {
+        id
+        title
+        seed
+        weather_offset_h
+        duration_h
+        variant_index
+    }
+    class SourceSpec {
+        anchor_id
+        rate_kg_h
+        start_s
+        end_s
+    }
+    class FaultSpec {
+        sensor_id
+        drift_ppm_per_h
+        start_s
+    }
+    class InstrumentEffectSpec {
+        tag
+        kind
+        value
+        start_s
+        end_s
+        ramp_s
+    }
+    class LogEntry {
+        t_s
+        kind
+        tag
+        text
+    }
+    class ExpectedOutcome {
+        triage
+        top_candidate
+        attributed_unit
+        rate_min_kg_h
+        rate_max_kg_h
+        rule_ids
+    }
+    ScenarioDefinition *-- SourceSpec : sources
+    ScenarioDefinition *-- FaultSpec : faults
+    ScenarioDefinition *-- InstrumentEffectSpec : instrument_effects
+    ScenarioDefinition *-- LogEntry : log
+    ScenarioDefinition *-- ExpectedOutcome : expected
+```
+
+*Scenario model: one definition owns its sources, faults, instrument effects, log lines and the designed outcome.*
 
 ### Model (`scenario.py`)
 
@@ -410,6 +445,21 @@ not a model output.
 
 `run_scenario(definition, spec, snapshot)` does, in this order:
 
+```mermaid
+flowchart TD
+    A["run_scenario"] --> B["_require_weather<br/>offset + duration + 1 hours<br/>else ValueError"]
+    B --> C["rng = default_rng of definition.seed"]
+    C --> D["slice_hours<br/>duration + 1 hours from offset"]
+    D --> E["_true_sources<br/>anchor to position<br/>else KeyError"]
+    E --> F["simulate_sensors<br/>truth model, obstacles, faults<br/>draws first"]
+    F --> G["simulate_instruments<br/>same rng, draws second"]
+    G --> H["600 s windows<br/>means, wind, stability class"]
+    H --> I["detect_events<br/>site centre, window wind"]
+    I --> J["ScenarioRun"]
+```
+
+*Runner steps in order. The random generator is drawn in the order shown, which is why the instrument series do not depend on the sources.*
+
 1. `rng = numpy.random.default_rng(definition.seed)`.
 2. Slices `duration_h + 1` weather hours from `weather_offset_h` (`slice_hours`). A snapshot that
    is too short raises `ValueError` naming the scenario and the hours needed, for example
@@ -423,7 +473,7 @@ not a model output.
 7. `detect_events` on the absolute window means, with the site centre
    (`site_center_xy`, the centre of the site bounds, `(100, 75)` for KS-07) and the window wind
    directions. Detection holds a sensor for six windows after an event, so one sensor never has two
-   events inside that period.
+   events inside that period. The detector is described in [DETECTION.md](DETECTION.md).
 
 Random-draw order: the generator draws first inside `simulate_sensors` (one block of
 `steps x (2 + sensors)` standard normals, whatever the sources), then inside
@@ -437,6 +487,10 @@ direction, stability) and the events. For the meander-aware inversion (adopted a
 caller builds `wind_dir_sd_deg` from `series.times_s` and `series.wind_from_deg` with
 `window_direction_sd_deg`, one value per window; the runner itself does not call the inversion.
 
+Worked example, S1 on the committed snapshot: 6 h is 2160 steps of 10 s and 36 windows of 600 s;
+the run has 8 methane sensors and 9 instruments; the three detection events are AT-101 window 13,
+AT-102 window 17 and AT-101 window 28 ([SCENARIOS.md](SCENARIOS.md)).
+
 ### What is rejected
 
 | Situation | Result |
@@ -446,223 +500,62 @@ caller builds `wind_dir_sd_deg` from `series.times_s` and `series.wind_from_deg`
 | Fault on an unknown sensor | `ValueError` naming it |
 | Scenario longer than the weather snapshot | `ValueError` naming the scenario and the hours needed |
 
-## MVP scenarios
+Tests: `app/backend/tests/simulator/test_scenario_model_edges.py`, `test_scenario_runner.py` and
+`test_scenario_runner_edges.py` (see [SCENARIOS.md](SCENARIOS.md), "Edge cases").
+
+## The MVP scenarios, weather and variants
 
 The three demo stories (design section 7) live in `plumetrace.simulator.scenarios`
-(`s1_rod_packing.py`, `s4_planned_blowdown.py`, `s5_sensor_drift.py`). `SCENARIOS` is a read-only
-mapping from id to `ScenarioDefinition`; `get_scenario(id)` raises `KeyError("unknown scenario <id>")`.
-The station and all three stories are simulated. Titles, the instrument signature and the
-expected-rate interval are Task 5 values (no cited source); the log texts are the Task 5 texts.
-Every scenario is deterministic for its seed on the committed weather snapshot.
+(`s1_rod_packing.py`, `s4_planned_blowdown.py`, `s5_sensor_drift.py`). They are documented in
+[SCENARIOS.md](SCENARIOS.md): values, timelines, the events each produces, how the weather window of
+each was selected, the S1 inversion as a model estimate, and the limits recorded at Gate 3. The
+weather data path is in [WEATHER.md](WEATHER.md). The randomised families used by the Phase 5
+evaluation are in [VARIANTS.md](VARIANTS.md).
 
-### Values
-
-| | S1 `s1_rod_packing` | S4 `s4_planned_blowdown` | S5 `s5_sensor_drift` |
-|---|---|---|---|
-| Story | K-202 rod-packing leak, routed through the vent header to VS-250 | Planned blowdown of K-201 under permit PTW-0412, vented to VS-250 | Slow drift on AT-106; no methane released |
-| Seed | 101 | 104 | 105 |
-| Duration | 6 h | 4 h | 6 h |
-| `WEATHER_OFFSET_H` | 0 | 0 | 0 |
-| Source | `VS-250.tip`, 15.0 kg/h from 7200 s, no end | `VS-250.tip`, 933.67 kg/h from 7200 s to 8100 s | none |
-| Fault | none | none | `AT-106`, 0.6 ppm/h from 3600 s |
-| Instrument effects | FT-250 offset +17.39 kg/h (CH4 rate / CH4 mass fraction of the KS-07 gas), TT-202P offset +6.0 degC; both ramp over 1800 s from 7200 s | none | none |
-| Expected | triage `leak`, top candidate `VS-250.tip`, unit `K-202`, rate interval 7.5 to 30.0 kg/h | triage `planned_venting`, no top candidate | triage `sensor_fault`, no top candidate |
-
-Log lines (`t_s`, kind, tag, text), exactly as in the files:
-
-- S1: (600, shift_note, none, "Day shift handover: K-201, K-202 and K-203 running; VRU-410 online."), (4000, gauging, TK-402, "TK-402 gauged by the operator; thief hatch closed and latched after gauging."), (5000, maintenance, AT-103, "Instrument technician completed a routine check of AT-103.").
-- S4: (6600, permit, K-201, "PTW-0412: planned blowdown of K-201 for discharge valve maintenance, vented to VS-250; venting starts 10 minutes after this entry and lasts about 15 minutes."), (9000, maintenance, K-201, "K-201 discharge valve replaced; unit restarted.").
-- S5: (300, calibration, AT-106, "AT-106 last bump test 2025-03-02; next test overdue."), (3000, shift_note, none, "No work permits open on the north fence today.").
-
-S4 blowdown size: `BLOWDOWN_VOLUME_M3 = 8.0` goes through the engineering tool `vented_mass` from the
-suction pressure (4.5 MPa absolute) at the operating gas temperature (300 K) down to the site ambient
-pressure (98.9 kPa) at the same temperature, with the KS-07 gas composition. Result:
-`S4_VENTED_CH4_KG = 233.42 kg` of methane. The source rate is that mass divided by 0.25 h, so the
-15 minute source (7200 s to 8100 s) releases exactly that mass. The constant is exported for the tests and
-for the agents' `log_vented_volume` tool. The permit text is relative to its own entry ("venting starts
-10 minutes after this entry and lasts about 15 minutes"), which matches the 600 s lead (entry at 6600 s,
-source from 7200 s) and the 900 s duration, and stays true when a variant moves the entry.
-
-### Weather windows: how they were selected
-
-The window is not guessed. `simulator/selection.py` holds one criterion per story and
-`scripts/select_scenario_windows.py` evaluates every candidate offset
-(`CANDIDATE_OFFSETS_H`: every 2 h from 0 to 160 h; an offset is skipped when
-`offset + duration_h + 1` exceeds the 168 snapshot hours) with the scenario run on the real weather.
-The **first** passing offset is the one written into the scenario file. The script reads only the committed
-snapshot (no network) and prints `<scenario>: offset <h> h PASS|FAIL` for each candidate, then
-`<scenario>: first passing offset <h> h`; the exit code is 1 if a scenario has none. Run:
-`cd app && uv run python ../scripts/select_scenario_windows.py`.
-
-| Scenario | Criterion (all must hold) | Why |
-|---|---|---|
-| S1 `s1_passes` | (a) a detection event on any methane sensor starts between 7200 s and 7200 + 5400 s; (b) mean window wind speed over windows 12 to 35 is at least 2.0 m/s; (c) the meander-aware inversion (Briggs rural, default constants) over windows 12 to `first_event.window_index + 3`, both ends included, with the background taken as the 5th percentile of each sensor over windows 0 to 11, ranks `VS-250.tip` first and is not inconclusive | (a) the leak must be seen soon after it starts; (b) calm air gives no usable plume; (c) the story needs the location to be found from the first event |
-| S4 `s4_passes` | an event with window start between 7200 s and 8100 + 1200 s, and no event before 7200 s | the blowdown is seen during its window and nothing is seen before it, so the permit explains the only event |
-| S5 `s5_passes` | at least one `AT-106` event and no event on any other sensor | only the drifting sensor may alarm |
-
-Meander-aware inversion (Gate 2 decision): the S1 inversion input carries
-`wind_dir_sd_deg = window_direction_sd_deg(series.times_s, series.wind_from_deg)`, computed over the whole
-10 s wind series and cut to the same windows as the observations (one value per complete window, 36
-for 6 h). An infinite spread (directions that cancel exactly in a window) is rejected by `InversionInput`
-and raised as `ValueError` instead of being hidden. Reading of the plan text: "windows `[12, first_event.window_index + 3]`"
-includes both ends.
-
-Result of the selection run on the committed snapshot (full output in the work log): S1 passes at
-offsets 0, 2, 24, 26, 28, 34, 36, 122, 124 and 128 h; S4 passes at 77 of the 81 candidates (fails at
-74, 94, 116 and 118 h); S5 passes at every candidate. The first passing offset is **0 h** for all
-three, so every `WEATHER_OFFSET_H` is 0.
-The S4 and S5 pass criteria are loose: they pass at almost every candidate offset, so the selection
-does not discriminate between windows for these two scenarios; the first passing offset (0 h) is a
-default, not an optimum.
-
-| Scenario | Offset | Scenario start (UTC) |
-|---|---|---|
-| S1 | 0 h | 2025-07-14 00:00 |
-| S4 | 0 h | 2025-07-14 00:00 |
-| S5 | 0 h | 2025-07-14 00:00 |
-
-The weather is the first hours of the real week (Open-Meteo, CC BY 4.0). Offset 0 is midnight UTC,
-about 05:00 local time at the site longitude (the site is fictional); the plan's log texts say
-"Day shift handover" and were kept as given.
-
-### Detection and the S1 inversion at the selected window (truth physics)
-
-| Scenario | Events (sensor, window start) |
-|---|---|
-| S1 | AT-101 at 7800 s (mean 2.06 ppm), AT-102 at 10200 s, AT-101 at 16800 s |
-| S4 | AT-101 and AT-102 at 7200 s |
-| S5 | AT-106 at 7800 s and at 14400 s |
-
-S1 first event: AT-101, window 13 (7800 s). The mean wind over windows 12 to 35 is 3.86 m/s. The
-meander-aware inversion over windows 12 to 16 (5 windows) gives top `VS-250.tip`, model probability
-0.912 (model probability), model estimate of the rate 15–39 kg/h (median 24), not inconclusive, not at
-the grid edge. The second candidate is `K-203.engine_exhaust` (model probability 0.079). Rates are shown
-to 2 significant figures; the meaning of "model estimate" and the limits of these probabilities are in
-[`docs/benchmark-improvement.md`](../benchmark-improvement.md).
-
-Caveat (Gate 2): the meander-aware correction models the same wind-direction process the truth model
-injects into the simulated data, so this result is optimistic and partly self-consistent for a simulated
-station; it is not evidence of real-world accuracy. Probabilities are model probabilities, not calibrated.
-
-### Rate display rule (R1-R4) for S1
-
-- The expected rate is stored only as the interval 7.5 to 30.0 kg/h in `ExpectedOutcome`
-  (`rate_min_kg_h`, `rate_max_kg_h`); no single expected rate exists. The 15.0 kg/h in `SourceSpec` is the
-  simulation input (the truth), never shown as an AI result.
-- An inversion rate is shown as `p05 to p95 kg/h (median p50)` (R1) with the label "model estimate" (R3).
-  It is shown as "rate not quantified" when the result is inconclusive, the top is `NONE` or
-  `rate_at_grid_edge` is true (R2).
-- S1 outcome under this rule: the result at the selected window is conclusive and not at the grid edge, so it
-  is shown as an interval (15–39 kg/h, median 24, a model estimate). The interval contains the true 15.0 kg/h; its
-  upper end is above the designed 30.0 kg/h bound. No grid-edge issue arises, so there is no Gate 3
-  scenario issue on this point. The probability 0.912 is a model probability (see the Gate 2 caveat above).
-- For information only (scratch check, not part of the pipeline): the same windows without the direction
-  spread give the same top candidate (model probability 0.712) but a model estimate interval of
-  96–390 kg/h. This is a scratch comparison only, not a result of the pipeline.
-
-## Replay export
+## Replay export and saving a run
 
 `plumetrace.simulator.export.build_replay(run, spec, attribution)` turns a scenario run into the
 replay document (`plumetrace.simulator.replay_schema.ReplayScenario`), and `replay_bytes` writes it
 as deterministic JSON (compact, sorted keys, UTF-8, LF, at most 5 MB, else `ValueError`).
 `scripts/export_scenarios.py` runs every registered scenario and writes
-`app/replay/scenarios/<id>.json` (generated, never edited by hand). The full format, the grid
-encoding, the size budget and how to regenerate are in `docs/reference/REPLAY.md`.
+`app/replay/scenarios/<id>.json` (generated, never edited by hand). The format, the grid
+encoding, the size budget and how to regenerate are in [REPLAY.md](REPLAY.md).
 
 - Series are 60 s means (sensors, the nine instruments, wind); key frames every 120 s are drawn with
   the **truth** coefficients (`TruthConfig().coeff`) and the 60 s wind at that time.
 - The file carries `simulated: true`, the Open-Meteo credit (the weather is real public data) and
   the sentence that the station, sensors, instruments and scenario are synthetic.
-- The replay holds no inversion result. The rate display rule (R1 to R4, above) applies to any
-  result added later: interval only, "not quantified" when inconclusive, top `NONE` or at the grid
-  edge, "model estimate" and "model probability" wording. `keyframes[].sources[].rate_kg_h` is the
-  simulation input used to draw the plume, never shown as a result.
+- The replay holds no inversion result. The rate display rule (R1 to R4, see
+  [SCENARIOS.md](SCENARIOS.md)) applies to any result added later: interval only, "not quantified"
+  when inconclusive, top `NONE` or at the grid edge, "model estimate" and "model probability"
+  wording. `keyframes[].sources[].rate_kg_h` is the simulation input used to draw the plume, never
+  shown as a result.
 - Sizes on 2026-11-15: S1 445 852 bytes, S4 294 773 bytes, S5 440 244 bytes.
 
-## Saving a run and the Phase 3 evidence
-
 `plumetrace.api.run_store.save_scenario_run` writes a scenario run (run row, detection events and 60 s
-readings of every sensor and instrument) to the local database; see "Saving scenario runs" in
-`DATABASE.md`. The numbers of the three MVP scenarios (selected offset and UTC start, detection events,
-the S1 inversion on the event windows and the replay file sizes) are recorded in
+readings of every sensor and instrument) to the local database. It has no production caller yet
+(tests only; the API and the agent graph are planned to call it in later phases); see "Saving scenario runs" in
+[DATABASE.md](DATABASE.md). The numbers of the three MVP scenarios (selected offset and UTC start,
+detection events, the S1 inversion on the event windows and the replay file sizes) are recorded in
 `docs/evidence/2026-11-phase-3-scenarios.md`, with the throwaway snippet and its output. The inversion
 there is shown as a model estimate interval with a model probability, as the rate display rule requires.
 Re-saving a scenario run creates a new run (a new run id with its own rows). A saved run stays
 `status = 'running'` with `finished_at` null: known and accepted at Gate 3; Phase 5 Task 10 ends every
 run in a terminal status.
 
-## Variants
+## Testing and evidence
 
-`plumetrace.simulator.variants.generate_variants(base, n=20, seed=VARIANT_SEED)` turns one MVP scenario
-into a family of randomised variants. The agent evaluation (Phase 5) runs the agents on every variant so
-the result does not rest on one hand-picked story (design section 6). The station and every variant are
-simulated. The ranges and distractor texts below are Task 6 values (no cited source).
+`app/backend/tests/simulator/` covers the model, the runner, the instruments, the MVP scenarios, the
+selection criteria, the variants and the export. Run `cd app && uv run pytest backend/tests/simulator -q`.
+The Phase 3 numbers are in `docs/evidence/2026-11-phase-3-scenarios.md` (local / synthetic, with
+real weather).
 
-### What varies and why
+## How to extend
 
-| Parameter | Range | Why |
-|---|---|---|
-| `weather_offset_h` | integer, 0 to 168 - `duration_h` - 1 (the run fits the 168 h snapshot) | different wind speed, direction and stability |
-| rate scale | log-uniform in `RATE_SCALE_RANGE` = 0.5 to 2.0 | leak sizes from half to double the base rate; log-uniform so halving and doubling are equally likely |
-| time shift | uniform in `TIME_SHIFT_RANGE_S` = -1800 s to +1800 s | the event does not always start at the same minute |
-| distractor log entries | 0 to 2 of the six in `DISTRACTOR_LOG`, each at a random time inside the run | irrelevant but plausible lines the agent must ignore |
-| `seed` | integer 0 to 2^31 - 1 | different sensor noise and wind-direction wander |
-
-What the scale multiplies: every source `rate_kg_h`, the `offset` value of the FT-250 effects (the vent
-header signature scales with the leak) and the expected rate interval. What the shift moves: source,
-instrument-effect and fault start times (and finite end times), and every base log entry. Source and fault
-starts and source ends are clamped at 0; log entry times are clamped to 0 to the scenario length. The
-distractor entries stay where they were drawn. The temperature effects (TT-20xP) are shifted but not scaled.
-
-### Draw order
-
-The generator is `np.random.default_rng([seed, h])` with `h` the first four bytes of the SHA-256 of
-`base.id` as a big-endian integer, so two scenarios with the same seed draw differently. For each variant
-`i` in `range(n)` it draws, in this order: (1) `offset`, (2) `scale = exp(uniform(ln 0.5, ln 2.0))`,
-(3) `shift = uniform(-1800, 1800)`, (4) `k = integers(0, 3)` then `choice(6, size=k, replace=False)` and one
-`uniform(0, duration_h * 3600)` time per chosen entry, (5) the variant seed `integers(2**31)`. The same
-base, `n` and seed give identical variants, and the first `m` variants of a family do not depend on `n`.
-
-### Distractor list
-
-1. `shift_note`: "Radio check with the dispatch centre completed."
-2. `maintenance` E-232: "Fin-fan E-232 belt tension checked; no action needed."
-3. `gauging` TK-401: "TK-401 gauged; hatch closed and latched."
-4. `calibration` AT-102: "AT-102 bump test passed."
-5. `shift_note`: "Contractor vehicle entered the site for scaffolding inspection."
-6. `maintenance` FG-501: "Fuel gas filter differential pressure logged at 0.3 bar."
-
-### Ids and expected outcomes
-
-- A variant keeps the base `id`; `(id, variant_index)` with `variant_index` 0 to `n - 1` is its unique,
-  stable key (the same inputs always give the same key and content).
-- The expected outcome comes from the scenario design, never from running the inversion: triage class,
-  top candidate and attributed unit are those of the base. The expected rate interval is the base interval
-  multiplied by the variant's rate scale (for S1, 7.5 to 30.0 kg/h times 0.5 to 2.0). No variant stores a
-  single point rate for display (rate display rule R1-R4); S4 and S5 have no expected rate.
-- The variant code never calls the inversion.
-
-### Validation
-
-`model_copy(update=...)` does not validate, so every generated variant is re-validated with
-`ScenarioDefinition.model_validate(variant.model_dump())`. A shift that pushes a start to or past the end
-of the scenario, or collapses a source window to zero length at t = 0, raises `pydantic.ValidationError`
-(a `ValueError`) instead of returning an invalid scenario. A negative `n` raises `ValueError`. The three
-MVP scenarios give 20 valid variants each at the default seed.
-
-### S4 and FT-250, and the S4 plume rate in variants (Gate 3 disclosure)
-
-FT-250 meters the packing vent header only, so the S4 blowdown line bypasses it and S4 shows no FT-250
-rise (an assumption of the simulated station). S4 variants scale the plume rate (rate scale 0.5 to 2.0)
-for detection diversity, while the mass a log tool reports stays the volume-based estimate
-(`S4_VENTED_CH4_KG`, about 233 kg CH4); no evaluator compares the two, and no prompt, evaluator or fake
-may expect an S4 FT-250 signature.
-
-### Former limit, fixed at Gate 3
-
-The Task 6 plan moved only `permit` entries with the shift, so the "K-201 discharge valve replaced; unit
-restarted" entry stayed at 9000 s and in 7 of the 20 default S4 variants the blowdown was still venting
-when the line said the unit restarted. Gate 3 (2026-11-15) changed `_log` to move every base log entry by
-the shift (deviation from the plan, owner decision). Now in every S4 variant the permit entry is exactly
-600 s before the blowdown start and the restart entry exactly 900 s after its end (tested over 50 seeds
-x 20 variants); S1 and S5 base entries keep their offset to the source or fault start (unless clamped).
+- A new scenario: step by step in [SCENARIOS.md](SCENARIOS.md), "How to add a scenario".
+- A new instrument tag: add it to `BASELINES` (the order is the draw order, so append at the end),
+  the pinned 17-tag count in `backend/tests/db/test_run_store.py` (360 readings x 17 tags) and the
+  replay tests together. Units come from `BASELINES[tag].unit` in `run_store.readings_from_run` and
+  `export._series_and_units`. Adding a tag at the end keeps the random draws of the earlier tags unchanged.
+- Keep the simulator pure: no network, no database, one generator passed or seeded from the
+  definition.

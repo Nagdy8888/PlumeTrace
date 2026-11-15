@@ -34,9 +34,10 @@ Real-time layer: plume, heat-map, candidate glow, labels, fans, flare, camera
 blender --background --factory-startup --python scripts/blender/build_station.py -- \
   --spec app/frontend/src/shared/facility/ks07.json --out build/ks07_raw.glb --bake high
 npx @gltf-transform/cli@<pinned> optimize build/ks07_raw.glb app/frontend/public/models/ks07.glb \
-  --compress meshopt --texture-compress webp --texture-size 1024 \n  --join false --flatten false --simplify false --palette false --prune-leaves false
+  --compress meshopt --texture-compress webp --texture-size 1024 \
+  --join false --flatten false --simplify false --palette false --prune false
 ```
-The `false` flags are required: default `optimize` joins meshes, flattens the hierarchy and prunes empty leaf nodes, which would delete tag nodes and anchor empties. `build/` is a git-ignored scratch folder. `--bake low` gives a fast preview bake for iteration.
+The `false` flags are required: default `optimize` joins meshes, flattens the hierarchy and prunes unused and empty nodes, which would delete tag nodes and anchor empties. (`--prune-leaves` does not exist in `@gltf-transform/cli` 4.5.1; use `--prune false`. Owner ruling 2026-11-15.) In Blender 4.5.16 the glTF exporter keyword for UV export is `export_texcoords` (plural), not `export_texcoord`. `build/` is a git-ignored scratch folder. `--bake low` gives a fast preview bake for iteration.
 
 ## bpy package layout (`scripts/blender/`, "no god files" limits apply)
 ```text

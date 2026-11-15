@@ -8,6 +8,19 @@ synthetic sensor data. The model-mismatch benchmark in `app/backend/benchmark/` 
 package) scores the inversion against that truth model. Design reference: section 5 of
 `docs/superpowers/specs/2026-11-12-plumetrace-design.md`.
 
+This page is the contract reference for every module. The deeper pages explain how the parts fit
+together, with diagrams and worked numbers; start with the pipeline map.
+
+| Page | What it adds |
+|---|---|
+| [PHYSICS_PIPELINE.md](PHYSICS_PIPELINE.md) | End-to-end data flow from sensor samples to a ranked source; coordinates and the wind convention; one chain of numbers |
+| [DISPERSION.md](DISPERSION.md) | Stability class, spreads, the Gaussian plume, the meander option, the replay plume grid |
+| [DETECTION.md](DETECTION.md) | Window averaging, circular wind statistics, the CUSUM detector and its states |
+| [INVERSION.md](INVERSION.md) | The Bayesian inversion in depth, the inconclusive decision tree, evidence fusion, the rate display rule |
+| [QUANTIFICATION.md](QUANTIFICATION.md) | Units, gas properties, flare slip, blowdown, inventory, methane intensity |
+| [TRUTH_MODEL.md](TRUTH_MODEL.md) | The deliberately different physics that generates the benchmark and simulator data |
+| [BENCHMARK.md](BENCHMARK.md) | The model-mismatch benchmark: method, published results, the improvement round, how to read and run it |
+
 ## 1. Purpose and scope
 
 Does: hold every physical constant once, with its source; convert units at the edges so the rest of
@@ -33,6 +46,49 @@ percent). `truth_model` and its helper modules generate sensor data with deliber
 physics; the simulator (Phase 3) and the benchmark use it, so the demo is not an inverse crime.
 `constants.py` defines named `Final[float]` values; `units.py` imports them and exposes pure
 functions (ideal gas law for the concentration conversions).
+
+Main dependencies between modules, checked against the `import` lines (some edges, such as the
+imports of `stability`, `geometry` and `constants`, are left out for readability). Arrows point from
+the importing module to the module it uses.
+
+```mermaid
+flowchart LR
+    units --> constants
+    dispersion --> stability
+    plume --> dispersion
+    plume --> geometry
+    plume --> units
+    averaging --> stability
+    detection --> geometry
+    inversion_input --> dispersion
+    inversion_input --> geometry
+    inversion_model --> plume
+    inversion --> inversion_input
+    inversion --> inversion_model
+    inversion --> averaging
+```
+
+*Figure 1. Main dependencies only (not every import edge). Foundation, forward model and inference. `fusion` imports no other engineering module;
+`detection` and `inversion` do not import each other.*
+
+```mermaid
+flowchart LR
+    truth_turbulence --> truth_weather
+    truth_weather --> stability
+    truth_wake --> plume
+    truth_model --> plume
+    truth_model --> truth_weather
+    truth_model --> truth_turbulence
+    truth_model --> truth_wake
+    truth_model --> truth_faults
+    plume_field --> plume
+    plume_field --> truth_model
+```
+
+*Figure 2. Main dependencies only (not every import edge). The truth model and the plume grid. `truth_model` re-exports `WakeObstacle` and
+`SensorFault`; `plume_field` uses its `TrueSource`. Flare, blowdown, inventory and intensity are
+drawn in [QUANTIFICATION.md](QUANTIFICATION.md); the data flow is in
+[PHYSICS_PIPELINE.md](PHYSICS_PIPELINE.md).*
 
 ## 3. Public interface
 
@@ -122,10 +178,10 @@ Thresholds (`Final[float]` constants): `DAY_SHORTWAVE_W_M2 = 10`, `STRONG_W_M2 =
 | 5 to < 6 | C | D | D | D | D |
 | >= 6 | C | D | D | D | D |
 
-Resolution rule: the classic table has split cells (for example A-B, B-C, C-D, E-F). Each is
-resolved to the more stable letter. This is conservative: a more stable class gives a narrower,
-more concentrated plume and so higher predicted concentrations, which errs toward detecting a
-leak rather than missing one.
+Resolution rule: the classic table has split cells (for example A-B). Each is resolved to the
+more stable letter: a more stable class gives a narrower, more concentrated plume and so a higher
+predicted concentration at a given distance; in the inversion that makes the inferred rate lower.
+Detection never uses the plume model.
 
 ### Dispersion coefficients
 
@@ -815,6 +871,9 @@ find and size a leak when the data come from different physics? Results are publ
 `docs/evidence/benchmark-<date>.json`. Evidence label: **synthetic** (a simulated station and
 simulated sensors).
 
+Fuller treatment with diagrams, the metric table, the reading guide and the run instructions:
+[BENCHMARK.md](BENCHMARK.md).
+
 **Method.** `cases.generate_cases` makes 250 cases from one seeded generator (`BENCHMARK_SEED`
 20261112): 160 on-list leaks (source exactly at an emission candidate), 40 off-list leaks (source
 2 to 10 m from a candidate, clipped into the site bounds) and 50 no-leak controls. Rates are
@@ -863,8 +922,8 @@ written by the program and are never edited by hand.
 | False-call rate (no-leak cases) | 0 |
 
 - With these mismatches the inversion names the right source for 40 % of the leak cases (and for
-  49 % of those where it commits). Top-3 is 62 %. The median rate error is 113 %, and the 90th
-  percentile is 27 times the true rate: the rate is not trustworthy at this level of mismatch.
+  49 % of those where it commits). Top-3 is 62 %. The median relative rate error is 113 %, and the
+  90th-percentile relative error is 27 (the estimate is about 28 times the truth): the rate is not trustworthy at this level of mismatch.
 - Of the 77 conclusive leak cases (57 on-list, 20 off-list) whose top id is the true candidate,
   the median estimate-to-truth ratio is 1.84, 31 are below the true rate and 26 sit at the top
   edge of the rate grid (`rate_at_grid_edge`; estimates of 451 kg/h or more, grid 0.1 to 500).
@@ -1291,3 +1350,4 @@ every quantity with its unit suffix. Keep functions pure.
 - 2026-11-14: the official improvement run was made once at the pre-registration commit `efc74af` (`python -m benchmark.compare --seed 20261114`, synthetic data, one seed per method): meander-aware top-1 0.69 against 0.48 for the Task 8 method, median rate error 0.177 against 1.34, confident-wrong rate 0.122 against 0.407, false-call rate 0 for both; the adoption rule printed "Adopted for the app: meander-aware". The probabilities and the 90 % rate intervals are not calibrated for either method. Results, reading and caveats are in "Improvement round results"; Gate 2 closed (delegated decision, `docs/evidence/2026-11-phase-2-gate-2.md`).
 - 2026-11-14: `window_mode_class` added to the averaging module; `benchmark.runner.window_stability` delegates to it (Phase 3 Task 4).
 - 2026-11-15: plume ground grid and one-byte log encoding added (Phase 3 Task 7).
+- 2026-11-15: documentation pass for Phase 2: seven deeper pages added (PHYSICS_PIPELINE, DISPERSION, DETECTION, INVERSION, QUANTIFICATION, TRUTH_MODEL, BENCHMARK) with Mermaid diagrams and worked examples; this page gained the page table and two module-import diagrams. No code, constant or number changed.

@@ -35,8 +35,10 @@ something that matters.** A creative improvement that changes an interface break
    earlier step or task; do not add `# noqa`, `type: ignore`, `slop-ok`, size exceptions, lint
    ignores or `--no-verify` unless the plan step says so. Fix the code instead.
 7. **No god files:** respect the size limits; split by responsibility as `repo-structure` says.
-8. **Docs move with the code:** Google docstrings, the named `docs/reference/*.md` section,
-   `docs/WORK_LOG.md` entry — in the same task.
+8. **Docs move with the code:** Google docstrings, the `docs/reference/*.md` page (the named one,
+   plus any page whose behaviour you changed) in the deep-documentation structure with its inline
+   Mermaid diagram, the `docs/README.md` row for a new page, and the `docs/WORK_LOG.md` entry — in
+   the same task. Load `project-documentation` for the template and the checklist.
 
 ## Stop and ask (write it in STATUS.md, then end your turn with the question)
 Stop instead of guessing when:
@@ -60,7 +62,10 @@ Report: what you tried, the exact error/output, the options you see, and which y
 4. `python -I .claude/skills/security-checks/scripts/secret_scan.py .` → `no secrets found`
 5. UI tasks: `python -I .claude/skills/frontend-design/scripts/check_slop.py app/frontend/src`
    → `no slop found`, plus the screenshot critique.
-6. Docs updated; `docs/WORK_LOG.md` entry added.
+6. Docs updated per CLAUDE.md rule 17: docstrings/TSDoc; the reference page has purpose, diagram,
+   module-by-module explanation, worked example with real values, edge cases with their pinning
+   tests, how to run and extend; every Mermaid block in a changed page parses (local parse, nothing
+   uploaded); `docs/README.md` row added for a new page; `docs/WORK_LOG.md` entry added.
 7. Commit exactly the task's files (read `git status` and the staged list first); the pre-commit
    hook (`scripts/install_git_hooks.py`) runs the quick checks and must pass — never `--no-verify`; message
    `<type>(<area>): <what>` ending with the attribution lines your harness provides.
@@ -113,6 +118,8 @@ Use it when the owner says "run the phase with subagents". The main session beco
 1. Read `STATUS.md` → the Next task path. Set `In progress` (rule 1). `git status` must be clean.
 2. Dispatch `plumetrace-implementer` and wait for its report. Prompt:
    `Implement docs/superpowers/plans/phase-N/task-NN-*.md. Follow your agent instructions and return the report.`
+   The implementer's DONE includes the docs deliverable: reference page (deep structure) with its
+   Mermaid diagram updated and parsed, README index row, work-log entry (see its agent file).
 3. Act on `RESULT`:
    - `DONE` → step 4.
    - `BLOCKED` / `OWNER_STEP` → write the question to `STATUS.md` → Blockers, set `In progress` to
@@ -121,7 +128,9 @@ Use it when the owner says "run the phase with subagents". The main session beco
    - `PAID_STEP` → tell the owner: runs, estimated cost, spend so far (`plumetrace.llm_calls`), cap
      ($4.00); wait for an explicit yes in chat; then message the implementer
      `The owner approved <step> in chat on <date>.` A no → treat as BLOCKED.
-4. Dispatch `plumetrace-reviewer` with the task path and the implementer's FILES list.
+4. Dispatch `plumetrace-reviewer` with the task path and the implementer's FILES list. The reviewer
+   FAILs a missing or stale deep-doc section or diagram for a changed behaviour, a diagram that
+   disagrees with the code or does not parse, or a "validated / accurate / production ready" claim.
    - `FAIL` → send the FINDINGS to the same implementer, wait for its new report, review again.
      After **2** failed fix rounds: stop, put the findings in Blockers, ask the owner.
    - `PASS` → step 5.

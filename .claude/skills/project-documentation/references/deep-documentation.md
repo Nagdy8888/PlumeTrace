@@ -19,6 +19,11 @@ focused guide only when it has a distinct reader/job. Keep the index and affecte
 setup/API/runbook links current. Do not freeze today's file inventory as a limit
 on future features or duplicate every guide into every skill.
 
+Write each reference page with the "Deep documentation page template" in SKILL.md (purpose, inline
+diagram, module-by-module reference, worked example with real values, edge cases with the pinning
+test, how to run, how to extend, related links). A new or changed behaviour without its section and
+diagram is an unfinished task, and the reviewer fails it.
+
 ## Explain affected contracts
 
 Cover the dimensions that actually apply to the change:

@@ -21,6 +21,14 @@ For frontend changes, use frontend-structure for code ownership and frontend-des
 - **Honest labelling:** simulated data shown as real, replay shown as live.
 - **3D:** plume visuals that disagree with the plume model, per-frame React state updates, missing instancing, budget regressions.
 
+## Documentation and diagrams (FAIL criteria)
+A change fails review when any of these holds for a changed behaviour, data flow or structure:
+- the matching `docs/reference/*.md` section is missing or stale, or lacks the deep-documentation parts that apply (purpose, diagram, module-by-module explanation, worked example with real values, edge cases with the pinning test, how to run and extend, links);
+- its Mermaid diagram is missing, disagrees with the code (compare names and edges with the source), draws a planned part as built, exceeds about 15 nodes, has no caption, or does not parse (parse every block locally in a scratch folder; never upload a project diagram);
+- a new reference page has no `docs/README.md` index row, or a relative link does not resolve;
+- the page claims "validated", "accurate" or "production ready", states a number with no evidence, shows an inversion rate outside rule R1 to R4, or presents simulated data as real;
+- the `docs/WORK_LOG.md` entry or the docstrings/TSDoc are missing.
+
 Trace a proposed finding through callers, state, and tests. Give the triggering scenario, consequence, precise source location, and smallest effective correction.
 Separate confirmed defects from questions and optional improvements. Do not claim an audit or integration validation from source inspection alone.
 Use independent reviewers only when delegation is authorized and adds value.

@@ -27,4 +27,5 @@ One entry point for "is this right, and is it done?". Three guides as references
 - Benchmark scoring rules and scenario expected answers are committed before the run they score; later changes are labelled `post-hoc`.
 - "All checks pass" means one complete run of backend tests + lint + type-check and frontend lint + typecheck + tests + build on the final tree.
 - A skill, a passing presence check, or a mocked test is not proof that behavior works.
+- A task is not done and a review is FAIL when the deep-documentation reference section or its Mermaid diagram is missing, stale, does not match the code or does not parse (see the "Documentation and diagrams" criteria in review-plumetrace-code).
 - Review does not commit, publish or change code unless the owner asked for that.

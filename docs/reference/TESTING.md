@@ -26,6 +26,26 @@ python scripts/ci_local.py --list
 - On Windows the runner prefers the `.cmd` shim for `npm`, because `shutil.which("npm")` returns the
   extensionless script that `CreateProcess` cannot start.
 
+### From a test run to a stage
+
+```mermaid
+flowchart LR
+    DEV["Developer or pre-commit hook"] --> CI["scripts/ci_local.py"]
+    CI -->|"quick"| Q1["python-tests: pytest not slow and not fuzz"]
+    CI -->|"quick"| Q2["frontend-test: vitest run"]
+    CI -->|"full"| F1["python-tests-full: adds coverage 85 percent, database required"]
+    CI -->|"full"| F2["frontend-coverage: thresholds"]
+    CI -->|"full"| F3["contract-drift: schema and types in sync"]
+    Q1 --> DB{"Local Supabase running?"}
+    F1 --> DB
+    DB -->|"yes"| RUN["db tests run"]
+    DB -->|"no, quick"| SKIP["db tests skip with a start hint"]
+    DB -->|"no, full"| FAIL["db tests fail"]
+```
+
+Caption: quick mode lets database tests skip, full mode requires them; the contract and coverage
+checks run only in full mode.
+
 ## Layers
 
 | Layer | Tool | Where | Proves | Stage |
@@ -33,7 +53,7 @@ python scripts/ci_local.py --list
 | Unit | pytest | `app/backend/tests/**`, `app/agents/tests/**` | one function or class against hand-checked values | quick + full |
 | Property-based / metamorphic | Hypothesis 6.170.14 | `app/backend/tests/engineering/test_properties.py`, `test_plume_field_properties.py` | laws that hold for every valid input | quick + full |
 | Integration (database) | pytest + local Supabase, `db` marker | `app/backend/tests/db/**` | SQL, constraints, RLS, grants | quick (skips without DB) / full (fails without DB) |
-| API | FastAPI `TestClient` | `app/backend/tests/api/**` (planned) | status codes, error bodies, WebSocket protocol | quick + full |
+| API | FastAPI `TestClient` | `app/backend/tests/api/test_api.py` (built: 6 tests; WebSocket protocol still planned) | status codes, error bodies (404 without echo), CORS, scenario summary against the replay index | quick + full |
 | Graph branches | scripted LLM + fake tools (planned) | `app/agents/tests/graph/**` | every edge and branch of the graph | quick + full |
 | Contract | `scripts/export_contract.py`, `npm run gen:types`, `git diff --exit-code` | stage `contract-drift` | backend models and frontend types never drift | full |
 | API fuzzing | Schemathesis, `fuzz` marker (planned, Phase 6) | `app/backend/tests/security/` | no 500, responses match the schema | full |
@@ -49,7 +69,7 @@ The check runner itself is covered by unit tests in `app/backend/tests/test_ci_l
 selection by mode, unknown stage names, stop at the first failing command, failure summary, stage
 environment).
 
-`app/backend/tests/test_secret_scan.py` covers the secret scanner's skip rules (only the Supabase CLI cache `app/supabase/.temp` is skipped) and `app/backend/tests/test_contract_types.py` covers the generated contract types.
+`app/backend/tests/test_secret_scan.py` covers the secret scanner's skip rules (the only project path skipped is the Supabase CLI cache `app/supabase/.temp`; tool and cache folders and the `.env` file itself are skipped as well; other `.temp` folders are scanned) and `app/backend/tests/test_contract_types.py` covers the generated contract types.
 
 ## Which layers a change needs
 
@@ -65,6 +85,51 @@ environment).
 | 3D scene | WebGL e2e and fps on the owner's machine |
 | Security control | a test that fails when the control is removed |
 
+## Current totals
+
+`uv run pytest --collect-only -q` from `app/` collected 930 Python tests on 2026-11-15. Of these,
+33 carry the `db` marker (`-m db`; they need local Supabase) and none carries the `slow` marker
+(`-m slow` collects nothing yet, so quick and full mode run the same tests apart from the database
+condition and coverage). The tests for the simulator, benchmark, Blender scripts, API and data
+sources are described on the pages of those areas ([SIMULATOR.md](SIMULATOR.md),
+[BENCHMARK.md](BENCHMARK.md), [API.md](API.md), [ENGINEERING.md](ENGINEERING.md),
+[ASSETS.md](ASSETS.md)); this page covers the layers and the Phase 1 foundation tests.
+
+## Foundation tests (Phase 1)
+
+These tests prove the repository skeleton. Counts come from `uv run pytest --collect-only` on
+2026-11-15.
+
+| File | Tests | What it pins |
+|---|---|---|
+| `app/backend/tests/test_package.py` | 2 | Backend package installs, `__version__ == "0.1.0"`, agents package importable from the backend |
+| `app/agents/tests/test_package.py` | 1 | Agents package installs with its version |
+| `app/backend/tests/test_config.py` | 6 | Defaults without `.env`, environment override, secrets hidden in `repr`, `ConfigurationError` names `SUPABASE_DB_URL`, `.env` path is `REPO_ROOT / ".env"` |
+| `app/backend/tests/test_db_pool.py` | 1 | `create_pool` without a URL raises before any connection (no database needed) |
+| `app/backend/tests/db/test_schema.py` | 3 | RLS on every `plumetrace` table, no client policies, three MVP scenarios seeded (database needed) |
+| `app/backend/tests/facility/` (5 test files) | 30 | Loader, validation errors that name the item, candidates, sensors, component placement and counts, wake obstacles |
+| `app/backend/tests/test_export_contract.py` | 3 | Deterministic LF-only JSON, facility export, schema fields |
+| `app/backend/tests/test_contract_types.py` | 4 | `prefixItems` rewrite, `Vec3` tuple shape, rewrite error, committed `contract.ts` has no `unknown` |
+| `app/backend/tests/test_ci_local.py` | 5 | Stage selection by mode, unknown stage, stop at first failure, failure summary, stage environment |
+| `app/backend/tests/test_secret_scan.py` | 3 | `app/supabase/.temp` is the only project path skipped (tool and cache folders and `.env` itself are also skipped); other `.temp` folders are scanned; key patterns reported without the value |
+| `app/frontend/src/app/vercelConfig.test.ts` | 3 | Every security header and the SPA rewrite in `vercel.json` |
+
+Details per area: [CONFIGURATION.md](CONFIGURATION.md), [FACILITY.md](FACILITY.md),
+[CONTRACT.md](CONTRACT.md), [CHECKS.md](CHECKS.md), [WORKSPACE.md](WORKSPACE.md).
+
+Not covered by a test of its own: `check_structure.py`, `check_env.py`, `env_set.py` and
+`install_git_hooks.py` (run by the `structure` and `env` stages and by hand).
+
+### Conventions seen in these tests
+
+- Every test has a one-line docstring that states what it proves.
+- A test that needs settings builds `Settings(_env_file=None)` and uses `monkeypatch` for variables,
+  so it never reads the real root `.env`.
+- A test that needs a script in `scripts/` or `.claude/skills/` loads it with
+  `importlib.util.spec_from_file_location`, because those folders are not packages. Fake keys in
+  tests are built at run time (`"sk-" + "Q7" * 12`) so the secret scanner does not flag the file.
+- None of the tests above makes a paid call or a network call.
+
 ## Property-based tests
 
 All property tests use `settings(max_examples=200, derandomize=True, deadline=None, database=None)`
@@ -75,6 +140,7 @@ or replayed between runs; Hypothesis may still create a gitignored `.hypothesis/
 | File | Laws |
 |---|---|
 | `app/backend/tests/engineering/test_properties.py` | plume linear in rate; plume inversely proportional to wind speed; nothing upwind; crosswind mirror symmetry; rotation of scene and wind changes nothing; ppm round trip; circular mean rotates with the data; fusion is a probability and order-free; neutral evidence keeps the prior; unlit flare slips at least as much as lit; pipeline gas Z and CH4 mass fraction stay physical |
+| `app/backend/tests/engineering/test_window_mode_class.py` | `window_mode_class` (per-window most frequent stability class) equals the old per-slice benchmark logic for every length, with ties and a partial last window (`LAW`: `max_examples=200`). The inversion tests (`test_inversion*.py`) do not use Hypothesis |
 | `app/backend/tests/engineering/test_plume_field_properties.py` | plume grid codec (`encode_log_u8` / `decode_log_u8`): round trip within half a log step; monotonic coding; out-of-range values clamp to byte 0 and 255; one byte per cell and the grid shape is restored. Uses `max_examples=300` instead of 200 |
 
 ## Full-stack live e2e

@@ -20,7 +20,15 @@ that task and nothing else, following the `plan-execution` skill (already loaded
 1. Read `CLAUDE.md`, the phase `README.md` and your task file. Load the skills the task lists.
 2. Do the steps in order, test-first. Skip only the task's **Commit** step and its `STATUS.md`
    update (orchestrator's job); leave those boxes unchecked.
-3. Run the finishing checks of `plan-execution` (items 1–6) and keep their real output.
+3. Docs are part of DONE (CLAUDE.md rule 17; load `project-documentation`). Before reporting DONE:
+   Google docstrings/TSDoc; the matching `docs/reference/*.md` page updated or created in the
+   deep-documentation structure (purpose, inline Mermaid diagram of the right kind with a caption,
+   module-by-module explanation, worked example with real values you ran, edge cases with the
+   pinning test, how to run, how to extend, links); the diagram updated for any changed behaviour,
+   data flow or structure and every block parsed locally (scratchpad `mermaid` + `jsdom`, never a
+   public renderer); the `docs/README.md` row for a new page; the work-log entry. Built versus planned
+   labelled; no "validated / accurate / production ready" claims.
+4. Run the finishing checks of `plan-execution` (items 1–6) and keep their real output.
 
 ## Stop and return early (never guess, never work around)
 - A "stop and ask" case from `plan-execution` → `RESULT: BLOCKED`.
@@ -40,6 +48,6 @@ CHECKS:
 <last lines of: python scripts/ci_local.py (or the task's own commands before Phase 1 Task 8),
 check_structure.py, check_env.py, secret_scan.py, and check_slop.py for UI tasks>
 WORK_LOG: <the heading of the entry you added>
-QUESTION: <only for BLOCKED / PAID_STEP / OWNER_STEP: what you need, options, your recommendation>
+DOCS: <reference pages changed or created, diagrams added or updated, parse result ("n blocks parsed OK"), README row>QUESTION: <only for BLOCKED / PAID_STEP / OWNER_STEP: what you need, options, your recommendation>
 ```
 Never put a `.env` value, key or connection string in the report.

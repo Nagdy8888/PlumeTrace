@@ -109,10 +109,16 @@ All application code lives under `app/`, one sub-folder per app:
     top-level folders, packages or features without the owner's approval. After creating, moving
     or renaming files, run
     `python -I .claude/skills/repo-structure/scripts/check_structure.py .` — it must print `structure OK`.
-17. **Docs move with the code.** Every code change updates, in the same change: Google-style
-    docstrings (Python) / TSDoc (TypeScript), the matching detailed `docs/reference/*.md` page,
-    affected diagrams, setup/API docs, and a `docs/WORK_LOG.md` entry. A task without its docs is
-    not done. See the `project-documentation` skill and its `references/code-comments.md`.
+17. **Docs move with the code.** Every code change ships, in the same change: (a) Google-style
+    docstrings (Python) / TSDoc (TypeScript); (b) the matching `docs/reference/*.md` page updated
+    or created with the deep-documentation structure: purpose; a Mermaid diagram of the right kind;
+    module-by-module explanation; a worked example with real values; edge cases and the test that
+    pins each; how to run and how to extend; links; (c) that diagram updated whenever behaviour,
+    data flow or structure changes; (d) setup/API docs and the `docs/README.md` index row; (e) a
+    `docs/WORK_LOG.md` entry. A task without them is not done, and a reviewer must FAIL it. Docs
+    claim only what the code and tests show (honest labelling, rule 10; rate display R1-R4; numbers
+    only from evidence; no "validated" or "production ready"). See the `project-documentation`
+    skill (page template, checklist, diagram validation) and its `references/code-comments.md`.
 18. **Security gates.** Quick gate before every commit, full gate at the end of every phase,
     a dedicated security-hardening phase (Phase 6), release gate before the project is called complete
     (Phase 7, local) — see the `security-checks` skill. High/critical findings block.
@@ -163,11 +169,22 @@ All application code lives under `app/`, one sub-folder per app:
 
 ## Definition of done (every task)
 1. Code + tests written test-first with the layers `testing-strategy` requires; `python scripts/ci_local.py` passes (lint incl. pydocstyle Google + Ruff `S`, types, tests) — output shown. Phase gates: `--full`.
-2. Docs updated per rule 17.
+2. Docs updated per rule 17: docstrings/TSDoc, the deep-documentation reference page with its Mermaid
+   diagram (parsed locally), the index row and the work-log entry. Missing or stale docs or diagram = not done.
 3. `check_structure.py` prints `structure OK` (layout, imports and no-god-file limits).
 4. `secret_scan.py` prints `no secrets found` and `check_env.py` prints `env OK`.
 5. Reviewed against the design (`verify-and-review`) for phase-end tasks.
 6. UI tasks: `check_slop.py` prints `no slop found` and the screenshot critique is done (rule 22).
+
+## Diagram standard (details: `project-documentation` skill)
+- Inline fenced ```` ```mermaid ```` blocks in the `docs/reference/*.md` page they explain (GitHub renders
+  them). `.mmd` + SVG only for a diagram reused in several pages, the README or the video.
+- 6 to 15 nodes per diagram; split larger ones. One-line caption under each.
+- Type by question: flowchart = process or data flow; sequence = interaction over time; ER = tables;
+  class = types; state = lifecycle; C4/container flowchart = architecture.
+- Label what is built and what is planned; never draw a planned part as running.
+- Parse-validate every block locally (throwaway `mermaid` + `jsdom` install in the scratchpad, outside
+  the repo). **Never upload project diagrams to a public renderer.** No new repo dependency.
 
 ## Skills to use
 
