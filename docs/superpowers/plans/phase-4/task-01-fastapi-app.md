@@ -95,7 +95,7 @@ def test_cors_allows_only_the_dev_origin() -> None:
 ```
 
 ## Steps
-- [ ] Add deps; `uv sync`. Tests → FAIL → implement → full checks green.
-- [ ] Start the server (command above) and `curl -s http://127.0.0.1:8000/api/health` → `{"status":"ok","version":"0.1.0"}`. Stop it.
-- [ ] **Docs.** `docs/reference/API.md` (template sections): every endpoint, method, response schema (field list), errors, CORS, bind address, OpenAPI URL. LOCAL_DEVELOPMENT → "Running the backend". SECURITY.md → "API" (localhost bind, CORS allowlist, no echo, generic errors). Work-log; `STATUS.md` (last 4.1, next 4.2).
+- [x] Add deps; `uv sync`. Tests → FAIL → implement → full checks green.
+- [x] Start the server (command above) and `curl -s http://127.0.0.1:8000/api/health` → `{"status":"ok","version":"0.1.0"}`. Stop it.
+- [x] **Docs.** `docs/reference/API.md` (template sections): every endpoint, method, response schema (field list), errors, CORS, bind address, OpenAPI URL. LOCAL_DEVELOPMENT → "Running the backend". SECURITY.md → "API" (localhost bind, CORS allowlist, no echo, generic errors). Work-log; `STATUS.md` (last 4.1, next 4.2).
 - [ ] **Commit** `feat(api): add FastAPI app with scenario and replay endpoints`.

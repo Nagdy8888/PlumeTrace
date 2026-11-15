@@ -42,3 +42,22 @@ data is offered under CC BY 4.0, free of charge for non-commercial use within th
 limits, which the single manual fetch of one week is far below. The attribution text is stored in
 the snapshot and must be shown, with a link to <https://open-meteo.com/>, wherever the weather data
 is displayed.
+
+## API
+
+Status on 2026-11-15 (Phase 4 Task 1): the FastAPI app serves health, the scenario list and the
+scenario replay. Details: [API.md](API.md).
+
+- **Localhost bind.** The server runs with `--host 127.0.0.1`; it is not reachable from the network.
+- **CORS allowlist.** `ALLOWED_ORIGINS` holds only `http://localhost:5173` and
+  `http://127.0.0.1:5173`; methods `GET` and `POST`, header `Content-Type`, no credentials. A test
+  checks that another origin gets no `Access-Control-Allow-Origin` header.
+- **No echo.** An unknown scenario id gives `404` with the fixed body `{"detail": "unknown
+  scenario"}`; the id is never reflected (a test sends `<script>`). The id is only a key into a fixed
+  registry; it never reaches a file path, SQL or a command.
+- **Generic errors.** No stack trace or internal detail is returned by these endpoints.
+- **No secrets, no inversion.** The responses hold the simulated station only: no key, no database
+  value, no inversion rate and no AI output. `keyframes[].sources[].rate_kg_h` is simulation input
+  for drawing the plume only.
+- **Not yet in place** (Phase 6): rate limits, request body limit, host-header check, security
+  headers, API fuzzing.

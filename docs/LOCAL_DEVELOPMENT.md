@@ -86,6 +86,19 @@ uv run mypy              # type-check (strict)
 
 Tests use `--import-mode=importlib`; test folders have no `__init__.py`.
 
+## Running the backend
+
+The FastAPI server binds `127.0.0.1:8000` only. Run from `app/`:
+
+```bash
+cd app
+uv run uvicorn plumetrace.api.main:app --host 127.0.0.1 --port 8000 --reload
+curl -s http://127.0.0.1:8000/api/health   # {"status":"ok","version":"0.1.0"}
+```
+
+Interactive docs: <http://127.0.0.1:8000/api/docs>. `npm run dev` proxies `/api` to it. Endpoints
+and CORS: [reference/API.md](reference/API.md).
+
 ## Database
 
 Local Supabase Postgres, run in Docker. Docker Desktop must be running first (`docker info` works).
