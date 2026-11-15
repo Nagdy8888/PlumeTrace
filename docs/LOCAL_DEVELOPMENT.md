@@ -53,6 +53,11 @@ Everything runs locally. There is no GitHub Actions CI and no deployment.
 | @testing-library/dom | 10.4.2 | peer of RTL |
 | @testing-library/jest-dom | 7.0.1 | |
 | json-schema-to-typescript | 16.0.0 | Task 7 |
+| @fontsource/ibm-plex-sans, @fontsource/ibm-plex-mono | 5.3.0 | Phase 4 Task 2 — local font files (OFL-1.1) |
+| clsx / tailwind-merge / class-variance-authority | 2.1.1 / 3.7.0 / 0.7.1 | Phase 4 Task 2 — `cn()` and variants |
+| lucide-react | 1.72.0 | Phase 4 Task 2 — the one icon set |
+| radix-ui | 1.8.1 | Phase 4 Task 2 — added by the shadcn CLI 4.23.0 (single package, not `@radix-ui/*`) |
+| shadcn (CLI, not a dependency) | 4.23.0 | `npx --yes shadcn@4.23.0 add <component>` from `app/frontend` |
 
 ## Configuration
 

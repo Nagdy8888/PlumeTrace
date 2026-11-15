@@ -222,9 +222,9 @@ describe("Panel", () => {
 ```
 
 ## Steps
-- [ ] Install deps (exact versions); apply the alias, fonts and CSS; write tests → FAIL → implement `cn`, `format`, `Panel`, `StatusBadge`.
-- [ ] `npx --yes shadcn@4.23.0 add button dialog tooltip tabs separator scroll-area` from `app/frontend` (answer "no" to overwriting `index.css`; if it insists on changing `index.css`, keep our tokens and only accept added `@layer` rules it needs). Pin the Radix versions it added.
-- [ ] `npm run lint && npm run typecheck && npm run test && npm run build`; `check_slop.py` → `no slop found`; repo checks.
-- [ ] Screenshot `npm run dev` at 1440×900 → `docs/evidence/2026-11-phase-4-tokens.png`; run the `impeccable` critique against `.ux-profile.md`; record findings and fixes in the work log.
+- [x] Install deps (exact versions); apply the alias, fonts and CSS; write tests → FAIL → implement `cn`, `format`, `Panel`, `StatusBadge`.
+- [x] `npx --yes shadcn@4.23.0 add button dialog tooltip tabs separator scroll-area` from `app/frontend` (answer "no" to overwriting `index.css`; if it insists on changing `index.css`, keep our tokens and only accept added `@layer` rules it needs). Pin the Radix versions it added.
+- [x] `npm run lint && npm run typecheck && npm run test && npm run build`; `check_slop.py` → `no slop found`; repo checks.
+- [x] Screenshot `npm run dev` at 1440×900 → `docs/evidence/2026-11-phase-4-tokens.png`; run the `impeccable` critique against `.ux-profile.md`; record findings and fixes in the work log.
 - [ ] **Docs.** FRONTEND.md → "Design system": every token (name, value, meaning), fonts and licence (OFL, local files), type scale, radius, focus style, reduced motion, shadcn location and rules. Work-log; `STATUS.md` (last 4.2, next 4.3).
 - [ ] **Commit** `feat(frontend): add design tokens, IBM Plex fonts and shadcn primitives`.
