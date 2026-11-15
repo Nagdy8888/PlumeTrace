@@ -49,7 +49,7 @@ def test_save_scenario_run(db_conn: psycopg.Connection[tuple[object, ...]]) -> N
 ```
 
 ## Steps
-- [ ] Tests → FAIL → implement → full checks green (`check_structure.py`: `api` may import anything).
-- [ ] **Phase evidence.** Write `docs/evidence/2026-11-phase-3-scenarios.md`: for each MVP scenario — selected offset and UTC start, detection events (sensor, window, mean, baseline), the inversion result on the S1 event windows (top id, probability, rate and interval), replay file size. Generate the numbers with a short throwaway snippet you paste into the file together with its output (do not commit the snippet).
+- [x] Tests → FAIL → implement → full checks green (`check_structure.py`: `api` may import anything).
+- [x] **Phase evidence.** Write `docs/evidence/2026-11-phase-3-scenarios.md`: for each MVP scenario — selected offset and UTC start, detection events (sensor, window, mean, baseline), the inversion result on the S1 event windows (top id, probability, rate and interval), replay file size. Generate the numbers with a short throwaway snippet you paste into the file together with its output (do not commit the snippet).
 - [ ] **Docs.** DATABASE.md → "Saving scenario runs"; SIMULATOR.md complete. Work-log; `STATUS.md` (last 3.8, next 3.9).
 - [ ] **Commit** `feat(runs): persist scenario runs to Supabase` and `docs(evidence): record phase 3 scenarios`. STOP.

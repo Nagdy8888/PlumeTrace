@@ -575,6 +575,15 @@ encoding, the size budget and how to regenerate are in `docs/reference/REPLAY.md
   simulation input used to draw the plume, never shown as a result.
 - Sizes on 2026-11-15: S1 445 852 bytes, S4 294 733 bytes, S5 440 244 bytes.
 
+## Saving a run and the Phase 3 evidence
+
+`plumetrace.api.run_store.save_scenario_run` writes a scenario run (run row, detection events and 60 s
+readings of every sensor and instrument) to the local database; see "Saving scenario runs" in
+`DATABASE.md`. The numbers of the three MVP scenarios (selected offset and UTC start, detection events,
+the S1 inversion on the event windows and the replay file sizes) are recorded in
+`docs/evidence/2026-11-phase-3-scenarios.md`, with the throwaway snippet and its output. The inversion
+there is shown as a model estimate interval with a model probability, as the rate display rule requires.
+
 ## Variants
 
 `plumetrace.simulator.variants.generate_variants(base, n=20, seed=VARIANT_SEED)` turns one MVP scenario

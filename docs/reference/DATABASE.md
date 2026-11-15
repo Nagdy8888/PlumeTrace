@@ -109,6 +109,29 @@ Tests: `app/backend/tests/db/test_run_tables.py` (lifecycle, idempotency, NaN, f
 `test_run_tables_edges.py` (final and non-final statuses, unknown runs, non-finite values, check
 constraints, duplicates, ordering, cascade, no commit, RLS, index).
 
+## Saving scenario runs
+
+`plumetrace.api.run_store` (in `api/`, because it combines the simulator and `db`) stores one
+simulated scenario run. It does not commit: the caller owns the transaction.
+
+- `save_scenario_run(conn, run, *, mode, branch=None) -> UUID` calls `create_run` (status `running`,
+  `scenario_id` and `sim_start_utc` of the run, `variant_seed` = the definition seed only when
+  `variant_index` is set, else `NULL`), then `insert_events` and `insert_readings`. The scenario must
+  exist in `plumetrace.scenarios` (foreign key), otherwise `ForeignKeyViolation`.
+- `readings_from_run(run) -> list[Reading]` makes 60 s means (`READINGS_STEP_S = 60.0`, the same
+  `window_means` as the replay export) for the 8 methane sensors (unit `ppm`) and the 9 instruments
+  (unit from `BASELINES`); `t_s` is the window start. A minute with too few samples is NaN and is
+  stored as `NULL`. A 6 h scenario gives 360 readings per tag, 6 120 in all.
+- No duplicates: every call to `save_scenario_run` makes a new run id with its own rows. Inserting
+  the same events or readings again into the same run adds nothing (`on conflict do nothing` on the
+  primary keys `(run_id, sensor_id, window_index)` and `(run_id, tag, t_s)`).
+- No inversion result is stored. Any inversion result stored later must follow the rate display rule
+  (interval p05/p50/p95 plus flags, suppressed when inconclusive, top `NONE` or at the grid edge,
+  "model estimate" and "model probability" wording).
+
+Tests: `app/backend/tests/db/test_run_store.py` (60 s readings, run, events and series stored) and
+`test_run_store_idempotent.py` (re-saving adds no rows; two saves are two separate runs).
+
 ## Row-level security
 
 RLS is enabled on every table in schema `plumetrace`, and no policy exists for `anon` or
