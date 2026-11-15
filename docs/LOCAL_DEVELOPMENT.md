@@ -146,7 +146,7 @@ The replay files in `app/replay/` are copied to `app/frontend/public/replay/` (g
 cd app/frontend
 npm run dev -- --mode replay     # ReplaySource: static files under /replay/
 npm run build:replay             # replay-only build (no live-API code)
-npm run check:replay-bundle      # must print "replay bundle OK"
+npm run check:replay-bundle      # must print "replay bundle OK" (fails on a live-API path or a missing ReplaySource)
 ```
 
 Plain `npm run dev` uses the live source (`/api/...`, proxied to `127.0.0.1:8000`); with the backend

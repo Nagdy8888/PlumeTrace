@@ -41,7 +41,7 @@ Run from `app/frontend/`.
 | `npm run dev` | Vite dev server on `http://localhost:5173`; `npm run dev -- --mode replay` runs without the backend |
 | `npm run build` | Type-check, then `vite build` into `dist/` (git-ignored); the live build |
 | `npm run build:replay` | Copy replay files, type-check, `vite build --mode replay` (no live-API code) |
-| `npm run check:replay-bundle` | Fail if a `dist/assets/*.js` file contains `/api/`; prints `replay bundle OK` |
+| `npm run check:replay-bundle` | `scripts/check-replay-bundle.mjs`: fails if a `dist/assets/*.js` file contains `/api/` or if none contains `/replay/scenarios` (the ReplaySource must really be in the bundle); prints `replay bundle OK` |
 | `npm run preview` | Serve `dist/` locally |
 | `npm run lint` | ESLint (typescript-eslint, react-hooks, react-refresh, jsdoc) |
 | `npm run typecheck` | `tsc --noEmit` (strict, `noUncheckedIndexedAccess`) |
@@ -56,7 +56,7 @@ Run from `app/frontend/`.
 tests at most 400). A feature folder is used through its `index.ts` only. The full rules are in the
 `frontend-structure` skill.
 
-- `src/app/` holds `AppShell.tsx`, the top-level layout.
+- `src/app/` holds `AppShell.tsx` (the top-level layout), `TopBar.tsx` and `WindReadout.tsx`. `scripts/` (next to `src/`) holds `check-replay-bundle.mjs`.
 - `src/shared/testing/setup.ts` is the Vitest setup file (jest-dom matchers, cleanup after each test);
   `replayFixture.ts` builds a valid replay for tests.
 - `src/shared/data/`, `src/shared/playback/` and `src/shared/selection/` are the data layer (see
@@ -246,12 +246,14 @@ request answered 502, which `fetchJson` maps to `unreachable`.
 `getDataSource()` returns a memoised `Promise<DataSource>`. `vite build --mode replay` replaces
 `import.meta.env.MODE` with `"replay"`, so the live branch and its dynamic `import("./LiveSource")`
 are dropped from the bundle. `data/index.ts` deliberately does not export the two classes: a
-static import would pull `LiveSource` into the replay bundle. `npm run check:replay-bundle` reads
-every `dist/assets/*.js` and fails when one contains the `/api/` string. That check proves
-something only once the app imports `getDataSource` (until then the whole data layer is tree-shaken
-away). Verified on 2026-11-15 with a scratch entry that imports it: the `replay` build emitted a
-`ReplaySource` chunk, no `LiveSource` chunk and no `/api/` string; the `production` build emitted
-the `LiveSource` chunk with `/api/`.
+static import would pull `LiveSource` into the replay bundle. `npm run check:replay-bundle`
+(`scripts/check-replay-bundle.mjs`) reads every `dist/assets/*.js` and fails when one contains the
+`/api/` string and, so that the check cannot pass vacuously, also when no file contains
+`/replay/scenarios` (the ReplaySource URL). Since Phase 4 Task 4 the shell (`useScenarioBootstrap`)
+calls `getDataSource()` at startup, so the data layer is in the bundle. Negative control: a
+non-replay `npm run build` makes the check exit 1 (a `LiveSource` chunk with `/api/`, no
+`ReplaySource`); `src/app/checkReplayBundle.test.ts` pins the pass, both failures and a missing
+folder with synthetic bundle folders.
 
 Replay files are copied from `app/replay/` to `app/frontend/public/replay/` (git-ignored) by
 `npm run copy:replay`, which runs before `dev`, `build` and `build:replay`.
@@ -289,7 +291,7 @@ independent of it.
   number, so React re-renders only when the index changes. The 3D layer reads
   `useClockStore.getState()` inside `useFrame`; nothing animates through React state.
 - `usePlaybackLoop()` is one `requestAnimationFrame` loop that calls `tick((now - last) / 1000)`;
-  the shell mounts it once (Task 4). It holds no React state and cancels on unmount.
+  `AppShell` mounts it once (Phase 4 Task 4). It holds no React state and cancels on unmount.
 
 ### What the data layer must not expose
 
@@ -310,6 +312,91 @@ builds a small valid `ReplayScenario` (10 samples). Docs checked on 2026-11-15 (
 v5.0.14 (latest listed there; the repo pins 5.1.0 exactly; `create<T>()(...)`, `getInitialState`,
 `setState`, `getState`) and Vite 8.3.5 (`import.meta.env.MODE`, `--mode`, static replacement for
 tree shaking).
+
+## Layout and panels
+
+Phase 4 Task 4. `src/app/AppShell.tsx` is a CSS grid, `grid-rows-[48px_minmax(0,1fr)_220px_44px]`:
+top bar, working area, trends, playback bar. The working area is
+`grid-cols-[320px_minmax(0,1fr)_360px]` from 1280 px wide (alarms, `<main aria-label="Station view">`,
+station log); below 1280 px the station log moves under the alarms in the left column. Panels are
+separated by 1 px `border-border-1` lines (no gaps, no shadows; the shared `Panel` border is
+overridden per side). The station view is empty until the 3D scene arrives (Tasks 8 and 9) and
+shows the scenario load status. `AppShell` mounts once: `useScenarioBootstrap()` (calls
+`getDataSource()`, loads the list, opens the scenario), `usePlaybackLoop()` and `usePlaybackKeys()`.
+
+| Panel | File | Data | Notes |
+|---|---|---|---|
+| Top bar | `app/TopBar.tsx` | `useCurrentConditions`, active scenario, clock | `PlumeTrace`, `Station <site id from ks07.json>`, scenario picker, mode (`Live · local backend` / `Replay`), wind, UTC clock, `Simulated` label (always visible) |
+| Wind readout | `app/WindReadout.tsx` | `useCurrentConditions()` (`shared/data`) | `Wind 3.5 m/s from WSW (250°) · Stability D`; `Wind —` without data |
+| Alarms | `features/alarms/components/AlarmList.tsx`, `AlarmRow.tsx` | `visibleEvents(scenario, t)` | Newest first; badge `Methane rise` (tone `med`: all detection events until Phase 5 triage gives priorities) with marker and word, sensor id, UTC time the window closed, `10-min mean .. ppm · baseline .. ppm · downwind of site`; a row click selects the sensor and seeks to the close time; selected row `aria-current="true"`; `<ul aria-live="polite" aria-label="Alarm list">` |
+| Station log | `features/alarms/components/StationLog.tsx` | `scenario.log` with `t_s <= t` (exact clock time; a primitive selector returns the count of written entries, so the panel re-renders only when an entry appears) | Newest first; UTC time, kind label, tag, text |
+| Trends | `features/trends/components/TrendsPanel.tsx`, `UPlotChart.tsx` | `chartData.ts` | See Chart rules |
+| Playback bar | `features/scenarios/components/PlaybackBar.tsx` | clock store | Play/Pause, speeds 1/10/60/120x (`radiogroup`), scrubber (step 60 s) with a 4 px `--alarm-med` tick at every alarm close time, readout `Elapsed +02:20 · 02:20:00 UTC`; all controls disabled until the scenario is `ready` |
+| Scenario status | `features/scenarios/components/ScenarioStatus.tsx` | scenario store (`status`, `error.kind`) | `Loading scenario…`; `unreachable` + live (the backend text is shown only for kind `unreachable`; a missing kind gives `Scenario could not be loaded.` + `Retry`): heading `Backend not reachable`, `Start it from the app folder:`, the command from LOCAL_DEVELOPMENT.md, `Retry`; `unreachable` + replay: `Replay files could not be loaded.` + `Retry`; `not_found`: `Scenario not found.`; `invalid`: `Scenario file is invalid. Regenerate it with scripts/export_scenarios.py.` |
+
+`visibleEvents`: an event is visible when `window_start_s + EVENT_WINDOW_S (600) <= t`, sorted by
+window start descending, ties by sensor id. Panels read the clock at whole-minute resolution
+(`floor(t / 60) * 60`, a number selector), so they re-render once per simulated minute, except the
+Station log, which compares entries with the exact clock time (a count selector); the UTC
+clock and the elapsed readout update once per whole simulated second (two tiny components).
+
+### Copy and display rules
+
+- Every time carries its zone: `formatUtc` always ends in ` UTC`; `formatClock` is elapsed time and
+  is always printed after the word `Elapsed`; the top-bar clock shows `— UTC` without a scenario.
+  No station-local clock is shown in this task (it would be labelled `UTC+5 station time`).
+  The S1 start is 00:00 UTC (about 05:00 local): never show a bare time.
+- Empty and loading text uses `text-text-2`: `--text-3` is for disabled controls and non-text chart
+  graphics only (it is 4.4:1 on `surface-1`).
+- Alarm state always has a marker and a word (`StatusBadge`). `--ch4-*` colours are not used for alarms.
+- No view calls `formatRate` and no view reads `keyframes[].sources`; the Task 4 panels show no leak
+  rate. A later task that shows a rate must add the rate-interval component (R1-R4:
+  `p05–p95 kg/h (median p50)`, 2 significant figures, `model estimate`) first. Two tests pin this:
+  `src/app/viewGuards.test.ts` (source scan for `formatRate`, `keyframes`, `rate_kg_h`,
+  `anchor_id` in `features/` and `app/`) and `src/app/simulationTruth.test.tsx` (renders every data
+  view with the real S1 file and a distinctive-rate fixture; no DOM text or attribute holds a source
+  rate or anchor id, and no `kg/h`).
+
+### Keyboard map
+
+Mounted once by `usePlaybackKeys()` on `window`. Ignored inside `input`, `select`, `textarea`,
+`[contenteditable]` and with Ctrl, Alt or Meta held.
+
+| Key | Action |
+|---|---|
+| `Space` | Play or pause (prevents page scroll). Not handled when a button has focus: the button activates itself |
+| `ArrowLeft` / `ArrowRight` | Seek -60 s / +60 s; with `Shift` -600 s / +600 s |
+
+### Chart rules
+
+- uPlot 1.6.32 (`uplot`, pinned). `UPlotChart` is a thin wrapper: it imports uPlot on first use
+  (`import("uplot")` in the effect; uPlot reads `matchMedia` at load, which jsdom lacks, and the
+  dynamic import keeps it out of the entry chunk), builds the instance in `useEffect`, rebuilds it
+  only when the memoised `options` change, calls `setData(data, false)` + `redraw()` for new data,
+  resizes with a `ResizeObserver`, destroys on unmount. `role="img"` with `ariaLabel`.
+- History only: `chartData.ts` sets every value after the current sample to `null`
+  (`methaneData`, `windData`); the x axis (elapsed seconds, labelled `+HH:MM`, caption `x axis:
+  elapsed time`) covers the whole scenario.
+- Methane: one line per `scenario.sensors` id, linear y axis from 0. The selected sensor (if it is
+  a methane sensor) and every sensor with a visible alarm are `--accent` 1.5 px and drawn last
+  (`highlightLast`); all others `--text-3` 1 px. Legend off; the panel header lists the highlighted
+  ids. Wind: speed (m/s, left axis, `--text-2` line) and direction (degrees, right axis 0 to 360,
+  points only, `--text-3`; a wind from the north shows points near both 0 and 360).
+- Cursor: a 1 px `--focus` vertical line at the current sample, drawn in a `hooks.draw` plugin
+  (`cursorPlugin.ts`), repainted with every redraw (once per simulated minute).
+- Colours are read once at mount from the CSS variables by `chartTheme.ts` (`getComputedStyle`),
+  never typed as hex in TypeScript.
+- Docs checked on 2026-11-15 (Context7): uPlot 1.6.32 (`scales.x.time`, `series`, `axes`,
+  `hooks.draw`, `setData(data, resetScales)`, `setSize`, `destroy`; the type declarations in
+  `node_modules/uplot` confirm `Axis.incrs/splits/values`, `Scale.Range`, `Series.paths`), React
+  19.3.1 (effect cleanup, refs), Zustand v5.0.14 listed (repo pins 5.1.0; primitive selectors),
+  Tailwind (arbitrary `min-[1280px]:` variant and `grid-cols-[...]`; the repo pins 4.3.5).
+
+### Evidence
+
+`docs/evidence/2026-11-phase-4-panels.png`: S1 at +02:20 (alarm AT-101 closed at 02:20:00 UTC),
+1440x900. `docs/evidence/2026-11-phase-4-panels-backend-down.png`: backend stopped, the
+`Backend not reachable` state with the start command.
 
 ## Anti-slop gate
 

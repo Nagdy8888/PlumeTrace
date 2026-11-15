@@ -263,10 +263,10 @@ describe("WindReadout", () => {
 Update `src/app/AppShell.test.tsx` so it stubs `fetch` (`vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("x")))`) and asserts: the `Simulated` label, the regions `Alarms`, `Station log`, `Trends` (by `getByRole("region", { name })`), and the `Station view` main landmark.
 
 ## Steps
-- [ ] Add `uplot` (exact). Write the tests → FAIL → implement in this order: `useCurrentConditions`, alarms, trends data, scenario status/picker/bootstrap, playback bar + keys, top bar, AppShell grid, `UPlotChart`, `TrendsPanel`.
-- [ ] `npm run lint && npm run typecheck && npm run test && npm run build`; `npm run build:replay && npm run check:replay-bundle`.
-- [ ] Browser check (Playwright CLI skill): backend running + `npm run dev`, 1440×900. Load S1, play at 120×, check: alarms appear only after their window closes; clicking an alarm seeks and highlights the trend line; scrubber ticks line up with alarms; Space / arrows work; switching to S5 mid-play resets the clock and the old alarms disappear. Stop the backend, reload → `Backend not reachable` with the command; start it, `Retry` recovers.
-- [ ] Screenshot (S1 at +02:20, 1440×900) → `docs/evidence/2026-11-phase-4-panels.png`. Run `check_slop.py` → `no slop found`; run the `impeccable` critique (hierarchy, density, alignment, numbers, copy) and fix every "must" finding; record findings + fixes in the work log.
-- [ ] Repo checks (structure — each file ≤ 250 lines; secrets; env).
-- [ ] **Docs.** FRONTEND.md → "Layout and panels": the grid, each panel's data source, copy rules, the keyboard map, chart rules (history only, cursor, highlight colours). Work-log; `STATUS.md` (last 4.4, next 4.5).
+- [x] Add `uplot` (exact). Write the tests → FAIL → implement in this order: `useCurrentConditions`, alarms, trends data, scenario status/picker/bootstrap, playback bar + keys, top bar, AppShell grid, `UPlotChart`, `TrendsPanel`.
+- [x] `npm run lint && npm run typecheck && npm run test && npm run build`; `npm run build:replay && npm run check:replay-bundle`.
+- [x] Browser check (Playwright CLI skill): backend running + `npm run dev`, 1440×900. Load S1, play at 120×, check: alarms appear only after their window closes; clicking an alarm seeks and highlights the trend line; scrubber ticks line up with alarms; Space / arrows work; switching to S5 mid-play resets the clock and the old alarms disappear. Stop the backend, reload → `Backend not reachable` with the command; start it, `Retry` recovers.
+- [x] Screenshot (S1 at +02:20, 1440×900) → `docs/evidence/2026-11-phase-4-panels.png`. Run `check_slop.py` → `no slop found`; run the `impeccable` critique (hierarchy, density, alignment, numbers, copy) and fix every "must" finding; record findings + fixes in the work log.
+- [x] Repo checks (structure — each file ≤ 250 lines; secrets; env).
+- [x] **Docs.** FRONTEND.md → "Layout and panels": the grid, each panel's data source, copy rules, the keyboard map, chart rules (history only, cursor, highlight colours). Work-log; `STATUS.md` (last 4.4, next 4.5).
 - [ ] **Commit** `feat(frontend): add top bar, alarms, station log, trends and playback`.

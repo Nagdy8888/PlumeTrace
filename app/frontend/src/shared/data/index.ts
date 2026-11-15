@@ -5,4 +5,6 @@ export { DataSourceError } from "./errors";
 export type { DataSourceErrorKind } from "./errors";
 export { getDataSource, resetDataSourceForTests } from "./getDataSource";
 export { useActiveScenario, useScenarioStatus, useScenarioStore } from "./scenarioStore";
+export { useCurrentConditions } from "./useCurrentConditions";
+export type { CurrentConditions } from "./useCurrentConditions";
 export type { LoadStatus, ScenarioState } from "./scenarioStore";

@@ -13,7 +13,7 @@
     "prebuild": "npm run copy:replay",
     "build": "tsc --noEmit -p tsconfig.json && vite build",
     "build:replay": "npm run copy:replay && tsc --noEmit -p tsconfig.json && vite build --mode replay",
-    "check:replay-bundle": "node -e \"const fs=require('node:fs');const p=require('node:path');const d='dist/assets';const bad=fs.readdirSync(d).filter(f=>f.endsWith('.js')&&fs.readFileSync(p.join(d,f),'utf8').includes('/api/'));if(bad.length){console.error('live API code in replay bundle: '+bad.join(', '));process.exit(1)}console.log('replay bundle OK')\"",
+    "check:replay-bundle": "node scripts/check-replay-bundle.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -31,6 +31,7 @@
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "tailwind-merge": "3.7.0",
+    "uplot": "1.6.32",
     "zustand": "5.1.0"
   },
   "devDependencies": {
