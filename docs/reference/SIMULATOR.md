@@ -556,6 +556,25 @@ station; it is not evidence of real-world accuracy. Probabilities are model prob
 - For information only (scratch check, not part of the pipeline): the same windows without the direction
   spread give the same top candidate (probability 0.712) but a rate interval of 95.7 to 393.0 kg/h.
 
+## Replay export
+
+`plumetrace.simulator.export.build_replay(run, spec, attribution)` turns a scenario run into the
+replay document (`plumetrace.simulator.replay_schema.ReplayScenario`), and `replay_bytes` writes it
+as deterministic JSON (compact, sorted keys, UTF-8, LF, at most 5 MB, else `ValueError`).
+`scripts/export_scenarios.py` runs every registered scenario and writes
+`app/replay/scenarios/<id>.json` (generated, never edited by hand). The full format, the grid
+encoding, the size budget and how to regenerate are in `docs/reference/REPLAY.md`.
+
+- Series are 60 s means (sensors, the nine instruments, wind); key frames every 120 s are drawn with
+  the **truth** coefficients (`TruthConfig().coeff`) and the 60 s wind at that time.
+- The file carries `simulated: true`, the Open-Meteo credit (the weather is real public data) and
+  the sentence that the station, sensors, instruments and scenario are synthetic.
+- The replay holds no inversion result. The rate display rule (R1 to R4, above) applies to any
+  result added later: interval only, "not quantified" when inconclusive, top `NONE` or at the grid
+  edge, "model estimate" and "model probability" wording. `keyframes[].sources[].rate_kg_h` is the
+  simulation input used to draw the plume, never shown as a result.
+- Sizes on 2026-11-15: S1 445 852 bytes, S4 294 733 bytes, S5 440 244 bytes.
+
 ## Variants
 
 `plumetrace.simulator.variants.generate_variants(base, n=20, seed=VARIANT_SEED)` turns one MVP scenario

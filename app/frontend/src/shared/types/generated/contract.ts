@@ -79,7 +79,62 @@ export type Id2 = string;
 export type LatitudeDeg = number;
 export type LongitudeDeg = number;
 export type Name = string;
+export type Attribution = string;
+export type DurationS = number;
+export type BaselinePpm = number;
+export type DownwindOfSite = boolean;
+export type MeanPpm = number;
+export type SensorId = string;
+export type WindowIndex = number;
+export type WindowStartS = number;
+export type Events = ReplayEvent[];
+export type DxM = number;
+export type DyM = number;
+export type Encoding = "log_u8_0.1_1000ppm";
+export type Nx = number;
+export type Ny = number;
+export type X0M = number;
+export type Y0M = number;
+export type GridB64 = string;
+export type AnchorId = string;
+export type RateKgH = number;
+export type Sources = ReplaySource[];
+export type Stability = string;
+export type TS = number;
+export type WindFromDeg = number;
+export type WindSpeedMS = number;
+export type Keyframes = PlumeKeyframe[];
+export type Kind = string;
+export type TS1 = number;
+export type Tag2 = string | null;
+export type Text = string;
+export type Log = ReplayLogEntry[];
+export type ScenarioId = string;
+export type SchemaVersion = 1;
+export type Id3 = string;
+export type XM = number;
+export type YM = number;
+export type ZM = number;
+export type Sensors = ReplaySensor[];
+export type SimStartUtc = string;
+export type Simulated = true;
+export type Stability1 = string[];
+export type StepS = number;
+export type Title = string;
+export type WindFromDeg1 = number[];
+export type WindSpeedMS1 = number[];
 
+/**
+ * The types shared with the frontend: the facility and one replay scenario.
+ *
+ * Attributes:
+ *     facility: The KS-07 facility spec.
+ *     replay_scenario: The replay file format.
+ */
+export interface Contract {
+  facility: FacilitySpec;
+  replay_scenario: ReplayScenario;
+}
 /**
  * Validated description of the station.
  *
@@ -226,4 +281,161 @@ export interface SiteBounds {
   x_min_m: XMinM;
   y_max_m: YMaxM;
   y_min_m: YMinM;
+}
+/**
+ * A complete replayable scenario (simulated station).
+ *
+ * Every list is sampled every ``step_s`` seconds (60 s means; a missing mean is ``None``).
+ * ``series`` holds the methane sensors (ppm) and every non-methane instrument tag, each with its
+ * unit in ``units``. The weather is real public data (see ``attribution``); the station, the
+ * sensor readings and the instruments are synthetic. The file holds no inversion result.
+ *
+ * Attributes:
+ *     schema_version: Format version, 1.
+ *     scenario_id: For example ``s1_rod_packing``.
+ *     title: Display title.
+ *     sim_start_utc: UTC time of scenario second 0, ISO 8601 with ``Z``.
+ *     duration_s: Scenario length in s.
+ *     step_s: Sampling step in s.
+ *     sensors: The methane sensors.
+ *     series: Tag to samples; ``None`` marks a missing sample.
+ *     units: Tag to unit.
+ *     wind_speed_m_s: 60 s mean wind speed in m/s.
+ *     wind_from_deg: 60 s circular mean wind direction in degrees.
+ *     stability: Most frequent Pasquill class in each 60 s sample.
+ *     events: Detection events.
+ *     log: Station log.
+ *     grid: Grid geometry shared by all key frames.
+ *     keyframes: Plume key frames, in time order.
+ *     attribution: Data-source attribution and the real-versus-synthetic label.
+ *     simulated: Always true: the station is fictional and simulated.
+ */
+export interface ReplayScenario {
+  attribution: Attribution;
+  duration_s: DurationS;
+  events: Events;
+  grid: ReplayGrid;
+  keyframes: Keyframes;
+  log: Log;
+  scenario_id: ScenarioId;
+  schema_version: SchemaVersion;
+  sensors: Sensors;
+  series: Series;
+  sim_start_utc: SimStartUtc;
+  simulated: Simulated;
+  stability: Stability1;
+  step_s: StepS;
+  title: Title;
+  units: Units;
+  wind_from_deg: WindFromDeg1;
+  wind_speed_m_s: WindSpeedMS1;
+}
+/**
+ * One detection event on one sensor (10-minute detection window).
+ *
+ * Attributes:
+ *     sensor_id: Instrument tag.
+ *     window_index: Index of the 10-minute window in which the alarm fired.
+ *     window_start_s: Start of that window in scenario seconds.
+ *     mean_ppm: Window mean in ppm.
+ *     baseline_ppm: Rolling baseline in ppm.
+ *     downwind_of_site: Whether the sensor lay downwind of the site centre.
+ */
+export interface ReplayEvent {
+  baseline_ppm: BaselinePpm;
+  downwind_of_site: DownwindOfSite;
+  mean_ppm: MeanPpm;
+  sensor_id: SensorId;
+  window_index: WindowIndex;
+  window_start_s: WindowStartS;
+}
+/**
+ * Geometry and encoding of every key-frame grid of the file.
+ *
+ * Attributes:
+ *     x0_m: West edge in m.
+ *     y0_m: South edge in m.
+ *     dx_m: Cell width in m.
+ *     dy_m: Cell height in m.
+ *     nx: Cells in x.
+ *     ny: Cells in y.
+ *     encoding: Byte encoding of the grids (0.1 to 1000 ppm, logarithmic).
+ */
+export interface ReplayGrid {
+  dx_m: DxM;
+  dy_m: DyM;
+  encoding: Encoding;
+  nx: Nx;
+  ny: Ny;
+  x0_m: X0M;
+  y0_m: Y0M;
+}
+/**
+ * The ground concentration grid at one time, with the wind that shaped it.
+ *
+ * Attributes:
+ *     t_s: Time in scenario seconds.
+ *     wind_speed_m_s: 60 s mean wind speed in m/s.
+ *     wind_from_deg: 60 s circular mean wind direction in degrees.
+ *     stability: Pasquill class (A to F).
+ *     sources: Sources active at ``t_s``.
+ *     grid_b64: Base64 of ``encode_log_u8`` of the grid (``ny * nx`` bytes, row-major).
+ */
+export interface PlumeKeyframe {
+  grid_b64: GridB64;
+  sources: Sources;
+  stability: Stability;
+  t_s: TS;
+  wind_from_deg: WindFromDeg;
+  wind_speed_m_s: WindSpeedMS;
+}
+/**
+ * A true simulated emission, used only to draw the plume.
+ *
+ * This is the simulation input, not a measurement and not an estimate: the interface must not
+ * show it as a result.
+ *
+ * Attributes:
+ *     anchor_id: Emission-point anchor, for example ``VS-250.tip``.
+ *     rate_kg_h: Simulated methane rate in kg/h.
+ */
+export interface ReplaySource {
+  anchor_id: AnchorId;
+  rate_kg_h: RateKgH;
+}
+/**
+ * One line of the station log.
+ *
+ * Attributes:
+ *     t_s: Time in scenario seconds.
+ *     kind: Entry type (permit, gauging, maintenance, shift_note, calibration).
+ *     tag: Equipment or instrument tag the entry is about, if any.
+ *     text: Entry text.
+ */
+export interface ReplayLogEntry {
+  kind: Kind;
+  t_s: TS1;
+  tag: Tag2;
+  text: Text;
+}
+/**
+ * A methane sensor and where it stands.
+ *
+ * Attributes:
+ *     id: Instrument tag, for example ``AT-101``; a key of ``ReplayScenario.series``.
+ *     x_m: East position in m.
+ *     y_m: North position in m.
+ *     z_m: Height in m.
+ */
+export interface ReplaySensor {
+  id: Id3;
+  x_m: XM;
+  y_m: YM;
+  z_m: ZM;
+}
+export interface Series {
+  [k: string]: (number | null)[];
+}
+export interface Units {
+  [k: string]: string;
 }

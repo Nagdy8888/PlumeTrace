@@ -150,6 +150,56 @@
       "title": "EquipmentType",
       "type": "string"
     },
+    "FacilitySpec": {
+      "additionalProperties": false,
+      "description": "Validated description of the station.\n\nAttributes:\n    site: Site identity, bounds and location.\n    gas_composition: Mole fractions by species; must sum to 1.\n    operating: Normal operating conditions.\n    equipment: All equipment, each with its anchors.\n    piping: Pipe routes as polylines.\n    instruments: All instruments.",
+      "properties": {
+        "equipment": {
+          "items": {
+            "$ref": "#/$defs/Equipment"
+          },
+          "title": "Equipment",
+          "type": "array"
+        },
+        "gas_composition": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Gas Composition",
+          "type": "object"
+        },
+        "instruments": {
+          "items": {
+            "$ref": "#/$defs/Instrument"
+          },
+          "title": "Instruments",
+          "type": "array"
+        },
+        "operating": {
+          "$ref": "#/$defs/OperatingConditions"
+        },
+        "piping": {
+          "items": {
+            "$ref": "#/$defs/PipeRoute"
+          },
+          "title": "Piping",
+          "type": "array"
+        },
+        "site": {
+          "$ref": "#/$defs/Site"
+        }
+      },
+      "required": [
+        "site",
+        "gas_composition",
+        "operating",
+        "equipment",
+        "piping",
+        "instruments"
+      ],
+      "title": "FacilitySpec",
+      "type": "object"
+    },
     "Instrument": {
       "additionalProperties": false,
       "description": "One instrument.\n\nAttributes:\n    tag: Unique instrument tag, for example ``AT-101``.\n    kind: Kind of instrument.\n    position_m: Position in site coordinates.\n    attaches_to: Tag of the equipment it measures, if any.\n    noise_ppm: One-sigma noise in ppm (methane sensors only).",
@@ -308,6 +358,364 @@
       "title": "PipeRoute",
       "type": "object"
     },
+    "PlumeKeyframe": {
+      "additionalProperties": false,
+      "description": "The ground concentration grid at one time, with the wind that shaped it.\n\nAttributes:\n    t_s: Time in scenario seconds.\n    wind_speed_m_s: 60 s mean wind speed in m/s.\n    wind_from_deg: 60 s circular mean wind direction in degrees.\n    stability: Pasquill class (A to F).\n    sources: Sources active at ``t_s``.\n    grid_b64: Base64 of ``encode_log_u8`` of the grid (``ny * nx`` bytes, row-major).",
+      "properties": {
+        "grid_b64": {
+          "title": "Grid B64",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/ReplaySource"
+          },
+          "title": "Sources",
+          "type": "array"
+        },
+        "stability": {
+          "title": "Stability",
+          "type": "string"
+        },
+        "t_s": {
+          "title": "T S",
+          "type": "number"
+        },
+        "wind_from_deg": {
+          "title": "Wind From Deg",
+          "type": "number"
+        },
+        "wind_speed_m_s": {
+          "title": "Wind Speed M S",
+          "type": "number"
+        }
+      },
+      "required": [
+        "t_s",
+        "wind_speed_m_s",
+        "wind_from_deg",
+        "stability",
+        "sources",
+        "grid_b64"
+      ],
+      "title": "PlumeKeyframe",
+      "type": "object"
+    },
+    "ReplayEvent": {
+      "additionalProperties": false,
+      "description": "One detection event on one sensor (10-minute detection window).\n\nAttributes:\n    sensor_id: Instrument tag.\n    window_index: Index of the 10-minute window in which the alarm fired.\n    window_start_s: Start of that window in scenario seconds.\n    mean_ppm: Window mean in ppm.\n    baseline_ppm: Rolling baseline in ppm.\n    downwind_of_site: Whether the sensor lay downwind of the site centre.",
+      "properties": {
+        "baseline_ppm": {
+          "title": "Baseline Ppm",
+          "type": "number"
+        },
+        "downwind_of_site": {
+          "title": "Downwind Of Site",
+          "type": "boolean"
+        },
+        "mean_ppm": {
+          "title": "Mean Ppm",
+          "type": "number"
+        },
+        "sensor_id": {
+          "title": "Sensor Id",
+          "type": "string"
+        },
+        "window_index": {
+          "title": "Window Index",
+          "type": "integer"
+        },
+        "window_start_s": {
+          "title": "Window Start S",
+          "type": "number"
+        }
+      },
+      "required": [
+        "sensor_id",
+        "window_index",
+        "window_start_s",
+        "mean_ppm",
+        "baseline_ppm",
+        "downwind_of_site"
+      ],
+      "title": "ReplayEvent",
+      "type": "object"
+    },
+    "ReplayGrid": {
+      "additionalProperties": false,
+      "description": "Geometry and encoding of every key-frame grid of the file.\n\nAttributes:\n    x0_m: West edge in m.\n    y0_m: South edge in m.\n    dx_m: Cell width in m.\n    dy_m: Cell height in m.\n    nx: Cells in x.\n    ny: Cells in y.\n    encoding: Byte encoding of the grids (0.1 to 1000 ppm, logarithmic).",
+      "properties": {
+        "dx_m": {
+          "exclusiveMinimum": 0,
+          "title": "Dx M",
+          "type": "number"
+        },
+        "dy_m": {
+          "exclusiveMinimum": 0,
+          "title": "Dy M",
+          "type": "number"
+        },
+        "encoding": {
+          "const": "log_u8_0.1_1000ppm",
+          "title": "Encoding",
+          "type": "string"
+        },
+        "nx": {
+          "minimum": 1,
+          "title": "Nx",
+          "type": "integer"
+        },
+        "ny": {
+          "minimum": 1,
+          "title": "Ny",
+          "type": "integer"
+        },
+        "x0_m": {
+          "title": "X0 M",
+          "type": "number"
+        },
+        "y0_m": {
+          "title": "Y0 M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x0_m",
+        "y0_m",
+        "dx_m",
+        "dy_m",
+        "nx",
+        "ny",
+        "encoding"
+      ],
+      "title": "ReplayGrid",
+      "type": "object"
+    },
+    "ReplayLogEntry": {
+      "additionalProperties": false,
+      "description": "One line of the station log.\n\nAttributes:\n    t_s: Time in scenario seconds.\n    kind: Entry type (permit, gauging, maintenance, shift_note, calibration).\n    tag: Equipment or instrument tag the entry is about, if any.\n    text: Entry text.",
+      "properties": {
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "t_s": {
+          "title": "T S",
+          "type": "number"
+        },
+        "tag": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Tag"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "t_s",
+        "kind",
+        "tag",
+        "text"
+      ],
+      "title": "ReplayLogEntry",
+      "type": "object"
+    },
+    "ReplayScenario": {
+      "additionalProperties": false,
+      "description": "A complete replayable scenario (simulated station).\n\nEvery list is sampled every ``step_s`` seconds (60 s means; a missing mean is ``None``).\n``series`` holds the methane sensors (ppm) and every non-methane instrument tag, each with its\nunit in ``units``. The weather is real public data (see ``attribution``); the station, the\nsensor readings and the instruments are synthetic. The file holds no inversion result.\n\nAttributes:\n    schema_version: Format version, 1.\n    scenario_id: For example ``s1_rod_packing``.\n    title: Display title.\n    sim_start_utc: UTC time of scenario second 0, ISO 8601 with ``Z``.\n    duration_s: Scenario length in s.\n    step_s: Sampling step in s.\n    sensors: The methane sensors.\n    series: Tag to samples; ``None`` marks a missing sample.\n    units: Tag to unit.\n    wind_speed_m_s: 60 s mean wind speed in m/s.\n    wind_from_deg: 60 s circular mean wind direction in degrees.\n    stability: Most frequent Pasquill class in each 60 s sample.\n    events: Detection events.\n    log: Station log.\n    grid: Grid geometry shared by all key frames.\n    keyframes: Plume key frames, in time order.\n    attribution: Data-source attribution and the real-versus-synthetic label.\n    simulated: Always true: the station is fictional and simulated.",
+      "properties": {
+        "attribution": {
+          "title": "Attribution",
+          "type": "string"
+        },
+        "duration_s": {
+          "title": "Duration S",
+          "type": "number"
+        },
+        "events": {
+          "items": {
+            "$ref": "#/$defs/ReplayEvent"
+          },
+          "title": "Events",
+          "type": "array"
+        },
+        "grid": {
+          "$ref": "#/$defs/ReplayGrid"
+        },
+        "keyframes": {
+          "items": {
+            "$ref": "#/$defs/PlumeKeyframe"
+          },
+          "title": "Keyframes",
+          "type": "array"
+        },
+        "log": {
+          "items": {
+            "$ref": "#/$defs/ReplayLogEntry"
+          },
+          "title": "Log",
+          "type": "array"
+        },
+        "scenario_id": {
+          "title": "Scenario Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "sensors": {
+          "items": {
+            "$ref": "#/$defs/ReplaySensor"
+          },
+          "title": "Sensors",
+          "type": "array"
+        },
+        "series": {
+          "additionalProperties": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "title": "Series",
+          "type": "object"
+        },
+        "sim_start_utc": {
+          "title": "Sim Start Utc",
+          "type": "string"
+        },
+        "simulated": {
+          "const": true,
+          "title": "Simulated",
+          "type": "boolean"
+        },
+        "stability": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Stability",
+          "type": "array"
+        },
+        "step_s": {
+          "title": "Step S",
+          "type": "number"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "units": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Units",
+          "type": "object"
+        },
+        "wind_from_deg": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Wind From Deg",
+          "type": "array"
+        },
+        "wind_speed_m_s": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Wind Speed M S",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema_version",
+        "scenario_id",
+        "title",
+        "sim_start_utc",
+        "duration_s",
+        "step_s",
+        "sensors",
+        "series",
+        "units",
+        "wind_speed_m_s",
+        "wind_from_deg",
+        "stability",
+        "events",
+        "log",
+        "grid",
+        "keyframes",
+        "attribution",
+        "simulated"
+      ],
+      "title": "ReplayScenario",
+      "type": "object"
+    },
+    "ReplaySensor": {
+      "additionalProperties": false,
+      "description": "A methane sensor and where it stands.\n\nAttributes:\n    id: Instrument tag, for example ``AT-101``; a key of ``ReplayScenario.series``.\n    x_m: East position in m.\n    y_m: North position in m.\n    z_m: Height in m.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "x_m": {
+          "title": "X M",
+          "type": "number"
+        },
+        "y_m": {
+          "title": "Y M",
+          "type": "number"
+        },
+        "z_m": {
+          "title": "Z M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "x_m",
+        "y_m",
+        "z_m"
+      ],
+      "title": "ReplaySensor",
+      "type": "object"
+    },
+    "ReplaySource": {
+      "additionalProperties": false,
+      "description": "A true simulated emission, used only to draw the plume.\n\nThis is the simulation input, not a measurement and not an estimate: the interface must not\nshow it as a result.\n\nAttributes:\n    anchor_id: Emission-point anchor, for example ``VS-250.tip``.\n    rate_kg_h: Simulated methane rate in kg/h.",
+      "properties": {
+        "anchor_id": {
+          "title": "Anchor Id",
+          "type": "string"
+        },
+        "rate_kg_h": {
+          "title": "Rate Kg H",
+          "type": "number"
+        }
+      },
+      "required": [
+        "anchor_id",
+        "rate_kg_h"
+      ],
+      "title": "ReplaySource",
+      "type": "object"
+    },
     "Site": {
       "additionalProperties": false,
       "description": "The site itself.\n\nAttributes:\n    id: Site id, for example ``KS-07``.\n    name: Display name.\n    fictional: Whether the site is simulated (always true for KS-07).\n    bounds: Fence bounds.\n    latitude_deg: Latitude used only to fetch weather.\n    longitude_deg: Longitude used only to fetch weather.\n    elevation_m: Ground elevation in metres.\n    ambient_pressure_pa: Ambient absolute pressure in pascals.",
@@ -389,51 +797,19 @@
     }
   },
   "additionalProperties": false,
-  "description": "Validated description of the station.\n\nAttributes:\n    site: Site identity, bounds and location.\n    gas_composition: Mole fractions by species; must sum to 1.\n    operating: Normal operating conditions.\n    equipment: All equipment, each with its anchors.\n    piping: Pipe routes as polylines.\n    instruments: All instruments.",
+  "description": "The types shared with the frontend: the facility and one replay scenario.\n\nAttributes:\n    facility: The KS-07 facility spec.\n    replay_scenario: The replay file format.",
   "properties": {
-    "equipment": {
-      "items": {
-        "$ref": "#/$defs/Equipment"
-      },
-      "title": "Equipment",
-      "type": "array"
+    "facility": {
+      "$ref": "#/$defs/FacilitySpec"
     },
-    "gas_composition": {
-      "additionalProperties": {
-        "type": "number"
-      },
-      "title": "Gas Composition",
-      "type": "object"
-    },
-    "instruments": {
-      "items": {
-        "$ref": "#/$defs/Instrument"
-      },
-      "title": "Instruments",
-      "type": "array"
-    },
-    "operating": {
-      "$ref": "#/$defs/OperatingConditions"
-    },
-    "piping": {
-      "items": {
-        "$ref": "#/$defs/PipeRoute"
-      },
-      "title": "Piping",
-      "type": "array"
-    },
-    "site": {
-      "$ref": "#/$defs/Site"
+    "replay_scenario": {
+      "$ref": "#/$defs/ReplayScenario"
     }
   },
   "required": [
-    "site",
-    "gas_composition",
-    "operating",
-    "equipment",
-    "piping",
-    "instruments"
+    "facility",
+    "replay_scenario"
   ],
-  "title": "FacilitySpec",
+  "title": "Contract",
   "type": "object"
 }

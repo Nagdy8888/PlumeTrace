@@ -1,7 +1,8 @@
-"""Export the facility JSON Schema and facility data for the frontend.
+"""Export the contract JSON Schema and facility data for the frontend.
 
-The Pydantic models in ``plumetrace.facility`` are the source of truth. This script writes
-the JSON Schema (input of ``npm run gen:types``) and the KS-07 facility as JSON. The output is
+The Pydantic models in ``plumetrace.facility`` and the replay format in
+``plumetrace.simulator.replay_schema`` are the source of truth. This script writes the JSON
+Schema of both (input of ``npm run gen:types``) and the KS-07 facility as JSON. The output is
 deterministic: UTF-8, LF line endings, sorted keys, trailing newline.
 
 Run it from the repo root::
@@ -15,12 +16,30 @@ import json
 from pathlib import Path
 from typing import Final, cast
 
+from pydantic import BaseModel, ConfigDict
+
 from plumetrace.facility.loader import load_facility
 from plumetrace.facility.spec import FacilitySpec
+from plumetrace.simulator.replay_schema import ReplayScenario
 
 REPO_ROOT: Final[Path] = Path(__file__).resolve().parents[1]
 SCHEMA_OUT: Final[Path] = REPO_ROOT / "app/frontend/src/shared/types/generated/contract.schema.json"
 FACILITY_OUT: Final[Path] = REPO_ROOT / "app/frontend/src/shared/facility/ks07.json"
+
+
+class Contract(BaseModel):
+    """The types shared with the frontend: the facility and one replay scenario.
+
+    Attributes:
+        facility: The KS-07 facility spec.
+        replay_scenario: The replay file format.
+    """
+
+    # No extra keys, so the generated TypeScript has no ``[k: string]: unknown`` index signature.
+    model_config = ConfigDict(extra="forbid")
+
+    facility: FacilitySpec
+    replay_scenario: ReplayScenario
 
 
 def _tuples_as_items(node: object) -> object:
@@ -52,14 +71,14 @@ def _tuples_as_items(node: object) -> object:
 
 
 def build_contract_schema() -> dict[str, object]:
-    """Build the JSON Schema of the facility model.
+    """Build the JSON Schema of the contract (facility and replay scenario).
 
     Returns:
-        The ``FacilitySpec`` JSON Schema with ``title`` set to ``FacilitySpec`` and fixed-length
+        The ``Contract`` JSON Schema with ``title`` set to ``Contract`` and fixed-length
         tuples in the ``items`` array form (see ``_tuples_as_items``).
     """
-    schema = cast(dict[str, object], _tuples_as_items(FacilitySpec.model_json_schema()))
-    schema["title"] = "FacilitySpec"
+    schema = cast(dict[str, object], _tuples_as_items(Contract.model_json_schema()))
+    schema["title"] = "Contract"
     return schema
 
 

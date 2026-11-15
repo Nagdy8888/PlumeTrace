@@ -43,8 +43,8 @@ def test_facility_json_has_site_and_candidates() -> None:
 
 
 def test_contract_schema_describes_facility_spec() -> None:
-    """The JSON Schema is the FacilitySpec model's schema."""
+    """The JSON Schema is the contract: the facility spec and the replay scenario."""
     mod = _load_script()
     schema = mod.build_contract_schema()
-    assert schema["title"] == "FacilitySpec"
-    assert "equipment" in schema["properties"]
+    assert schema["title"] == "Contract"
+    assert {"facility", "replay_scenario"} <= set(schema["properties"])

@@ -16,6 +16,7 @@
 | [reference/DATABASE.md](reference/DATABASE.md) | Local Supabase schema, RLS, migrations, connection pool |
 | [reference/SIMULATOR.md](reference/SIMULATOR.md) | Station KS-07 facility spec: equipment, leak points, instruments, gas, component counts, validation |
 | [reference/ENGINEERING.md](reference/ENGINEERING.md) | Engineering core: constants, unit conversions and (later) dispersion and inversion models |
+| [reference/REPLAY.md](reference/REPLAY.md) | Replay scenario files: format field by field, units, sampling, the `log_u8` plume encoding, size budget, regeneration (generated, never hand-edited) |
 | [reference/TESTING.md](reference/TESTING.md) | Test layers, how to run the local checks, coverage thresholds |
 | [reference/FRONTEND.md](reference/FRONTEND.md) | React app scaffold: scripts, folder rules, design tokens, tests |
 | [reference/SECURITY.md](reference/SECURITY.md) | Security controls as implemented: outbound network calls (Open-Meteo), timeouts, TLS, what is sent |

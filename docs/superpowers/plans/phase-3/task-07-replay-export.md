@@ -128,7 +128,7 @@ def test_s1_replay_structure_and_budget() -> None:
 ```
 
 ## Steps
-- [ ] Tests → FAIL → implement → full checks green.
-- [ ] Run `cd app && uv run python ../scripts/export_scenarios.py` (paste sizes), then `uv run python ../scripts/export_contract.py` and `cd frontend && npm run gen:types`; frontend checks still green.
-- [ ] **Docs.** `docs/reference/REPLAY.md` (new; add to `docs/README.md`): the file format field by field, units, sampling, the `log_u8` encoding (formula + decode), size budget, how to regenerate, "never hand-edit". ENGINEERING.md → "Plume field". Work-log; `STATUS.md` (last 3.7, next 3.8).
+- [x] Tests → FAIL → implement → full checks green.
+- [x] Run `cd app && uv run python ../scripts/export_scenarios.py` (paste sizes), then `uv run python ../scripts/export_contract.py` and `cd frontend && npm run gen:types`; frontend checks still green.
+- [x] **Docs.** `docs/reference/REPLAY.md` (new; add to `docs/README.md`): the file format field by field, units, sampling, the `log_u8` encoding (formula + decode), size budget, how to regenerate, "never hand-edit". ENGINEERING.md → "Plume field". Work-log; `STATUS.md` (last 3.7, next 3.8).
 - [ ] **Commit** `feat(replay): add plume field encoding and replay scenario export`.

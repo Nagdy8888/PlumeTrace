@@ -230,6 +230,27 @@ code path runs with no extra arithmetic, so results are bit-identical to the ver
 option. `ValueError` for a negative or non-finite `dir_sd_deg`. The spread is measured from data
 (`window_direction_sd_deg`), never taken from the truth model's setting.
 
+### Plume field
+
+Module `plumetrace.engineering.plume_field`. A regular grid of the ground concentration for the
+replay's plume key frames, and a one-byte-per-cell code for it. Pure numpy, no I/O. `PPM_MIN = 0.1`
+and `DECADES = 4.0` (0.1 to 1000 ppm) are Task 7 display values, not published constants.
+
+- `GridSpec(x0_m, y0_m, dx_m, dy_m, nx, ny, z_m)`, default 40 x 30 cells of 5 m at 1.5 m height
+  (the 200 m x 150 m site); cell centres at `x0 + (i + 0.5) dx`. `ValueError` for non-finite
+  values, `dx_m` or `dy_m` not above 0, `nx` or `ny` below 1 or a negative height.
+- `ground_grid_ppm(sources, t_s, wind_speed_m_s, wind_from_deg, stability, coeff, temp_k,
+  pressure_pa, grid)` returns shape `(ny, nx)`: the sum of `concentration_ppm` (above background,
+  no building wake) of the sources with `start_s <= t_s < end_s`. It is linear in every rate and
+  additive over sources. `ValueError` if `t_s` is not finite or the wind speed is not finite and
+  positive (also with no active source).
+- `encode_log_u8(ppm)`: byte 0 below 0.1 ppm, else `clip(round(1 + 254 log10(ppm / 0.1) / 4), 1,
+  255)`, row-major (`y` then `x`); negative values count as below 0.1; `ValueError` for NaN or
+  infinity. `decode_log_u8(data, ny, nx)`: `0` gives 0.0, byte `b` gives
+  `0.1 * 10 ** ((b - 1) * 4 / 254)`; `ValueError` if the shape does not match the data. Decoding then
+  encoding returns every byte unchanged, and a value inside the range comes back within a factor
+  of 1.018. The file format that uses it is in `docs/reference/REPLAY.md`.
+
 ### Averaging
 
 Module `plumetrace.engineering.averaging`. The plume model predicts roughly 10-minute mean
@@ -1269,3 +1290,4 @@ every quantity with its unit suffix. Keep functions pure.
 - 2026-11-14: benchmark improvement round prepared: calibration metrics, the adoption rule and `python -m benchmark.compare` (Phase 2 improvement round 2.16); scoring code and the published benchmark unchanged; no fresh run yet at that point (see the entry on the official run below).
 - 2026-11-14: the official improvement run was made once at the pre-registration commit `efc74af` (`python -m benchmark.compare --seed 20261114`, synthetic data, one seed per method): meander-aware top-1 0.69 against 0.48 for the Task 8 method, median rate error 0.177 against 1.34, confident-wrong rate 0.122 against 0.407, false-call rate 0 for both; the adoption rule printed "Adopted for the app: meander-aware". The probabilities and the 90 % rate intervals are not calibrated for either method. Results, reading and caveats are in "Improvement round results"; Gate 2 closed (delegated decision, `docs/evidence/2026-11-phase-2-gate-2.md`).
 - 2026-11-14: `window_mode_class` added to the averaging module; `benchmark.runner.window_stability` delegates to it (Phase 3 Task 4).
+- 2026-11-15: plume ground grid and one-byte log encoding added (Phase 3 Task 7).
