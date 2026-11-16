@@ -12,7 +12,9 @@ below, and their use in the model: the spike (`K-202`, `VS-250`, ground) and, si
 grating (`metal_grate_rusty`, key `grating`) on platforms, walkways and stair treads of the other
 equipment types. `metal_plate` is downloaded and pinned but **no material uses it** since the owner
 ruling C1 (its tread-plate maps are not mapped onto painted vessels, pipes or panels); the manifest
-is unchanged. The full station (Task 7) will use the same textures. The owner approved the
+is unchanged. The full station (Task 7) uses the same textures and no new asset: the yard gravel
+and the 600 m outer terrain use `gravel_floor_02` with its diffuse map multiplied by 0.45 (owner
+ruling C2: the gravel must not read as snow; see [STATION_MODEL.md](STATION_MODEL.md)). The owner approved the
 download in chat on 2026-11-15.
 
 Owner modules: `scripts/fetch_polyhaven.py` (download and verify), `scripts/blender/polyhaven_manifest.json`
@@ -61,7 +63,7 @@ Assets (all CC0, resolution 1k, source `https://polyhaven.com/a/<id>`):
 |---|---|---|---|
 | `metal_plate` | `nor_gl`, `Rough` | **unused** (owner ruling C1, spike review: its tread-plate pattern is wrong on vessel bodies, pipes and panels). `paint_grey`, `paint_dark`, `paint_red`, `paint_white` and `pipe_gas` are plain colours with a constant roughness (`paint_grey` 0.5). It may only ever be used on a walkway or deck surface | no material |
 | `concrete_floor_02` | `Diffuse`, `nor_gl`, `Rough` | concrete pads; its normal map (strength 0.3, tile 3 m) is the surface of the building panels | keys `concrete`, `building_panel` (normal only) |
-| `gravel_floor_02` | `Diffuse`, `nor_gl`, `Rough` | yard ground | key `gravel` |
+| `gravel_floor_02` | `Diffuse`, `nor_gl`, `Rough` | yard ground (diffuse x 0.45) and the outer terrain (diffuse x 0.45, constant roughness 1.0) | keys `gravel`, `gravel_far` |
 | `corrugated_iron_02` | `Diffuse`, `nor_gl`, `Rough` | shelter roof and cladding | key `cladding` |
 | `metal_grate_rusty` | `Diffuse`, `nor_gl`, `Rough` | grating: platform plates, walkways, stair treads (tile 1 m, metallic 0.7, its own roughness and normal) | key `grating` |
 | `industrial_sunset_puresky` | HDRI `.hdr` | image-based lighting | `scene/EnvironmentMap.tsx` |

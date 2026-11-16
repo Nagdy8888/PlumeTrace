@@ -11,6 +11,7 @@ from typing import Any
 
 import bpy
 from mathutils import Vector
+from naming import GROUND_TAG
 
 SAMPLES = 32
 FILTER_WIDTH_PX = 2.5  # softer pixel filter than the 1.5 default: keeps the PNGs under 400 KB
@@ -25,7 +26,7 @@ SUN_STRENGTH = 2.5
 SKY_COLOR = (0.55, 0.62, 0.70, 1.0)
 FLOOR_COLOR = (0.30, 0.28, 0.25, 1.0)
 FLOOR_SIZE_M = 400.0
-FLOOR_Z_M = -0.05  # under the ground patch (z -0.02) so the two never z-fight
+FLOOR_Z_M = -0.1  # under the yard (z -0.02) and the terrain (z -0.07) so they never z-fight
 
 
 def camera_position(item: dict[str, Any]) -> tuple[Vector, Vector]:
@@ -106,7 +107,7 @@ def render_still(item: dict[str, Any], out: Path) -> None:
     _add_sun()
     position, target = camera_position(item)
     floor = _add_floor(target)
-    patch = bpy.data.objects.get("ground")  # the gravel patch is noisy and fills the PNG
+    patch = bpy.data.objects.get(GROUND_TAG)  # the gravel yard is noisy and fills the PNG
     if patch is not None:
         patch.hide_render = True
     camera = bpy.data.objects.new("still_camera", bpy.data.cameras.new("still_camera"))

@@ -75,3 +75,86 @@ def test_size_budget(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None
     argv = ["--glb", str(glb), "--spec", str(FACILITY_JSON), "--only", "K-202", "--max-bytes", "10"]
     assert mod.main(argv) == 1
     assert "budget 10" in capsys.readouterr().out
+
+
+def _doc_glb(path: Path, doc: dict[str, object]) -> Path:
+    """Write ``doc`` as the JSON chunk of a minimal GLB."""
+    body = json.dumps(doc).encode("utf-8")
+    body += b" " * (-len(body) % 4)
+    header = b"glTF" + struct.pack("<II", 2, 12 + 8 + len(body))
+    path.write_bytes(header + struct.pack("<II", len(body), JSON_CHUNK) + body)
+    return path
+
+
+def _two_nodes_one_mesh(instanced: bool = False) -> dict[str, object]:
+    """Two nodes share one mesh with one indexed primitive (36 indices = 12 triangles)."""
+    nodes: list[dict[str, object]] = [{"name": "A", "mesh": 0}, {"name": "B", "mesh": 0}]
+    doc: dict[str, object] = {
+        "asset": {"version": "2.0"},
+        "nodes": nodes,
+        "meshes": [{"primitives": [{"attributes": {"POSITION": 0}, "indices": 1}]}],
+        "accessors": [{"count": 24}, {"count": 36}, {"count": 5}],
+    }
+    if instanced:
+        nodes[0]["extensions"] = {"EXT_mesh_gpu_instancing": {"attributes": {"TRANSLATION": 2}}}
+    return doc
+
+
+def test_triangles_and_draw_calls_of_shared_mesh() -> None:
+    """Two nodes sharing a 36-index primitive: 24 triangles and 2 draw calls."""
+    mod = _load()
+    doc = _two_nodes_one_mesh()
+    assert mod.triangle_count(doc) == 24
+    assert mod.draw_call_estimate(doc) == 2
+
+
+def test_instanced_node_multiplies_triangles_not_draw_calls() -> None:
+    """EXT_mesh_gpu_instancing with 5 translations: 5 x 12 + 12 triangles, still 2 draw calls."""
+    mod = _load()
+    doc = _two_nodes_one_mesh(instanced=True)
+    assert mod.triangle_count(doc) == 72
+    assert mod.draw_call_estimate(doc) == 2
+
+
+def test_unindexed_primitive_counts_positions() -> None:
+    """Without indices the POSITION count divided by 3 gives the triangles."""
+    mod = _load()
+    doc = {
+        "nodes": [{"mesh": 0}],
+        "meshes": [{"primitives": [{"attributes": {"POSITION": 0}}]}],
+        "accessors": [{"count": 9}],
+    }
+    assert mod.triangle_count(doc) == 3
+
+
+def test_triangle_and_draw_call_budgets(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """--max-triangles and --max-draw-calls fail when exceeded; the OK line shows both counts."""
+    mod = _load()
+    glb = _doc_glb(tmp_path / "t.glb", {**_two_nodes_one_mesh(), "nodes": _named_nodes()})
+    base = ["--glb", str(glb), "--spec", str(FACILITY_JSON), "--only", "K-202"]
+    assert mod.main([*base, "--max-triangles", "10"]) == 1
+    assert "24 triangles, budget 10" in capsys.readouterr().out
+    assert mod.main([*base, "--max-draw-calls", "1"]) == 1
+    assert "2 draw calls, budget 1" in capsys.readouterr().out
+    assert mod.main(base) == 0
+    assert "24 triangles, 2 draw calls" in capsys.readouterr().out
+
+
+def _named_nodes(extra: list[str] | None = None) -> list[dict[str, object]]:
+    """Nodes for K-202 (tag and anchors): the first two carry the shared mesh."""
+    names = [*ALL_K202, *(extra or [])]
+    return [{"name": n, **({"mesh": 0} if i < 2 else {})} for i, n in enumerate(names)]
+
+
+def test_separate_nodes_are_required(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """A fin-fan glb without its fan nodes (an optimiser merged them) fails and names them."""
+    mod = _load()
+    spec = json.loads(FACILITY_JSON.read_text(encoding="utf-8"))
+    assert mod.separate_node_names(spec, frozenset({"E-231"})) == {"E-231__fan_1", "E-231__fan_2"}
+    assert mod.separate_node_names(spec, frozenset({"FL-601"})) == {"FL-601__tip"}
+    assert mod.separate_node_names(spec, frozenset({"K-202"})) == set()
+    assert len(mod.separate_node_names(spec, None)) == 7
+    glb = _glb(tmp_path / "f.glb", ["E-231"])
+    code = mod.main(["--glb", str(glb), "--spec", str(FACILITY_JSON), "--only", "E-231"])
+    assert code == 1
+    assert "missing nodes: ['E-231__fan_1', 'E-231__fan_2']" in capsys.readouterr().out

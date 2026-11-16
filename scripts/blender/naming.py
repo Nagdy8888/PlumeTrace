@@ -22,3 +22,14 @@ def material_name(base: str, tag: str) -> str:
 def ao_image_name(tag: str) -> str:
     """Name of the baked ambient-occlusion image of an equipment item."""
     return f"{tag}_ao"
+
+
+GROUND_TAG = "SITE__ground"
+RACKS_TAG = "SITE__racks"
+FENCE_TAG = "SITE__fence"
+PIPE_PREFIX = "PIPE__"
+
+
+def pipe_tag(route_id: str) -> str:
+    """Name of a piping route node, e.g. ``PIPE__R-100`` (not baked, not a spec tag)."""
+    return f"{PIPE_PREFIX}{route_id}"

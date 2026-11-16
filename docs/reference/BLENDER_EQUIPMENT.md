@@ -5,17 +5,19 @@
 The bpy generator in `scripts/blender/` builds every equipment item of the facility spec
 (`ks07.json`, 24 items of 15 types) from a small parts library. This page documents the parts, the
 15 builders, the materials they ask for, the separate glb nodes (fan blades, flare tip) and how to
-check one type or the whole station. The pipeline around it (spike, bake, export, versions) is in
+check one type or the whole station. The pipeline around it (piping, site, bake, export, budgets) is in
+[STATION_MODEL.md](STATION_MODEL.md), with the commands in
 [scripts/blender/README.md](../../scripts/blender/README.md) and [FRONTEND.md](FRONTEND.md); the
 textures are in [ASSETS.md](ASSETS.md).
 
 Built (Phase 4 Task 6, 2026-11-16): the parts library, one builder for each of the 15
 `EquipmentType` values (the compressor, shelter and vent stack are the Task 5 builders), the
 material additions, the separate nodes, `layout.ao_resolution`, and a still-image option for
-review. **Not built** (Task 7): piping and racks, the full ground, the bake of the full station
-(`bake.py` still uses its own AO sizes, it does not call `ao_resolution` yet), the optimised
-`ks07.glb` of the full station and its budget check. The shipped `public/models/ks07.glb` is still
-the spike model. Nothing here is rendered in the app yet (Tasks 8 and 9).
+review. Built since (Phase 4 Task 7, 2026-11-16, documented in [STATION_MODEL.md](STATION_MODEL.md)):
+piping and racks, the full ground, the bake of the full station (`bake.py` now calls
+`ao_resolution`), and the optimised `ks07.glb` of the full station with its budget check; the
+shipped `public/models/ks07.glb` is that full station. The viewer shows the model, sun and review
+camera only; the per-equipment scene features are Tasks 8 and 9.
 
 ## 2. How it works
 
@@ -29,15 +31,16 @@ flowchart LR
     Ctx --> Mat["materials.py<br/>assign_all, per-item copies"]
     Mat --> Join["export.join_equipment<br/>one mesh per tag, one per node"]
     Join --> Still["still.py<br/>review PNG (optional)"]
-    Join --> Glb["bake.py + export.py<br/>raw glb (Task 7 optimises)"]
+    Join --> Glb["bake.py + export.py<br/>raw glb (optimised: STATION_MODEL.md)"]
 ```
 
 *Caption: the build chain for one run. Everything is built (Task 5 for the chain, Task 6 for the
-builders and parts); `still.py` is a review aid and its output is not in the glb.*
+builders and parts, Task 7 for piping, site, bake and the optimiser); `still.py` is a review aid and
+its output is not in the glb.*
 
-1. `build_station.py` loads the spec, picks the items (`--only`), resets the scene and builds the
-   ground, then calls `BUILDERS[item["type"]](item, ctx)` for each item. A type with no builder
-   stops the run with `no builder for type <name>`.
+1. `build_station.py` loads the spec, picks the items (`--only`), resets the scene, then calls `BUILDERS[item["type"]](item, ctx)` for each item. A type with no builder
+   stops the run with `no builder for type <name>`. Racks, piping, fence and the ground follow
+   (see STATION_MODEL.md).
 2. A builder calls `ctx.new_root(item)` (an object named exactly the tag at the item's position and
    rotation) and adds parts with `ctx.add_part(tag, obj, material_key, tile_m)`. Coordinates are
    item-local: `x` along the long axis, `y` across, `z` up, origin at `position_m` on the ground.
@@ -70,7 +73,7 @@ bevel (`shapes.block`).
 
 | Module | Interface | Invariant |
 |---|---|---|
-| `layout.py` | `to_local`, `to_world`, `ao_resolution(equipment_type, level) -> int` | `low` is 256; `high` is 1024 for `recip_compressor` and `ground`, else 512; any other level raises `ValueError` |
+| `layout.py` | `to_local`, `to_world`, `ao_resolution(equipment_type, level) -> int` | `low` is 256; `high` is 1024 for `recip_compressor` and `ground`, else 512; any other level raises `ValueError`; called by `bake.py` since Task 7 |
 | `anchors.py` | `anchor_local(item, suffix) -> (x, y, z)` | item-local position of `<tag>.<suffix>`; `ValueError` if absent |
 | `naming.py` | `part_name(tag, part)` | `E-231__fan_1`, `FL-601__tip` |
 
@@ -135,6 +138,7 @@ Real runs on 2026-11-16, Blender 4.5.16, seed 20261113, `--bake none`:
   `build_station: ... bake=none bake_s=0.0 total_s=8.8`; `check_glb.py --only FL-601` printed
   `glb OK: 4 nodes, 7739224 bytes`: `ground`, `FL-601`, the anchor `FL-601.tip` and the separate
   node `FL-601__tip`.
+- (Task 6 numbers, before piping and the full ground; the Task 7 totals are in STATION_MODEL.md.)
 - The whole station: no `--only`, `total_s=5.3`, `check_glb.py` printed
   `glb OK: 53 nodes, 14533672 bytes` (24 roots, ground, 21 anchors, 7 separate nodes: six fans and
   the flare tip). Counted from the raw glb JSON: 32 meshes, 108 primitives (one per material per
@@ -219,11 +223,14 @@ Source: Phase 4 Task 6 plan, design section 9, owner rulings of 2026-11-15.
   was 446,805 bytes) and the PNG was then recompressed to at most 400,000 bytes (400 KB). The gravel patch is hidden and a plain floor is used in stills (the patch noise
   made the PNGs 3 times larger). The meter-run, fin-fan and VRU shapes are plain blocks: nothing
   is claimed about visual fidelity beyond the stills.
-- **Task 7 risk.** The six fan nodes have identical geometry; `gltf-transform optimize` with its
-  default `--instance` or dedup could merge them and drop the named nodes. `check_glb.py` checks
-  only tags and anchors, so the seven separate-node names need their own check in Task 7.
-- **Not claimed.** No fps, draw-call or size budget is claimed for the full station; those are
-  Task 7 and Task 8 measurements. The integrated-GPU fps run (C6) is an owner step.
+- **Task 7 risk, resolved.** The six fan nodes have identical geometry; `gltf-transform optimize`
+  with its default `--instance` or dedup could merge them and drop the named nodes. In the Task 7
+  build all seven survived (their AO images differ, so no instancing happened) and `check_glb.py`
+  now requires the seven names (`separate_node_names`;
+  `test_check_glb.py::test_separate_nodes_are_required`).
+- **Not claimed (Task 6).** No fps, draw-call or size budget was claimed here; the Task 7
+  build measured size, triangles, estimated draw calls and texture memory (STATION_MODEL.md), and
+  Task 8 measures the browser draw calls. The integrated-GPU fps run (C6) is an owner step.
 
 ## 7. Configuration
 
@@ -255,7 +262,8 @@ no Blender needed).
    obj, material)` with locations relative to the pivot; document the node name in FRONTEND.md.
 3. Keep: item-local frame, anchors at the spec position, material keys from `SPECS`, no `random`,
    no `metal_plate` on paint, limits (module 300 lines, function 50, 12 top-level definitions).
-4. Task 7 will wire `ao_resolution` into `bake.py`, add piping, ground and the budget check.
+4. Piping, racks, the site, the bake and the budget check are in [STATION_MODEL.md](STATION_MODEL.md)
+   section 9.
 
 ## 10. Testing and evidence
 
@@ -272,6 +280,7 @@ no Blender needed).
 - Pages: [FRONTEND.md](FRONTEND.md) (3D section), [ASSETS.md](ASSETS.md),
   [FACILITY.md](FACILITY.md) (the spec the items come from).
 - Evidence: [2026-11-equipment](../evidence/2026-11-equipment/), [spike](../evidence/2026-11-spike.md).
-- Work log: 2026-11-16 Phase 4 Task 6.
+- Work log: 2026-11-16 Phase 4 Task 6; the whole-station chain is [STATION_MODEL.md](STATION_MODEL.md) (Task 7).
 
-Changelog: 2026-11-16 created (Phase 4 Task 6).
+Changelog: 2026-11-16 created (Phase 4 Task 6). 2026-11-16 status, `ao_resolution` and fan-node
+risk updated for Task 7.

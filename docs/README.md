@@ -22,7 +22,7 @@ flowchart LR
         UI["Control-room panels<br/>alarms, trends, log, playback"]
     end
     AG["LangGraph agents<br/>PLANNED"]
-    TD["3D station scene<br/>spike built (one skid),<br/>full station PLANNED"]
+    TD["3D station scene<br/>full-station model built,<br/>real-time features PLANNED"]
     RR["Rules table, work orders, reports<br/>PLANNED"]
     OM --> SIM
     ENG -->|"used by runner and export"| SIM
@@ -35,10 +35,10 @@ flowchart LR
     STORE --> PG
     AG -.->|planned| API
     AG -.->|planned| RR
-    UI -.->|"spike mounted, full scene planned"| TD
+    UI -.->|"model mounted, scene features planned"| TD
 ```
 
-*System at a glance: solid parts exist and are tested; dotted parts (agents, rules table, reports, the full 3D station) are planned and not built; the 3D station exists only as the Phase 4 Task 5 spike (one skid, one stack, no plume) awaiting the owner go / no-go. Nothing is deployed; the replay build is built and previewed locally.*
+*System at a glance: solid parts exist and are tested; dotted parts (agents, rules table, reports, the full 3D station) are planned and not built; the 3D station is the Phase 4 Task 7 baked model of the whole station rendered with a sun and a fixed camera (no plume, labels or picking yet). Nothing is deployed; the replay build is built and previewed locally.*
 
 Details of each box: [SIMULATOR](reference/SIMULATOR.md), [ENGINEERING](reference/ENGINEERING.md) and
 [PHYSICS_PIPELINE](reference/PHYSICS_PIPELINE.md), [API](reference/API.md),
@@ -74,6 +74,7 @@ The full standard and the page template are in the
 | [evidence/benchmark-2026-11-13.json](evidence/benchmark-2026-11-13.json) | Case-level evidence of the published benchmark run (seed 20261112, revision 23b8703, generated, synthetic data) |
 | [evidence/benchmark-improvement-2026-11-14.json](evidence/benchmark-improvement-2026-11-14.json) | Case-level evidence of the improvement run (both methods, generated) |
 | [evidence/2026-11-phase-3-scenarios.md](evidence/2026-11-phase-3-scenarios.md) | Phase 3 scenario evidence: selected weather offsets, detection events and replay file sizes per MVP scenario; local / synthetic plus real weather |
+| [evidence/2026-11-ks07-glb.md](evidence/2026-11-ks07-glb.md) | Phase 4 Task 7 full-station `ks07.glb`: budgets (size, triangles, draw calls, texture memory), bake times, the texture-size and ground rulings, screenshots |
 | [evidence/2026-11-spike.md](evidence/2026-11-spike.md) | Phase 4 Task 5 Blender spike evidence (K-202 with shelter, VS-250, ground patch) and the approach B go or no-go question, with its screenshots |
 | [evidence/2026-11-equipment/](evidence/2026-11-equipment/) | Phase 4 Task 6 review stills (960 x 540 PNG, Cycles) of the 13 newly built equipment types; review aids, not a validation |
 | [evidence/2026-11-phase-2-gate-2.md](evidence/2026-11-phase-2-gate-2.md) | Gate 2 evidence: full check run, official run and determinism check, published reproduction, code diff since 23b8703, decisions summary |
@@ -124,9 +125,10 @@ worked example, edge cases and the test that pins each, how to run and extend.
 | Document | What it covers |
 |---|---|
 | [reference/API.md](reference/API.md) | REST endpoints (health, scenarios, replay), request path, configuration, limits |
-| [reference/FRONTEND.md](reference/FRONTEND.md) | React app: stack, scripts, folder rules, live and replay builds, layout; the 3D station (Task 5 spike: baked model, review camera, no plume yet) |
+| [reference/FRONTEND.md](reference/FRONTEND.md) | React app: stack, scripts, folder rules, live and replay builds, layout; the 3D station (baked full-station model, review camera, regeneration command and budgets; no plume yet) |
 | [reference/ASSETS.md](reference/ASSETS.md) | Poly Haven CC0 textures and HDRI used by the 3D pipeline: ids, licence, source, where each is used, how to fetch and verify |
-| [reference/BLENDER_EQUIPMENT.md](reference/BLENDER_EQUIPMENT.md) | Blender generator parts library and the 15 equipment builders: parts, anchors, separate glb nodes (fans, flare tip), materials, how to build and check one type (Phase 4 Task 6; the full station is Task 7) |
+| [reference/STATION_MODEL.md](reference/STATION_MODEL.md) | Station model: piping routes, pipe racks, site (yard, pads, road, bund, fence), the AO bake, `scripts/build_station.sh`, the glTF-Transform step and the `check_glb.py` budgets (Phase 4 Task 7) |
+| [reference/BLENDER_EQUIPMENT.md](reference/BLENDER_EQUIPMENT.md) | Blender generator parts library and the 15 equipment builders: parts, anchors, separate glb nodes (fans, flare tip), materials, how to build and check one type (Phase 4 Task 6; the whole-station chain is STATION_MODEL.md) |
 | [reference/DESIGN_SYSTEM.md](reference/DESIGN_SYSTEM.md) | Design tokens, typography, shadcn primitives, formatting helpers, anti-slop rules |
 | [reference/DATA_LAYER.md](reference/DATA_LAYER.md) | `DataSource` interface (live and replay), error kinds, stores, replay-only bundle guard |
 | [reference/UI_PANELS.md](reference/UI_PANELS.md) | Control-room panels, component tree, keyboard map, binding display rules |

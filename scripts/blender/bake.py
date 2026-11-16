@@ -1,20 +1,26 @@
 """Cycles ambient-occlusion bake per equipment item into a second UV set (bpy module).
 
+Every group of ``ctx.groups()`` is baked (item roots, separate nodes, ``SITE__ground``,
+``SITE__racks``, ``SITE__fence``) except the piping routes. The ``AO`` layer is an unwrap with
+``uv.smart_project``, so large faces get large islands (owner ruling C3).
+
 The baked image is wired through a Separate Color node (R) into the ``Occlusion`` input of the
 ``glTF Material Output`` node group, which the glTF exporter writes as ``occlusionTexture``.
 """
 
+import math
 import time
 
 import bpy
-from naming import ao_image_name
+from layout import ao_resolution
+from naming import GROUND_TAG, PIPE_PREFIX, ao_image_name
 from scene_setup import BuildContext
 
 GROUP_NAME = "glTF Material Output"
-RESOLUTION = {"low": 512, "high": 1024}
 SAMPLES = {"low": 16, "high": 128}
-GROUND_RESOLUTION = 512
 AO_DISTANCE_M = 6.0
+UNWRAP_ANGLE_DEG = 66.0  # Blender's default angle limit for splitting islands
+UNWRAP_MARGIN = 0.02  # island margin as a fraction of the UV space
 
 
 def _occlusion_group() -> bpy.types.NodeTree:
@@ -34,15 +40,18 @@ def _select_only(obj: bpy.types.Object) -> None:
 
 
 def _add_ao_layer(obj: bpy.types.Object) -> None:
-    """Add the ``AO`` UV layer, pack all faces into it, and keep ``UVMap`` for rendering."""
+    """Add the ``AO`` UV layer, unwrap it with smart project, and keep ``UVMap`` for rendering."""
     layers = obj.data.uv_layers
     layers.new(name="AO")
     layers["UVMap"].active_render = True
     layers.active = layers["AO"]
     _select_only(obj)
     bpy.ops.object.mode_set(mode="EDIT")
-    bpy.ops.uv.lightmap_pack(
-        PREF_CONTEXT="ALL_FACES", PREF_PACK_IN_ONE=True, PREF_NEW_UVLAYER=False, PREF_MARGIN_DIV=0.2
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.uv.smart_project(
+        angle_limit=math.radians(UNWRAP_ANGLE_DEG),
+        island_margin=UNWRAP_MARGIN,
+        scale_to_bounds=True,
     )
     bpy.ops.object.mode_set(mode="OBJECT")
 
@@ -68,12 +77,22 @@ def _wire_ao_image(obj: bpy.types.Object, image: bpy.types.Image) -> None:
         nodes.active = tex
 
 
+def _bake_order(ctx: BuildContext) -> list[tuple[str, str, list[bpy.types.Object]]]:
+    """The groups to bake, ground first (the order only helps debugging), no piping routes."""
+    groups = [g for g in ctx.groups() if not g[1].startswith(PIPE_PREFIX)]
+    return sorted(groups, key=lambda g: g[1] != GROUND_TAG)
+
+
 def bake_all(ctx: BuildContext, level: str) -> float:
-    """Bake ambient occlusion for every equipment object (other objects still occlude).
+    """Bake ambient occlusion for every group except piping (other objects still occlude).
+
+    The image size comes from ``layout.ao_resolution`` by the item type: ``SITE__ground`` and the
+    compressors 1024 px on ``high``, the rest 512 px, everything 256 px on ``low``. A separate
+    node (a fan, the flare tip) uses the type of its parent item.
 
     Args:
-        ctx: Build context; ``objects_by_tag`` holds the joined equipment roots.
-        level: ``"low"`` (512 px, 16 samples) or ``"high"`` (1024 px, 128 samples).
+        ctx: Build context; ``groups()`` holds the joined roots and separate nodes.
+        level: ``"low"`` (256 px, 16 samples) or ``"high"`` (see above, 128 samples).
 
     Returns:
         Wall-clock seconds spent baking.
@@ -86,10 +105,10 @@ def bake_all(ctx: BuildContext, level: str) -> float:
     scene.cycles.use_denoising = False
     scene.world = bpy.data.worlds.new("ao_world")
     scene.world.light_settings.distance = AO_DISTANCE_M
-    for tag, objs in ctx.objects_by_tag.items():
+    for tag, name, objs in _bake_order(ctx):
         obj = objs[0]
-        size = GROUND_RESOLUTION if tag == "ground" else RESOLUTION[level]
-        image = bpy.data.images.new(ao_image_name(tag), size, size)
+        size = ao_resolution(ctx.items[tag]["type"], level)
+        image = bpy.data.images.new(ao_image_name(name), size, size)
         image.colorspace_settings.name = "Non-Color"
         _add_ao_layer(obj)
         _wire_ao_image(obj, image)

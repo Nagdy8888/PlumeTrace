@@ -49,7 +49,8 @@ def ao_resolution(equipment_type: str, level: str) -> int:
     """Pixel size of an item's baked ambient-occlusion image (keeps texture memory in budget).
 
     Args:
-        equipment_type: Spec ``EquipmentType`` value, or ``"ground"`` for the ground patch.
+        equipment_type: Spec ``EquipmentType`` value, ``"ground"`` for ``SITE__ground`` or
+            ``"site"`` for ``SITE__racks`` and ``SITE__fence``.
         level: Bake quality, ``"low"`` or ``"high"``.
 
     Returns:

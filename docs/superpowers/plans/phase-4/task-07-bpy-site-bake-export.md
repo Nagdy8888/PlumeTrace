@@ -120,10 +120,10 @@ npx --yes @gltf-transform/cli@4.5.1 inspect app/frontend/public/models/ks07.glb 
 Over a budget → fix in this order and rerun: (1) AO sizes (512 → 256 for items under 10 m² footprint), (2) cylinder segments (32 → 24), (3) ask the owner. Never raise a limit.
 
 ## Steps
-- [ ] `piping_math` + `check_glb` tests → FAIL → implement → green.
-- [ ] bpy builders; `scripts/build_station.sh low` until it completes; inspect a still from the review camera (`--still`, Task 6) for floating pipes, supports through equipment, gaps at pipe ends.
-- [ ] `scripts/build_station.sh high` → all budgets pass; paste the `check_glb.py` line and the texture-memory sum into the evidence file; record the bake wall time.
-- [ ] `npm run dev`, look at the station at `REVIEW_CAMERA` (spike viewer) → screenshot `docs/evidence/2026-11-ks07-review.png`.
-- [ ] Ruff, pytest, repo checks.
-- [ ] **Docs.** `scripts/blender/README.md` → piping, racks, site, bake list, `build_station.sh`; FRONTEND.md → "Regenerating the station model" (the one command, Blender path, budgets table); `docs/reference/ASSETS.md` unchanged unless an asset was added. Work-log; `STATUS.md` (last 4.7, next 4.8).
+- [x] `piping_math` + `check_glb` tests → FAIL → implement → green.
+- [x] bpy builders; `scripts/build_station.sh low` until it completes; inspect a still from the review camera (`--still`, Task 6) for floating pipes, supports through equipment, gaps at pipe ends.
+- [x] `scripts/build_station.sh high` → all budgets pass; paste the `check_glb.py` line and the texture-memory sum into the evidence file; record the bake wall time.
+- [x] `npm run dev`, look at the station at `REVIEW_CAMERA` (spike viewer) → screenshot `docs/evidence/2026-11-ks07-review.png`.
+- [x] Ruff, pytest, repo checks.
+- [x] **Docs.** `scripts/blender/README.md` → piping, racks, site, bake list, `build_station.sh`; FRONTEND.md → "Regenerating the station model" (the one command, Blender path, budgets table); `docs/reference/ASSETS.md` unchanged unless an asset was added. Work-log; `STATUS.md` (last 4.7, next 4.8).
 - [ ] **Commit** `feat(3d): add piping, site, full bake and validated ks07.glb export`.

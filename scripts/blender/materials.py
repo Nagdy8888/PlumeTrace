@@ -21,6 +21,7 @@ def _spec(
     rough_factor: float = 1.0,
     normal: str | None = None,
     strength: float = 1.0,
+    diffuse_factor: float = 1.0,
 ) -> dict[str, Any]:
     """Build one material table row.
 
@@ -33,6 +34,8 @@ def _spec(
         rough_factor: Factor on the roughness map.
         normal: Poly Haven asset whose normal map is used.
         strength: Normal map strength.
+        diffuse_factor: Factor multiplied onto the diffuse map (darkens a texture that is too
+            bright under the sun, e.g. the gravel yard).
 
     Returns:
         The row as a dict (keys of the ``SPECS`` consumers).
@@ -46,18 +49,26 @@ def _spec(
         rough_factor=rough_factor,
         normal=normal,
         strength=strength,
+        diffuse_factor=diffuse_factor,
     )
 
 
 # Owner ruling C1 (spike review): the tread-plate maps of ``metal_plate`` are never mapped onto
 # painted vessels, pipes or panels, so every ``paint_*`` and ``pipe_gas`` has a constant roughness
 # and no normal map. Texture sets are used only where they are the real surface.
+# Owner ruling C2 (spike review): the gravel must not read as snow, so its diffuse map is
+# multiplied by a factor in the 0.4 to 0.7 band.
+GRAVEL_FACTOR = 0.45
 SPECS: dict[str, dict[str, Any]] = {
     "paint_grey": _spec(color=(0.50, 0.52, 0.50), rough=0.5, metallic=0.3),
     "paint_dark": _spec(color=(0.12, 0.13, 0.14), rough=0.6, metallic=0.4),
     "paint_red": _spec(color=(0.50, 0.05, 0.04), rough=0.5, metallic=0.2),
     "paint_white": _spec(color=(0.80, 0.80, 0.78), rough=0.5, metallic=0.2),
     "pipe_gas": _spec(color=(0.60, 0.58, 0.40), rough=0.55, metallic=0.3),
+    "pipe_vent": _spec(color=(0.45, 0.47, 0.48), rough=0.55, metallic=0.3),
+    "pipe_condensate": _spec(color=(0.28, 0.20, 0.12), rough=0.55, metallic=0.3),
+    "pipe_fuel": _spec(color=(0.70, 0.55, 0.05), rough=0.55, metallic=0.3),
+    "asphalt": _spec(color=(0.06, 0.06, 0.06), rough=0.9),
     "safety_yellow": _spec(color=(0.78, 0.55, 0.03), rough=0.55, metallic=0.1),
     "glass": _spec(color=(0.05, 0.07, 0.08), rough=0.1),
     "building_panel": _spec(
@@ -73,7 +84,16 @@ SPECS: dict[str, dict[str, Any]] = {
         diffuse="concrete_floor_02", rough_tex="concrete_floor_02", normal="concrete_floor_02"
     ),
     "gravel": _spec(
-        diffuse="gravel_floor_02", rough_tex="gravel_floor_02", normal="gravel_floor_02"
+        diffuse="gravel_floor_02",
+        rough_tex="gravel_floor_02",
+        normal="gravel_floor_02",
+        diffuse_factor=GRAVEL_FACTOR,
+    ),
+    "gravel_far": _spec(
+        diffuse="gravel_floor_02",
+        rough=1.0,
+        normal="gravel_floor_02",
+        diffuse_factor=GRAVEL_FACTOR,
     ),
     "cladding": _spec(
         diffuse="corrugated_iron_02",
@@ -150,7 +170,16 @@ def make_material(
     uv.uv_map = "UVMap"
     if spec["diffuse"]:
         tex = _tex(mat, ctx, spec["diffuse"], "diff", True, uv)
-        links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+        colour = tex.outputs["Color"]
+        if spec["diffuse_factor"] != 1.0:
+            tint = nodes.new("ShaderNodeMix")
+            tint.data_type = "RGBA"
+            tint.blend_type = "MULTIPLY"
+            tint.inputs["Factor"].default_value = 1.0
+            tint.inputs["B"].default_value = (*(spec["diffuse_factor"],) * 3, 1.0)
+            links.new(colour, tint.inputs["A"])
+            colour = tint.outputs["Result"]
+        links.new(colour, bsdf.inputs["Base Color"])
     else:
         factor = paint_value if key.startswith("paint_") else 1.0
         bsdf.inputs["Base Color"].default_value = (*(c * factor for c in spec["color"]), 1.0)

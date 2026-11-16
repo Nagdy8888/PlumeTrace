@@ -1,5 +1,8 @@
 """Build the baked station glb from the facility spec (run inside Blender, headless).
 
+Without ``--only`` the whole station is built: equipment, piping, pipe racks, fence, ground
+(yard, pads, road, tank bund). With ``--only`` only the selected items and the ground are built.
+
 Run from the repo root::
 
     blender --background --factory-startup --python scripts/blender/build_station.py -- \
@@ -13,10 +16,14 @@ import argparse
 import sys
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+if TYPE_CHECKING:
+    from scene_setup import BuildContext
 
 SEED = 20261113
 
@@ -33,6 +40,26 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv[argv.index("--") + 1 :] if "--" in argv else [])
 
 
+def _build_scene(ctx: "BuildContext", items: list[dict[str, Any]], full: bool) -> None:
+    """Build equipment, then (whole station) racks, piping and fence, then the ground."""
+    import equipment
+    from equipment import pipe_rack, pipe_route, shelter, site
+
+    for item in items:
+        builder = equipment.BUILDERS.get(item["type"])
+        if builder is None:
+            sys.exit(f"no builder for type {item['type']}")
+        builder(item, ctx)
+        if item.get("shelter"):
+            shelter.build_shelter(item, ctx)
+    if full:  # piping, racks, fence and bund only make sense for the whole station
+        pipe_rack.build_racks(ctx)
+        for route in ctx.spec["piping"]:
+            pipe_route.build(route, ctx)
+        site.build_fence(ctx)
+    site.build_ground(ctx, items, full)
+
+
 def main(argv: list[str]) -> None:
     """Build, bake and export.
 
@@ -41,12 +68,10 @@ def main(argv: list[str]) -> None:
     """
     import bake
     import bpy
-    import equipment
     import export
     import materials
     import scene_setup
     import still
-    from equipment import ground, shelter
     from spec_loader import load_spec, select_equipment
 
     args = parse_args(argv)
@@ -59,14 +84,7 @@ def main(argv: list[str]) -> None:
     items = select_equipment(spec, only)
     scene_setup.reset_scene()
     ctx = scene_setup.BuildContext(spec, args.textures.resolve(), np.random.default_rng(SEED))
-    ground.build_ground(ctx)
-    for item in items:
-        builder = equipment.BUILDERS.get(item["type"])
-        if builder is None:
-            sys.exit(f"no builder for type {item['type']}")
-        builder(item, ctx)
-        if item.get("shelter"):
-            shelter.build_shelter(item, ctx)
+    _build_scene(ctx, items, only is None)
     materials.assign_all(ctx)
     export.add_anchors(ctx)
     export.join_equipment(ctx)

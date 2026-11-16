@@ -4,8 +4,8 @@
 
 `app/frontend/` is the PlumeTrace control-room web app: React + TypeScript + Vite. As of Phase 4 Task 4
 it has the design system, the data layer (live API or static replay) and the control-room panels:
-top bar, alarms, station log, trends and playback bar. The station area shows the scenario load status and, since the Task 5 spike, a baked 3D model of
-one skid (the full scene is Phase 4 Tasks 6 to 9, pending the owner's go). The data is the simulated station KS-07
+top bar, alarms, station log, trends and playback bar. The station area shows the scenario load status and, since Phase 4 Task 7, the baked 3D model of
+the full station (the real-time scene features are Tasks 8 and 9). The data is the simulated station KS-07
 (fictional); the weather in it is real. Design reference: section 9; visual rules: `.ux-profile.md`.
 
 This page is the overview. The detail lives in four focused pages:
@@ -180,16 +180,19 @@ zone-labelled (`... UTC`) or says `Elapsed`.
 - **Every clock shows a zone label or `Elapsed`** (`clockLabels.test.tsx`). A station-local time gets
   its own label `UTC+5 station time`.
 
-## 3D station: built (spike) versus planned
+## 3D station: built versus planned
 
 Described in `docs/superpowers/plans/phase-4/README.md` and the Task 5 to 11 plan files. In the
-code there is the Task 5 spike scene (see "3D station (Task 5 spike)" below) and, since Task 6, the
-Blender generator for every equipment type ([BLENDER_EQUIPMENT.md](BLENDER_EQUIPMENT.md)); the
-shipped `ks07.glb` is still the spike model and the rest of this section is still planned. `vite.config.ts` excludes `src/features/station3d/scene/**` from coverage.
+code there is the Task 5 spike scene (see "3D station (Task 5 spike)" below), since Task 6 the
+Blender generator for every equipment type ([BLENDER_EQUIPMENT.md](BLENDER_EQUIPMENT.md)) and, since
+Task 7, the piping, site, bake and the one-command export ([STATION_MODEL.md](STATION_MODEL.md)):
+the shipped `ks07.glb` is the full station (24 items, 15 piping routes, racks, site). The viewer
+code is still the Task 5 scene (model, sun, camera); the rest of this section is still planned.
+`vite.config.ts` excludes `src/features/station3d/scene/**` from coverage.
 
 ```mermaid
 flowchart LR
-    Bpy["scripts/blender/ bpy script<br/>from ks07.json<br/>BUILT (15 equipment types)"] --> Glb["public/models/ks07.glb<br/>15 MB or less<br/>BUILT (spike content only)"]
+    Bpy["scripts/blender/ bpy script<br/>from ks07.json<br/>BUILT (equipment, piping, site)"] --> Glb["public/models/ks07.glb<br/>15 MB or less<br/>BUILT (full station, 3.17 MB)"]
     Glb --> Scene["station3d scene<br/>React Three Fiber<br/>BUILT (model, sun, camera)"]
     Clock["useClockStore.getState()<br/>inside useFrame<br/>PLANNED"] --> Scene
     Sel["useSelectionStore<br/>PLANNED"] --> Scene
@@ -198,15 +201,44 @@ flowchart LR
     class Clock,Sel,Frames planned
 ```
 
-*Caption: data flow of approach B (Blender-baked). Solid nodes exist: the generator builds all 24
-spec items (Task 6) but the shipped glb and the scene still show only the Task 5 spike content
-(one skid, one stack, one ground patch); dotted nodes are planned and not built.*
+*Caption: data flow of approach B (Blender-baked). Solid nodes exist: the generator and the shipped
+glb hold the full station (Tasks 6 and 7) and the scene renders it with the Task 5 sun and camera;
+dotted nodes are planned and not built.*
 
 Planned data flow, approach B, from the Phase 4 plan. The plume and highlights are real-time R3F;
 the clock is read inside `useFrame`, never through React state; plume visibility is gated by the
-model grid in the replay. Only the left half (model and scene) is built, and only with the spike
-content; the full station (Tasks 6 and 7) and the dotted inputs (Tasks 8 and 9) are planned. This
-section becomes the 3D reference when Tasks 5 to 9 are done (rule 21).
+model grid in the replay. Only the left half (model and scene) is built; the dotted inputs and the
+real-time scene features (Tasks 8 and 9) are planned. This section becomes the 3D reference when
+Tasks 5 to 9 are done (rule 21).
+
+### Regenerating the station model
+
+One command from the repo root (Git Bash); `BLENDER` is the Blender 4.5.16 path from
+[LOCAL_DEVELOPMENT.md](../LOCAL_DEVELOPMENT.md):
+
+```bash
+export BLENDER="C:/Users/Nagdy/Tools/blender-4.5.16/blender-4.5.16-windows-x64/blender.exe"
+scripts/build_station.sh high      # about 3 minutes; low is a 30 second preview
+```
+
+It regenerates the contract JSON, builds, bakes and exports the station, optimises it with
+glTF-Transform 4.5.1 (`--texture-size 512 --prune false`, no join, flatten, simplify or palette)
+and runs `check_glb.py`. The file is generated; never edit it by hand. Budgets (all must pass, none
+may be raised without the owner); latest values from the 2026-11-16 run, details in
+[../evidence/2026-11-ks07-glb.md](../evidence/2026-11-ks07-glb.md):
+
+| Budget | Limit | Latest | Checked by |
+|---|---|---|---|
+| file size | 15,000,000 bytes | 3,165,648 | `check_glb.py --max-bytes` |
+| triangles | 1,500,000 | 110,484 | `check_glb.py --max-triangles` |
+| draw calls (estimate) | 300 | 168 (the browser count is Task 8; `r3f-perf` showed 260 with the shadow pass) | `check_glb.py --max-draw-calls` |
+| GPU texture memory | 128 MB | 71.4 MB | by hand: sum of `gpuSize` in `build/ks07_inspect.txt` |
+| tags, anchors, 7 separate nodes | 0 missing | 0 missing | `check_glb.py` (no `--only`) |
+
+In the shipped glb a tag node holds its mesh in an unnamed child node for most items (the 21 unnamed
+child nodes carry the meshes, each with the quantisation scale and translation the meshopt
+step adds), so the Task 8 `nodeIndex` must
+look at descendants, not only at the named node.
 
 ## 3D station (Task 5 spike)
 
@@ -243,7 +275,7 @@ Pinned (Task 5): three 0.187.0, @react-three/fiber 9.8.2, @react-three/drei 10.7
 are tested in `app/backend/tests/blender/` and `app/backend/tests/test_check_glb.py`. Spike
 measurements (size, draw calls, fps, bake time) are in `docs/evidence/2026-11-spike.md`.
 
-### Separate glb nodes (generator built in Task 6, not in the shipped glb yet)
+### Separate glb nodes (built in Task 6, in the shipped glb since Task 7)
 
 Most items are one node named by the tag. Two kinds of part stay their own node so the frontend can
 animate them; their names are `naming.part_name(tag, part)` = `<tag>__<part>`:
@@ -257,9 +289,9 @@ Real values from the 2026-11-16 raw export (three.js frame, Y up): `E-231__fan_1
 `[-2, 3.4, 0]` inside `E-231` (translation `[95, 0, -57]`), its blades span about +-1.55 m in x and z
 and 0.04 m in y, so the hub axis is the node's local **Y**. `FL-601__tip` is at `[0, 28.5, 0]` inside
 `FL-601` (`[185, 0, -30]`) and the anchor `FL-601.tip` at `[0, 30, 0]`. Separate nodes carry their own
-material copies but no baked AO. Risk for Task 7: `gltf-transform optimize` defaults (`--instance`,
-dedup) can merge identical meshes (the six fans) into instanced batches and drop the named nodes;
-`check_glb.py` only checks tags and anchors, so Task 7 must also check the seven separate-node names.
+material copies and, since Task 7, their own baked AO. In the Task 7 build `optimize` kept all
+seven nodes with its default `--instance`; `check_glb.py` now requires the seven names
+(`test_check_glb.py::test_separate_nodes_are_required`).
 
 ### Spike pipeline (built)
 
@@ -300,13 +332,15 @@ rerunning the commands in `scripts/blender/README.md` reproduces `ks07.glb`.*
 | A tag in `--only` that is not in the spec | `ValueError: unknown tag K-999` | `tests/blender/test_spec_loader.py::test_unknown_tag_is_rejected` |
 | A JSON file without `equipment` | `ValueError: ... missing equipment` | `test_spec_loader.py::test_rejects_non_spec_json` |
 | A file that is not a glb | `ValueError` naming the bad magic | `test_check_glb.py::test_bad_magic_is_rejected` |
-| glb over the byte budget | `glb is N bytes, budget M`, exit 1 | `test_check_glb.py::test_size_budget` |
+| glb over the byte budget | `glb has N bytes, budget M`, exit 1 | `test_check_glb.py::test_size_budget` |
+| glb over the triangle or draw-call budget | `glb has N triangles, budget M` (or `draw calls`), exit 1 | `test_check_glb.py::test_triangle_and_draw_call_budgets` |
+| a fan or the flare tip missing from the glb | `missing nodes: ['E-231__fan_1', ...]`, exit 1 | `test_check_glb.py::test_separate_nodes_are_required` |
 | Face normal exactly between two axes | box UV picks z, then x | `tests/blender/test_uvmath.py::test_diagonal_normal_ties_to_z` |
 | Item rotated in the spec | local and world positions round-trip | `tests/blender/test_layout.py::test_round_trip` |
 | Spec point to scene point | `[x, y, z]` becomes `[x, z, -y]` | `scene/coords.test.ts` (2 tests) |
 | Browser without WebGL 2 (or jsdom) | `StationView` renders nothing; the 2D panels work | indirectly by the `AppShell` tests (jsdom has no WebGL 2); no dedicated test, the full fallback is Task 10 |
 | Draco | never used; the glb has no Draco data and `useGLTF(url, false, true)` skips its CDN decoder | **no test** (the scene is excluded from jsdom and coverage); keep it by never passing `--compress draco` |
-| `--bake none`, `low` (512 px, 16 samples), `high` (1024 px, 128 samples) | AO image size and samples change; `none` exports without occlusion | **no test** (needs Blender); measured times in the spike file |
+| `--bake none`, `low` (256 px, 16 samples), `high` (`layout.ao_resolution`: 1024 px compressors and ground, else 512 px; 128 samples) | AO image size and samples change; `none` exports without occlusion | **no test** (needs Blender); times in the evidence files |
 | Blender other than 4.5 | prints `Blender 4.5 required, found x.y.z` and exits 2 | **no test** (needs Blender) |
 
 ## Anti-slop gate
@@ -360,6 +394,8 @@ schema and the committed `contract.ts`.
 
 - 2026-11-13: Phase 1 Task 5 scaffold.
 - 2026-11-15: Phase 4 Tasks 2 to 4 (design system, data layer, panels).
+- 2026-11-16: Phase 4 Task 7: the shipped glb is the full station; "Regenerating the station model"
+  section with the budgets; separate-node and check_glb notes updated; STATION_MODEL.md added.
 - 2026-11-15: documentation pass: this page became the overview; detail moved to DESIGN_SYSTEM.md,
   DATA_LAYER.md, UI_PANELS.md and ACCESSIBILITY.md; added architecture and layer diagrams and the
   planned 3D data flow.
