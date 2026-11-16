@@ -4,7 +4,7 @@ Run from the repo root::
 
     blender --background --factory-startup --python scripts/blender/build_station.py -- \
         --spec app/frontend/src/shared/facility/ks07.json --out build/ks07_raw.glb \
-        --bake low --only K-202,VS-250
+        --bake low --only K-202,VS-250 [--still build/stills/recip_compressor.png]
 
 Blender 4.5 LTS only. Seeded randomness only; rerunning reproduces the model.
 """
@@ -29,6 +29,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--bake", choices=["none", "low", "high"], default="low")
     parser.add_argument("--only", default="", help="comma-separated tags (default: all)")
     parser.add_argument("--textures", type=Path, default=Path("build/polyhaven"))
+    parser.add_argument("--still", type=Path, help="render a review PNG of the first --only tag")
     return parser.parse_args(argv[argv.index("--") + 1 :] if "--" in argv else [])
 
 
@@ -44,6 +45,7 @@ def main(argv: list[str]) -> None:
     import export
     import materials
     import scene_setup
+    import still
     from equipment import ground, shelter
     from spec_loader import load_spec, select_equipment
 
@@ -68,6 +70,8 @@ def main(argv: list[str]) -> None:
     materials.assign_all(ctx)
     export.add_anchors(ctx)
     export.join_equipment(ctx)
+    if args.still is not None:
+        still.render_still(items[0], args.still.resolve())
     bake_s = 0.0
     if args.bake != "none":
         bake_s = bake.bake_all(ctx, args.bake)

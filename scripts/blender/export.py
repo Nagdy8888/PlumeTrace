@@ -38,13 +38,14 @@ def _apply_modifiers(obj: bpy.types.Object) -> None:
 def join_equipment(ctx: BuildContext) -> None:
     """Join every static part of an item into its root, which is named exactly the tag.
 
-    Anchor empties stay children of the root. Call before baking (one AO image per item).
+    Anchor empties and separate nodes (``<tag>__<part>``, each joined into itself) stay children
+    of the root. Call before baking (one AO image per item).
 
     Args:
         ctx: Build context.
     """
     bpy.context.view_layer.update()
-    for objs in ctx.objects_by_tag.values():
+    for _tag, _name, objs in ctx.groups():
         root, parts = objs[0], objs[1:]
         for part in parts:
             _apply_modifiers(part)

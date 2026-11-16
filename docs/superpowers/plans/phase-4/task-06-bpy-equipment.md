@@ -106,11 +106,11 @@ placed 2.5 × the item's largest dimension away at 30° elevation from the south
 18°). Look at each still; fix anything floating, intersecting or missing before moving on.
 
 ## Steps
-- [ ] Confirm "go" in STATUS.md (else STOP).
-- [ ] `ao_resolution` test → FAIL → implement → green.
-- [ ] Parts library, then builders in this order: scrubber, filter separator, knockout drum, pig trap, fin-fan, TEG contactor, TEG regenerator, tanks, VRU, fuel gas skid, meter run, flare stack, buildings. Verify each type (above).
-- [ ] Full no-bake build of all tags (`--bake none`, no `--only`) → `check_glb.py` (no `--only`) prints `glb OK`.
-- [ ] Copy the 13 stills into `docs/evidence/2026-11-equipment/` (PNG, ≤ 400 KB each — reduce to 960×540 if larger).
-- [ ] Ruff on `scripts/`; pytest; repo checks (each module ≤ 300 lines, function ≤ 50 lines).
+- [x] Confirm "go" in STATUS.md (else STOP).
+- [x] `ao_resolution` test → FAIL → implement → green.
+- [x] Parts library, then builders in this order: scrubber, filter separator, knockout drum, pig trap, fin-fan, TEG contactor, TEG regenerator, tanks, VRU, fuel gas skid, meter run, flare stack, buildings. Verify each type (above).
+- [x] Full no-bake build of all tags (`--bake none`, no `--only`) → `check_glb.py` (no `--only`) prints `glb OK`.
+- [x] Copy the 13 stills into `docs/evidence/2026-11-equipment/` (PNG, ≤ 400 KB each — reduce to 960×540 if larger).
+- [x] Ruff on `scripts/`; pytest; repo checks (each module ≤ 300 lines, function ≤ 50 lines).
 - [ ] **Docs.** `scripts/blender/README.md` → one section per equipment type (parts, anchors, separate nodes); FRONTEND.md → separate-node naming (`<tag>__fan_n`, `FL-601__tip`). Work-log; `STATUS.md` (last 4.6, next 4.7).
 - [ ] **Commit** `feat(3d): add bpy parts library and builders for every equipment type`.

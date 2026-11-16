@@ -33,3 +33,14 @@ def test_round_trip() -> None:
     mod = _load("layout")
     p = (80.0, 70.0, 3.0)
     assert mod.to_world(ITEM, mod.to_local(ITEM, p)) == pytest.approx(p, abs=1e-9)
+
+
+def test_ao_resolution_budget() -> None:
+    """Large items get 1024 px AO at high quality, the rest 512 px; low is always 256 px."""
+    mod = _load("layout")
+    assert mod.ao_resolution("recip_compressor", "high") == 1024
+    assert mod.ao_resolution("ground", "high") == 1024
+    assert mod.ao_resolution("storage_tank", "high") == 512
+    assert mod.ao_resolution("flare_stack", "low") == 256
+    with pytest.raises(ValueError):
+        mod.ao_resolution("vru", "ultra")

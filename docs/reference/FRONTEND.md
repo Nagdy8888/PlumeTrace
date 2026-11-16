@@ -182,13 +182,14 @@ zone-labelled (`... UTC`) or says `Elapsed`.
 
 ## 3D station: built (spike) versus planned
 
-Described in `docs/superpowers/plans/phase-4/README.md` and the Task 5 to 11 plan files. Only the
-Task 5 spike exists in the code (see "3D station (Task 5 spike)" below); the rest of this section
-is still planned. `vite.config.ts` excludes `src/features/station3d/scene/**` from coverage.
+Described in `docs/superpowers/plans/phase-4/README.md` and the Task 5 to 11 plan files. In the
+code there is the Task 5 spike scene (see "3D station (Task 5 spike)" below) and, since Task 6, the
+Blender generator for every equipment type ([BLENDER_EQUIPMENT.md](BLENDER_EQUIPMENT.md)); the
+shipped `ks07.glb` is still the spike model and the rest of this section is still planned. `vite.config.ts` excludes `src/features/station3d/scene/**` from coverage.
 
 ```mermaid
 flowchart LR
-    Bpy["scripts/blender/ bpy script<br/>from ks07.json<br/>BUILT (spike)"] --> Glb["public/models/ks07.glb<br/>15 MB or less<br/>BUILT (spike content)"]
+    Bpy["scripts/blender/ bpy script<br/>from ks07.json<br/>BUILT (15 equipment types)"] --> Glb["public/models/ks07.glb<br/>15 MB or less<br/>BUILT (spike content only)"]
     Glb --> Scene["station3d scene<br/>React Three Fiber<br/>BUILT (model, sun, camera)"]
     Clock["useClockStore.getState()<br/>inside useFrame<br/>PLANNED"] --> Scene
     Sel["useSelectionStore<br/>PLANNED"] --> Scene
@@ -197,8 +198,9 @@ flowchart LR
     class Clock,Sel,Frames planned
 ```
 
-*Caption: data flow of approach B (Blender-baked). Solid nodes exist as the Task 5 spike (one skid,
-one stack, one ground patch); dotted nodes are planned and not built.*
+*Caption: data flow of approach B (Blender-baked). Solid nodes exist: the generator builds all 24
+spec items (Task 6) but the shipped glb and the scene still show only the Task 5 spike content
+(one skid, one stack, one ground patch); dotted nodes are planned and not built.*
 
 Planned data flow, approach B, from the Phase 4 plan. The plume and highlights are real-time R3F;
 the clock is read inside `useFrame`, never through React state; plume visibility is gated by the
@@ -240,6 +242,24 @@ Pinned (Task 5): three 0.187.0, @react-three/fiber 9.8.2, @react-three/drei 10.7
 0.187.0, r3f-perf 7.2.3. Tests: `scene/coords.test.ts`; the pure Blender helpers and `check_glb.py`
 are tested in `app/backend/tests/blender/` and `app/backend/tests/test_check_glb.py`. Spike
 measurements (size, draw calls, fps, bake time) are in `docs/evidence/2026-11-spike.md`.
+
+### Separate glb nodes (generator built in Task 6, not in the shipped glb yet)
+
+Most items are one node named by the tag. Two kinds of part stay their own node so the frontend can
+animate them; their names are `naming.part_name(tag, part)` = `<tag>__<part>`:
+
+| Node | Where | Origin (pivot) | Contents | Intended use (Task 9, planned) |
+|---|---|---|---|---|
+| `E-231__fan_1`, `E-231__fan_2` (same for `E-232`, `E-233`) | fin-fan coolers | the fan hub, item-local `(-L/4, 0, 3.4)` and `(+L/4, 0, 3.4)` | hub cylinder r 0.2 m and four blades pitched 12 degrees | spin about the node's local Y axis |
+| `FL-601__tip` | flare stack | item-local `(0, 0, 28.5)`, the top of the stack | tip cylinder r 0.35 m and the open wind shield ring; its top centre is the anchor `FL-601.tip` | place the flame at the anchor |
+
+Real values from the 2026-11-16 raw export (three.js frame, Y up): `E-231__fan_1` has translation
+`[-2, 3.4, 0]` inside `E-231` (translation `[95, 0, -57]`), its blades span about +-1.55 m in x and z
+and 0.04 m in y, so the hub axis is the node's local **Y**. `FL-601__tip` is at `[0, 28.5, 0]` inside
+`FL-601` (`[185, 0, -30]`) and the anchor `FL-601.tip` at `[0, 30, 0]`. Separate nodes carry their own
+material copies but no baked AO. Risk for Task 7: `gltf-transform optimize` defaults (`--instance`,
+dedup) can merge identical meshes (the six fans) into instanced batches and drop the named nodes;
+`check_glb.py` only checks tags and anchors, so Task 7 must also check the seven separate-node names.
 
 ### Spike pipeline (built)
 

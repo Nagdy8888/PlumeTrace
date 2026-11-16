@@ -232,6 +232,8 @@ on PATH**. Path used on this machine:
 Commands, modules and the asset download: [../scripts/blender/README.md](../scripts/blender/README.md)
 and [reference/ASSETS.md](reference/ASSETS.md). The generator is optional for running the UI: the
 generated `app/frontend/public/models/ks07.glb` is committed.
+Build and check one equipment type (with an optional review still):
+[reference/BLENDER_EQUIPMENT.md](reference/BLENDER_EQUIPMENT.md) section 8.
 
 ## Checks
 

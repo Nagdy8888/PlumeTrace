@@ -1,18 +1,19 @@
 """Mesh primitives built with ``bmesh`` (never ``bpy.ops.mesh.primitive_*``).
 
 All sizes are in metres. Locations passed in are item-local when the object is later parented to
-an equipment root (see ``BuildContext.add_part``).
+an equipment root (see ``BuildContext.add_part``). Facet counts follow ``solids.segments_for``.
 """
 
 import math
 
 import bmesh
 import bpy
-from mathutils import Matrix, Vector
+from mathutils import Vector
 from uvmath import box_uv  # scripts/blender is on sys.path (build_station.py)
 
+from parts.solids import cone_bmesh, orient, segments_for
+
 Vec3 = tuple[float, float, float]
-_AXIS_ROTATION = {"Z": None, "X": ("Y", 90.0), "Y": ("X", -90.0)}
 
 
 def from_bmesh(
@@ -27,26 +28,6 @@ def from_bmesh(
     obj.location = location
     obj.rotation_euler = (0.0, 0.0, math.radians(rotation_z_deg))
     return obj
-
-
-def _cone(radius: float, depth: float, segments: int, caps: bool, axis: str) -> bmesh.types.BMesh:
-    """Build a bmesh cylinder along ``axis`` ("X", "Y" or "Z") centred on the origin."""
-    bm = bmesh.new()
-    bmesh.ops.create_cone(
-        bm,
-        cap_ends=caps,
-        cap_tris=False,
-        segments=segments,
-        radius1=radius,
-        radius2=radius,
-        depth=depth,
-        calc_uvs=False,
-    )
-    spin = _AXIS_ROTATION[axis]
-    if spin is not None:
-        matrix = Matrix.Rotation(math.radians(spin[1]), 3, spin[0])
-        bmesh.ops.rotate(bm, cent=(0.0, 0.0, 0.0), matrix=matrix, verts=bm.verts)
-    return bm
 
 
 def box(name: str, size: Vec3, location: Vec3, rotation_z_deg: float = 0.0) -> bpy.types.Object:
@@ -76,17 +57,94 @@ def plane(name: str, size_xy: tuple[float, float], location: Vec3) -> bpy.types.
 
 
 def cylinder(
-    name: str, radius: float, depth: float, location: Vec3, axis: str = "Z", segments: int = 24
+    name: str,
+    radius: float,
+    depth: float,
+    location: Vec3,
+    axis: str = "Z",
+    segments: int | None = None,
+    rotation_z_deg: float = 0.0,
 ) -> bpy.types.Object:
-    """Create a capped cylinder centred on ``location`` with its length along ``axis``."""
-    return from_bmesh(name, _cone(radius, depth, segments, True, axis), location)
+    """Create a capped cylinder centred on ``location`` with its length along ``axis``.
+
+    Args:
+        name: Object name.
+        radius: Radius in metres.
+        depth: Length along ``axis`` in metres.
+        location: Centre position.
+        axis: "X", "Y" or "Z".
+        segments: Facets (default: by radius, see ``solids.segments_for``).
+        rotation_z_deg: Rotation about z in degrees (applied to the whole object).
+
+    Returns:
+        The new object.
+    """
+    bm = cone_bmesh(radius, depth, segments or segments_for(radius), True, axis)
+    return from_bmesh(name, bm, location, rotation_z_deg)
+
+
+def cone(
+    name: str, r_bottom: float, r_top: float, depth: float, location: Vec3, axis: str = "Z"
+) -> bpy.types.Object:
+    """Create a capped cone (or frustum) centred on ``location``.
+
+    Args:
+        name: Object name.
+        r_bottom: Radius at the -axis end in metres (0 gives a point).
+        r_top: Radius at the +axis end in metres.
+        depth: Length along ``axis`` in metres.
+        location: Centre position.
+        axis: "X", "Y" or "Z".
+
+    Returns:
+        The new object.
+    """
+    segments = segments_for(max(r_bottom, r_top))
+    return from_bmesh(name, cone_bmesh(r_bottom, depth, segments, True, axis, r_top), location)
+
+
+def torus(
+    name: str, major_r: float, minor_r: float, location: Vec3, axis: str = "Z"
+) -> bpy.types.Object:
+    """Create a torus (ring) whose hole runs along ``axis``.
+
+    Args:
+        name: Object name.
+        major_r: Distance from the centre to the tube centre, in metres.
+        minor_r: Tube radius in metres.
+        location: Centre position.
+        axis: Direction of the hole: "X", "Y" or "Z".
+
+    Returns:
+        The new object (``segments_for(major_r)`` facets around, ``segments_for(minor_r)`` round).
+    """
+    around, round_ = segments_for(major_r), segments_for(minor_r)
+    bm = bmesh.new()
+    rings = []
+    for i in range(around):
+        u = 2 * math.pi * i / around
+        ring = []
+        for j in range(round_):
+            v = 2 * math.pi * j / round_
+            radial = major_r + minor_r * math.cos(v)
+            at = (radial * math.cos(u), radial * math.sin(u), minor_r * math.sin(v))
+            ring.append(bm.verts.new(at))
+        rings.append(ring)
+    for i in range(around):
+        a, b = rings[i], rings[(i + 1) % around]
+        for j in range(round_):
+            k = (j + 1) % round_
+            bm.faces.new((a[j], b[j], b[k], a[k]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    orient(bm, axis)
+    return from_bmesh(name, bm, location)
 
 
 def half_cylinder(
     name: str, radius: float, depth: float, location: Vec3, axis: str = "X"
 ) -> bpy.types.Object:
     """Create the upper half of a cylinder (an open shell, e.g. a coupling guard)."""
-    bm = _cone(radius, depth, 24, True, axis)
+    bm = cone_bmesh(radius, depth, 24, True, axis)
     geom = list(bm.verts) + list(bm.edges) + list(bm.faces)
     bmesh.ops.bisect_plane(
         bm, geom=geom, plane_co=(0.0, 0.0, 0.0), plane_no=(0.0, 0.0, 1.0), clear_inner=True
@@ -96,8 +154,8 @@ def half_cylinder(
 
 def tube(name: str, radius: float, wall_m: float, depth: float, location: Vec3) -> bpy.types.Object:
     """Create an open vertical tube: an outer shell plus an inner shell with flipped normals."""
-    bm = _cone(radius, depth, 24, False, "Z")
-    inner = _cone(radius - wall_m, depth, 24, False, "Z")
+    bm = cone_bmesh(radius, depth, 24, False, "Z")
+    inner = cone_bmesh(radius - wall_m, depth, 24, False, "Z")
     bmesh.ops.reverse_faces(inner, faces=list(inner.faces))
     mesh = bpy.data.meshes.new("tmp_inner")
     inner.to_mesh(mesh)

@@ -43,3 +43,23 @@ def to_world(item: dict[str, Any], local: Vec3) -> Vec3:
     x, y, z = _rotate_z(local, float(item.get("rotation_deg", 0.0)))
     px, py, pz = item["position_m"]
     return (x + px, y + py, z + pz)
+
+
+def ao_resolution(equipment_type: str, level: str) -> int:
+    """Pixel size of an item's baked ambient-occlusion image (keeps texture memory in budget).
+
+    Args:
+        equipment_type: Spec ``EquipmentType`` value, or ``"ground"`` for the ground patch.
+        level: Bake quality, ``"low"`` or ``"high"``.
+
+    Returns:
+        256 for ``"low"``; for ``"high"`` 1024 for ``recip_compressor`` and ``ground``, else 512.
+
+    Raises:
+        ValueError: If ``level`` is neither ``"low"`` nor ``"high"``.
+    """
+    if level == "low":
+        return 256
+    if level == "high":
+        return 1024 if equipment_type in ("recip_compressor", "ground") else 512
+    raise ValueError(f"unknown bake level {level!r}")

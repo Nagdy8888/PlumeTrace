@@ -7,10 +7,12 @@ them are from Poly Haven under the CC0 licence (public-domain dedication, no att
 credited here anyway). Nothing else is third-party: the station geometry is generated from the
 facility spec, never downloaded.
 
-Built (Phase 4 Task 5 spike): the fetch script, the manifest with SHA-256 values, the six assets
-below, and their use in the spike model (`K-202`, `VS-250`, ground). Planned: the grating texture
-`metal_grate_rusty` is downloaded and pinned but unused until Phase 4 Task 6; the other equipment
-types and the full station (Tasks 6 and 7) will use the same textures. The owner approved the
+Built (Phase 4 Tasks 5 and 6): the fetch script, the manifest with SHA-256 values, the six assets
+below, and their use in the model: the spike (`K-202`, `VS-250`, ground) and, since Task 6, the
+grating (`metal_grate_rusty`, key `grating`) on platforms, walkways and stair treads of the other
+equipment types. `metal_plate` is downloaded and pinned but **no material uses it** since the owner
+ruling C1 (its tread-plate maps are not mapped onto painted vessels, pipes or panels); the manifest
+is unchanged. The full station (Task 7) will use the same textures. The owner approved the
 download in chat on 2026-11-15.
 
 Owner modules: `scripts/fetch_polyhaven.py` (download and verify), `scripts/blender/polyhaven_manifest.json`
@@ -28,13 +30,14 @@ flowchart LR
     Mat --> Bake["bake.py + export.py<br/>AO bake, glb export"]
     Bake --> Glb["ks07.glb<br/>textures as WebP"]
     Hdri --> R3F["EnvironmentMap.tsx<br/>lighting only"]
-    Grate["metal_grate_rusty<br/>downloaded, unused until Task 6"] -.-> Tex
-    classDef planned stroke-dasharray: 5 5
-    class Grate planned
+    Plate["metal_plate<br/>pinned, mapped on no material (C1)"] -.-> Tex
+    classDef unused stroke-dasharray: 5 5
+    class Plate unused
 ```
 
-*Caption: from the Poly Haven API to the model and the runtime lighting. Solid = built in the
-Task 5 spike; dotted = downloaded but not used yet.*
+*Caption: from the Poly Haven API to the model and the runtime lighting. Solid = built and used
+(`metal_grate_rusty` is in `Tex` and used by Task 6); dotted = downloaded and pinned but not used
+by any material.*
 
 1. The script reads the manifest: resolution `1k`, per-texture map names, the HDRI id and format,
    and the recorded `sha256` map.
@@ -56,11 +59,11 @@ Assets (all CC0, resolution 1k, source `https://polyhaven.com/a/<id>`):
 
 | Asset id | Maps | Used for | Used by |
 |---|---|---|---|
-| `metal_plate` | `nor_gl`, `Rough` | painted steel (normal strength 0.6; roughness times 0.8 on `paint_grey`); the colour is a paint value | `materials.py` keys `paint_grey`, `paint_dark` |
-| `concrete_floor_02` | `Diffuse`, `nor_gl`, `Rough` | concrete pad | key `concrete` |
+| `metal_plate` | `nor_gl`, `Rough` | **unused** (owner ruling C1, spike review: its tread-plate pattern is wrong on vessel bodies, pipes and panels). `paint_grey`, `paint_dark`, `paint_red`, `paint_white` and `pipe_gas` are plain colours with a constant roughness (`paint_grey` 0.5). It may only ever be used on a walkway or deck surface | no material |
+| `concrete_floor_02` | `Diffuse`, `nor_gl`, `Rough` | concrete pads; its normal map (strength 0.3, tile 3 m) is the surface of the building panels | keys `concrete`, `building_panel` (normal only) |
 | `gravel_floor_02` | `Diffuse`, `nor_gl`, `Rough` | yard ground | key `gravel` |
 | `corrugated_iron_02` | `Diffuse`, `nor_gl`, `Rough` | shelter roof and cladding | key `cladding` |
-| `metal_grate_rusty` | `Diffuse`, `nor_gl`, `Rough` | grating (Task 6) | not used yet |
+| `metal_grate_rusty` | `Diffuse`, `nor_gl`, `Rough` | grating: platform plates, walkways, stair treads (tile 1 m, metallic 0.7, its own roughness and normal) | key `grating` |
 | `industrial_sunset_puresky` | HDRI `.hdr` | image-based lighting | `scene/EnvironmentMap.tsx` |
 
 `scripts/fetch_polyhaven.py` (stdlib plus httpx 0.28.1):
@@ -150,4 +153,4 @@ red-first. Evidence: `docs/evidence/2026-11-spike.md`.
 - [FRONTEND.md](FRONTEND.md) (3D station section), [docs/evidence/2026-11-spike.md](../evidence/2026-11-spike.md)
 - Work log: 2026-11-15 Phase 4 Task 5.
 
-Changelog: 2026-11-15 created (Phase 4 Task 5); rewritten to the deep-documentation template.
+Changelog: 2026-11-15 created (Phase 4 Task 5); rewritten to the deep-documentation template. 2026-11-16 Phase 4 Task 6: `grating` in use, `metal_plate` mapped on no material (ruling C1), `building_panel` uses the concrete normal.

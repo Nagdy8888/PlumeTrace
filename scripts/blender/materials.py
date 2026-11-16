@@ -11,69 +11,75 @@ from naming import material_name
 from parts.mesh_ops import assign_box_uv
 from scene_setup import BuildContext
 
-STEEL = "metal_plate"
-# key: base colour (linear), roughness, metallic, diffuse asset, rough asset, roughness factor,
-#      normal asset, normal strength
+
+def _spec(
+    color: tuple[float, float, float] | None = None,
+    rough: float | None = None,
+    metallic: float = 0.0,
+    diffuse: str | None = None,
+    rough_tex: str | None = None,
+    rough_factor: float = 1.0,
+    normal: str | None = None,
+    strength: float = 1.0,
+) -> dict[str, Any]:
+    """Build one material table row.
+
+    Args:
+        color: Base colour (linear RGB), or ``None`` when a diffuse asset gives it.
+        rough: Constant roughness, used when ``rough_tex`` is ``None``.
+        metallic: Metallic value.
+        diffuse: Poly Haven asset whose diffuse map is the base colour.
+        rough_tex: Poly Haven asset whose roughness map (green channel) drives roughness.
+        rough_factor: Factor on the roughness map.
+        normal: Poly Haven asset whose normal map is used.
+        strength: Normal map strength.
+
+    Returns:
+        The row as a dict (keys of the ``SPECS`` consumers).
+    """
+    return dict(
+        color=color,
+        rough=rough,
+        metallic=metallic,
+        diffuse=diffuse,
+        rough_tex=rough_tex,
+        rough_factor=rough_factor,
+        normal=normal,
+        strength=strength,
+    )
+
+
+# Owner ruling C1 (spike review): the tread-plate maps of ``metal_plate`` are never mapped onto
+# painted vessels, pipes or panels, so every ``paint_*`` and ``pipe_gas`` has a constant roughness
+# and no normal map. Texture sets are used only where they are the real surface.
 SPECS: dict[str, dict[str, Any]] = {
-    "paint_grey": dict(
-        color=(0.50, 0.52, 0.50),
-        rough=None,
-        metallic=0.3,
-        diffuse=None,
-        rough_tex=STEEL,
-        rough_factor=0.8,
-        normal=STEEL,
-        strength=0.6,
+    "paint_grey": _spec(color=(0.50, 0.52, 0.50), rough=0.5, metallic=0.3),
+    "paint_dark": _spec(color=(0.12, 0.13, 0.14), rough=0.6, metallic=0.4),
+    "paint_red": _spec(color=(0.50, 0.05, 0.04), rough=0.5, metallic=0.2),
+    "paint_white": _spec(color=(0.80, 0.80, 0.78), rough=0.5, metallic=0.2),
+    "pipe_gas": _spec(color=(0.60, 0.58, 0.40), rough=0.55, metallic=0.3),
+    "safety_yellow": _spec(color=(0.78, 0.55, 0.03), rough=0.55, metallic=0.1),
+    "glass": _spec(color=(0.05, 0.07, 0.08), rough=0.1),
+    "building_panel": _spec(
+        color=(0.62, 0.62, 0.58), rough=0.7, metallic=0.1, normal="concrete_floor_02", strength=0.3
     ),
-    "paint_dark": dict(
-        color=(0.12, 0.13, 0.14),
-        rough=0.6,
-        metallic=0.4,
-        diffuse=None,
-        rough_tex=None,
-        rough_factor=1.0,
-        normal=STEEL,
-        strength=0.6,
+    "grating": _spec(
+        diffuse="metal_grate_rusty",
+        rough_tex="metal_grate_rusty",
+        metallic=0.7,
+        normal="metal_grate_rusty",
     ),
-    "safety_yellow": dict(
-        color=(0.78, 0.55, 0.03),
-        rough=0.55,
-        metallic=0.1,
-        diffuse=None,
-        rough_tex=None,
-        rough_factor=1.0,
-        normal=None,
-        strength=1.0,
+    "concrete": _spec(
+        diffuse="concrete_floor_02", rough_tex="concrete_floor_02", normal="concrete_floor_02"
     ),
-    "concrete": dict(
-        color=None,
-        rough=None,
-        metallic=0.0,
-        diffuse="concrete_floor_02",
-        rough_tex="concrete_floor_02",
-        rough_factor=1.0,
-        normal="concrete_floor_02",
-        strength=1.0,
+    "gravel": _spec(
+        diffuse="gravel_floor_02", rough_tex="gravel_floor_02", normal="gravel_floor_02"
     ),
-    "gravel": dict(
-        color=None,
-        rough=None,
-        metallic=0.0,
-        diffuse="gravel_floor_02",
-        rough_tex="gravel_floor_02",
-        rough_factor=1.0,
-        normal="gravel_floor_02",
-        strength=1.0,
-    ),
-    "cladding": dict(
-        color=None,
-        rough=None,
-        metallic=0.6,
+    "cladding": _spec(
         diffuse="corrugated_iron_02",
         rough_tex="corrugated_iron_02",
-        rough_factor=1.0,
+        metallic=0.6,
         normal="corrugated_iron_02",
-        strength=1.0,
     ),
 }
 
@@ -119,13 +125,17 @@ def _link_roughness(
     links.new(out, bsdf.inputs["Roughness"])
 
 
-def make_material(key: str, tag: str, ctx: BuildContext) -> bpy.types.Material:
+def make_material(
+    key: str, tag: str, ctx: BuildContext, paint_value: float = 1.0
+) -> bpy.types.Material:
     """Build the per-equipment copy of material ``key`` for ``tag``.
 
     Args:
         key: Key of ``SPECS``.
-        tag: Equipment tag (named in the material so the AO image can be attached per item).
+        tag: Equipment tag or separate-node name (named in the material so the AO image can be
+            attached per item).
         ctx: Build context (texture folder).
+        paint_value: Factor on the base colour of ``paint_*`` keys (the item's seeded +-2 %).
 
     Returns:
         The new material.
@@ -142,7 +152,8 @@ def make_material(key: str, tag: str, ctx: BuildContext) -> bpy.types.Material:
         tex = _tex(mat, ctx, spec["diffuse"], "diff", True, uv)
         links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
     else:
-        bsdf.inputs["Base Color"].default_value = (*spec["color"], 1.0)
+        factor = paint_value if key.startswith("paint_") else 1.0
+        bsdf.inputs["Base Color"].default_value = (*(c * factor for c in spec["color"]), 1.0)
     _link_roughness(mat, ctx, spec, bsdf, uv)
     if spec["normal"]:
         normal = nodes.new("ShaderNodeNormalMap")
@@ -161,11 +172,11 @@ def assign_all(ctx: BuildContext) -> None:
         ctx: Build context; every part carries ``material`` and ``tile_m`` custom properties.
     """
     bpy.context.view_layer.update()
-    for tag, objs in ctx.objects_by_tag.items():
+    for tag, name, objs in ctx.groups():
         copies: dict[str, bpy.types.Material] = {}
         for obj in objs[1:]:
             key = obj["material"]
             if key not in copies:
-                copies[key] = make_material(key, tag, ctx)
+                copies[key] = make_material(key, name, ctx, ctx.paint_value[tag])
             assign_box_uv(obj, obj["tile_m"])
             obj.data.materials.append(copies[key])

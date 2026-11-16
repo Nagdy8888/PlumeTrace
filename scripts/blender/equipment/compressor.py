@@ -2,27 +2,17 @@
 
 from typing import Any
 
-from layout import to_local
+from anchors import anchor_local
 from parts import mesh_ops
 from parts.flange import flange
 from parts.handrail import handrail
 from parts.skid import skid
 from parts.vessel import horizontal_vessel
 from scene_setup import BuildContext
-from spec_loader import anchors_of
 
 CYL_X_M = (-2.5, -0.5)
 CYL_Y_M = (-1.9, 1.9)
 CYL_Z_M = 1.2
-
-
-def _anchor_local(item: dict[str, Any], suffix: str) -> tuple[float, float, float]:
-    """Item-local position of the anchor ``<tag>.<suffix>``."""
-    wanted = f"{item['tag']}.{suffix}"
-    for anchor_id, world in anchors_of(item):
-        if anchor_id == wanted:
-            return to_local(item, world)
-    raise ValueError(f"anchor {wanted} missing from the spec")
 
 
 def _engine(ctx: BuildContext, item: dict[str, Any]) -> None:
@@ -31,7 +21,7 @@ def _engine(ctx: BuildContext, item: dict[str, Any]) -> None:
     block = mesh_ops.box(f"{tag}_engine", (4.0, 2.0, 2.2), (3.5, 0.0, 1.45))
     mesh_ops.bevel_edges(block, 0.04)
     ctx.add_part(tag, block, "paint_grey")
-    ex, ey, top = _anchor_local(item, "engine_exhaust")
+    ex, ey, top = anchor_local(item, "engine_exhaust")
     base = 2.55
     stack = mesh_ops.cylinder(f"{tag}_exhaust", 0.18, top - base, (ex, ey, (top + base) / 2))
     ctx.add_part(tag, stack, "paint_dark")
@@ -57,7 +47,7 @@ def _bottles_and_vent(ctx: BuildContext, item: dict[str, Any]) -> None:
     tag = item["tag"]
     horizontal_vessel(ctx, tag, f"{tag}_suction", 0.9, 5.0, (-1.5, -1.9, 2.5))
     horizontal_vessel(ctx, tag, f"{tag}_discharge", 0.8, 5.0, (-1.5, 1.9, 2.5))
-    px, py, pz = _anchor_local(item, "packing")
+    px, py, pz = anchor_local(item, "packing")
     manifold = mesh_ops.cylinder(f"{tag}_manifold", 0.05, 1.2, (px, py, pz), axis="X")
     ctx.add_part(tag, manifold, "paint_dark")
     riser_top = 2.0

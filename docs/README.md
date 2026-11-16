@@ -75,6 +75,7 @@ The full standard and the page template are in the
 | [evidence/benchmark-improvement-2026-11-14.json](evidence/benchmark-improvement-2026-11-14.json) | Case-level evidence of the improvement run (both methods, generated) |
 | [evidence/2026-11-phase-3-scenarios.md](evidence/2026-11-phase-3-scenarios.md) | Phase 3 scenario evidence: selected weather offsets, detection events and replay file sizes per MVP scenario; local / synthetic plus real weather |
 | [evidence/2026-11-spike.md](evidence/2026-11-spike.md) | Phase 4 Task 5 Blender spike evidence (K-202 with shelter, VS-250, ground patch) and the approach B go or no-go question, with its screenshots |
+| [evidence/2026-11-equipment/](evidence/2026-11-equipment/) | Phase 4 Task 6 review stills (960 x 540 PNG, Cycles) of the 13 newly built equipment types; review aids, not a validation |
 | [evidence/2026-11-phase-2-gate-2.md](evidence/2026-11-phase-2-gate-2.md) | Gate 2 evidence: full check run, official run and determinism check, published reproduction, code diff since 23b8703, decisions summary |
 
 ## Reference pages
@@ -125,6 +126,7 @@ worked example, edge cases and the test that pins each, how to run and extend.
 | [reference/API.md](reference/API.md) | REST endpoints (health, scenarios, replay), request path, configuration, limits |
 | [reference/FRONTEND.md](reference/FRONTEND.md) | React app: stack, scripts, folder rules, live and replay builds, layout; the 3D station (Task 5 spike: baked model, review camera, no plume yet) |
 | [reference/ASSETS.md](reference/ASSETS.md) | Poly Haven CC0 textures and HDRI used by the 3D pipeline: ids, licence, source, where each is used, how to fetch and verify |
+| [reference/BLENDER_EQUIPMENT.md](reference/BLENDER_EQUIPMENT.md) | Blender generator parts library and the 15 equipment builders: parts, anchors, separate glb nodes (fans, flare tip), materials, how to build and check one type (Phase 4 Task 6; the full station is Task 7) |
 | [reference/DESIGN_SYSTEM.md](reference/DESIGN_SYSTEM.md) | Design tokens, typography, shadcn primitives, formatting helpers, anti-slop rules |
 | [reference/DATA_LAYER.md](reference/DATA_LAYER.md) | `DataSource` interface (live and replay), error kinds, stores, replay-only bundle guard |
 | [reference/UI_PANELS.md](reference/UI_PANELS.md) | Control-room panels, component tree, keyboard map, binding display rules |
