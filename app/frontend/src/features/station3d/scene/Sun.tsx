@@ -4,6 +4,9 @@ import type { DirectionalLight } from "three";
 import { specToScene, type Vec3 } from "./coords";
 import { REVIEW_TARGET_SPEC } from "./reviewCamera";
 
+/** Sun intensity; the owner ruling C2 allows 1.5 to 2.5 (the ground must not read as snow). */
+const SUN_INTENSITY = 2.2;
+
 const AZIMUTH_DEG = 250; // compass bearing of the sun: WSW
 const ELEVATION_DEG = 18;
 const DISTANCE_M = 150;
@@ -23,12 +26,22 @@ function sunSpecPosition(target: Vec3): Vec3 {
 const TARGET = specToScene(REVIEW_TARGET_SPEC);
 const POSITION = specToScene(sunSpecPosition(REVIEW_TARGET_SPEC));
 
+/** Props of {@link Sun}: the quality tier decides the shadows. */
+export interface SunProps {
+  /** Whether the sun casts shadows (off on the low tier). */
+  shadows: boolean;
+  /** Shadow map edge in pixels (2048 high, 1024 medium, 512 low). */
+  mapSize: number;
+}
+
 /**
- * The one real-time light: a shadow-casting sun from the HDRI direction (WSW, 18 degrees up).
+ * The one real-time light: a sun from the HDRI direction (WSW, 18 degrees up) that casts a
+ * shadow on the tiers that have shadows.
  *
+ * @param props - See {@link SunProps}.
  * @returns The directional light aimed at the review target.
  */
-export function Sun(): JSX.Element {
+export function Sun({ shadows, mapSize }: SunProps): JSX.Element {
   const light = useRef<DirectionalLight>(null);
   useEffect(() => {
     // The target is not in the scene graph, so its world matrix is set by hand once.
@@ -37,14 +50,21 @@ export function Sun(): JSX.Element {
     aim.position.set(...TARGET);
     aim.updateMatrixWorld();
   }, []);
+  useEffect(() => {
+    // A shadow map keeps the size it was created with: drop it so three.js makes a new one.
+    const shadow = light.current?.shadow;
+    if (!shadow) return;
+    shadow.mapSize.set(mapSize, mapSize);
+    shadow.map?.dispose();
+    shadow.map = null;
+  }, [mapSize]);
   return (
     <directionalLight
       ref={light}
       position={POSITION}
-      intensity={2.5}
+      intensity={SUN_INTENSITY}
       color="#ffd7a8"
-      castShadow
-      shadow-mapSize={[2048, 2048]}
+      castShadow={shadows}
       shadow-camera-left={-SHADOW_EXTENT_M}
       shadow-camera-right={SHADOW_EXTENT_M}
       shadow-camera-top={SHADOW_EXTENT_M}

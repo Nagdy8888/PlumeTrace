@@ -160,7 +160,7 @@ the plan corrections) recorded in the work-log row.
 - **Pads.** Items other than compressors, pig traps and buildings get a pad; buildings have none
   (the plan lists them as having their own, but the building builder adds no pad).
 - **Not claimed.** Integrated-GPU fps (C6, owner action), visual fidelity, or that 168 calls is what
-  the browser draws (Task 8 measures it).
+  the browser draws (Task 8 measured it: 272 calls at the review camera including the shadow pass, see FRONTEND.md).
 
 ## 7. Configuration
 

@@ -34,10 +34,11 @@ function StationStatus({ mode }: { mode: DataSourceMode | null }): JSX.Element {
  * Top-level layout of the PlumeTrace control room (desktop, 1280 px and wider).
  *
  * Rows: top bar 48 px, working area, trends 220 px, playback bar 44 px. The working area has
- * alarms (320 px), the station view (the 3D scene arrives in Tasks 8 and 9) and the station log
- * (360 px). Below 1280 px the log moves under the alarms. It mounts the data bootstrap, the
- * playback clock loop and the keyboard shortcuts once. The "Simulated" label is always visible
- * because every station value is simulated (design section 8).
+ * alarms (320 px), the station view (the 3D scene; the plume arrives in Task 9) and the station
+ * log (360 px). The load status sits above the 3D canvas, on its own solid surface. Below 1280 px
+ * the log moves under the alarms. It mounts the data bootstrap, the playback clock loop and the
+ * keyboard shortcuts once. The "Simulated" label is always visible because every station value is
+ * simulated (design section 8).
  *
  * @returns The application shell.
  */
@@ -66,7 +67,9 @@ export function AppShell(): JSX.Element {
           <div className="absolute inset-0">
             <StationView />
           </div>
-          <StationStatus mode={mode} />
+          <div className="relative z-10 border border-border-2 bg-surface-1 p-4 empty:hidden">
+            <StationStatus mode={mode} />
+          </div>
         </main>
         <div className="col-start-1 row-start-2 grid min-h-0 grid-rows-[minmax(0,1fr)] min-[1280px]:col-start-3 min-[1280px]:row-start-1">
           <StationLog scenario={scenario} />

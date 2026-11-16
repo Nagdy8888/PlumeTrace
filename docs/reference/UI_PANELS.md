@@ -12,9 +12,10 @@ visual rules: `.ux-profile.md`.
 
 The UI shows one simulated scenario of station KS-07 (fictional) against a playback clock: alarms
 as detection windows close, the station log, methane and wind trends, and playback controls. It is
-**not 3D yet**: the station area (`<main aria-label="Station view">`) shows only the scenario load
-status until the Blender-baked scene arrives in Phase 4 Tasks 8 and 9. The `Simulated` label is
-always visible. The panels show no leak rate and no AI output; the Phase 5 agent panels do not exist.
+**partly 3D**: the station area (`<main aria-label="Station view">`) holds the interactive
+Blender-baked station (built in Phase 4 Task 8: picking, selection, camera, quality tiers; the
+plume and highlights are planned for Task 9). The scenario load status is a panel above the canvas
+(see the wrapper under "Layout"). The `Simulated` label is always visible. The panels show no leak rate and no AI output; the Phase 5 agent panels do not exist.
 
 ## Layout
 
@@ -25,7 +26,7 @@ flowchart TB
         subgraph Work["Working area, 1280 px and wider: columns 320 px, 1fr, 360 px"]
             direction LR
             Alarms["Alarms"]
-            Station["Station view, main<br/>scenario status for now"]
+            Station["Station view, main<br/>3D canvas + load status panel above it"]
             Log["Station log"]
             Alarms --- Station --- Log
         end
@@ -43,6 +44,14 @@ columns and the station log moves under the alarms in the left column. Panels ar
 `border-border-1` lines: no gaps, no shadows (the shared `Panel` border is overridden per side).
 Desktop only for now; the narrow or touch viewport page is Phase 4 Task 10.
 
+Inside `<main>`, `StationView` (the 3D canvas, lazy-loaded) fills the area (`absolute inset-0`). The
+load status sits in a wrapper above it: `relative z-10 border border-border-2 bg-surface-1 p-4
+empty:hidden`. It is a solid surface (owner ruling 2026-11-16: the contrast figures assume solid
+surfaces, and a translucent panel without blur is not glass by the project rules), and it is above
+the canvas because the canvas would otherwise cover the message. In the ready state the status
+renders nothing, so `empty:hidden` removes the box (measured `display: none`). The 3D view itself is
+described in [FRONTEND.md](FRONTEND.md#3d-station-view-task-8).
+
 ## Component tree
 
 ```mermaid
@@ -52,7 +61,8 @@ flowchart TD
     Top --> Wind["WindReadout"]
     Top --> Utc["UtcClock"]
     Shell --> AL["AlarmList, with AlarmRow"]
-    Shell --> SS["StationStatus"]
+    Shell --> SV["StationView<br/>3D canvas, Task 8"]
+    Shell --> SS["StationStatus<br/>solid panel above the canvas"]
     SS --> Stat["ScenarioStatus"]
     Shell --> SL["StationLog"]
     Shell --> TP["TrendsPanel"]
@@ -64,7 +74,8 @@ flowchart TD
 ```
 
 Components rendered by `AppShell`. All panels sit inside the shared `Panel` primitive except the top
-bar, the station status and the playback bar. `StationStatus` is a private component of
+bar, the station view (the canvas, see FRONTEND.md), the station status and the playback bar.
+`StationStatus` is a private component of
 `AppShell.tsx`; `UtcClock`, `SpeedButtons`, `Scrubber` and `TimeReadout` are private to their files.
 
 `AppShell` mounts three hooks once: `useScenarioBootstrap()` (resolves the data source, loads the
@@ -292,7 +303,10 @@ statements 90.7, branches 88.9, functions 92.2 and lines 92.9 percent (labelled 
 - Known and accepted at Task 4: the clock readouts re-render per simulated second (two tiny
   components); the methane y axis shows two ticks at 220 px height; the alarm detail wraps at 320 px.
 - Desktop only; below 1280 px the log moves under the alarms; narrow and touch viewports are Task 10.
-- The station area shows no scene yet.
+- The station area shows the baked 3D station with its interaction layer (Task 8); the plume,
+  candidate highlights and wind indicator are planned (Task 9), and the no-WebGL fallback, DOM
+  equipment list and mobile page are planned (Task 10). Details and limits of the 3D view:
+  [FRONTEND.md](FRONTEND.md#3d-station-view-task-8).
 
 ## How to add a panel
 

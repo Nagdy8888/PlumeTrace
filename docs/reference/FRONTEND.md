@@ -4,8 +4,8 @@
 
 `app/frontend/` is the PlumeTrace control-room web app: React + TypeScript + Vite. As of Phase 4 Task 4
 it has the design system, the data layer (live API or static replay) and the control-room panels:
-top bar, alarms, station log, trends and playback bar. The station area shows the scenario load status and, since Phase 4 Task 7, the baked 3D model of
-the full station (the real-time scene features are Tasks 8 and 9). The data is the simulated station KS-07
+top bar, alarms, station log, trends and playback bar. The station area shows the scenario load status and the baked 3D model of
+the full station with picking, selection, camera fly-to and quality tiers (Task 8; the plume is Task 9). The data is the simulated station KS-07
 (fictional); the weather in it is real. Design reference: section 9; visual rules: `.ux-profile.md`.
 
 This page is the overview. The detail lives in four focused pages:
@@ -79,6 +79,10 @@ Exact versions are in `app/frontend/package.json` and `package-lock.json`; the f
 | lucide-react, radix-ui | 1.72.0, 1.8.1 |
 | zustand | 5.1.0 |
 | uplot | 1.6.32 |
+| three, @types/three | 0.187.0 |
+| @react-three/fiber, @react-three/drei | 9.8.2, 10.7.9 |
+| @react-three/test-renderer, @react-three/eslint-plugin (dev, Task 8) | 9.1.1, 0.1.2 (the plugin brings a nested, unused ESLint 8.57.1; see the work log) |
+| r3f-perf (dev) | 7.2.3 |
 | shadcn CLI (run with `npx`, not installed) | 4.23.0 |
 
 Node `>=22.13.0` (`engines` in `package.json`).
@@ -93,7 +97,7 @@ Run from `app/frontend/`.
 | `npm run dev` | Vite dev server on `http://localhost:5173`; `npm run dev -- --mode replay` runs without the backend |
 | `npm run build` | Type-check, then `vite build` into `dist/` (git-ignored); the live build |
 | `npm run build:replay` | Copy replay files, type-check, `vite build --mode replay` (no live-API code) |
-| `npm run check:replay-bundle` | `scripts/check-replay-bundle.mjs`: fails if a `dist/assets/*.js` file contains `/api/` or if none contains `/replay/scenarios` (the ReplaySource must really be in the bundle); prints `replay bundle OK` |
+| `npm run check:replay-bundle` | `scripts/check-replay-bundle.mjs`: fails if a `dist/assets/*.js` file contains `/api/` (after removing the one prefix `https://docs.pmnd.rs/react-three-fiber/api/` that R3F's own error text contains) or if none contains `/replay/scenarios` (the ReplaySource must really be in the bundle); prints `replay bundle OK` |
 | `npm run preview` | Serve `dist/` locally |
 | `npm run lint` | ESLint (typescript-eslint, react-hooks, react-refresh, jsdoc) |
 | `npm run typecheck` | `tsc --noEmit` (strict, `noUncheckedIndexedAccess`) |
@@ -186,30 +190,31 @@ Described in `docs/superpowers/plans/phase-4/README.md` and the Task 5 to 11 pla
 code there is the Task 5 spike scene (see "3D station (Task 5 spike)" below), since Task 6 the
 Blender generator for every equipment type ([BLENDER_EQUIPMENT.md](BLENDER_EQUIPMENT.md)) and, since
 Task 7, the piping, site, bake and the one-command export ([STATION_MODEL.md](STATION_MODEL.md)):
-the shipped `ks07.glb` is the full station (24 items, 15 piping routes, racks, site). The viewer
-code is still the Task 5 scene (model, sun, camera); the rest of this section is still planned.
+the shipped `ks07.glb` is the full station (24 items, 15 piping routes, racks, site). Since Task 8
+the viewer adds picking, selection, labels, camera fly-to and quality tiers (section "3D station
+view (Task 8)" below); the plume and candidate highlights (Task 9) are still planned.
 `vite.config.ts` excludes `src/features/station3d/scene/**` from coverage.
 
 ```mermaid
 flowchart LR
     Bpy["scripts/blender/ bpy script<br/>from ks07.json<br/>BUILT (equipment, piping, site)"] --> Glb["public/models/ks07.glb<br/>15 MB or less<br/>BUILT (full station, 3.17 MB)"]
-    Glb --> Scene["station3d scene<br/>React Three Fiber<br/>BUILT (model, sun, camera)"]
-    Clock["useClockStore.getState()<br/>inside useFrame<br/>PLANNED"] --> Scene
-    Sel["useSelectionStore<br/>PLANNED"] --> Scene
-    Frames["replay keyframes<br/>plume visual only<br/>PLANNED"] --> Scene
+    Glb --> Scene["station3d scene<br/>React Three Fiber<br/>BUILT (model, index, picking, camera, tiers)"]
+    Sel["useSelectionStore<br/>BUILT (Task 8)"] <--> Scene
+    Clock["useClockStore<br/>playing selects frameloop: BUILT<br/>read in useFrame for the plume: PLANNED"] --> Scene
+    Frames["replay keyframes<br/>plume visual only<br/>PLANNED (Task 9)"] --> Scene
     classDef planned stroke-dasharray: 5 5
-    class Clock,Sel,Frames planned
+    class Frames planned
 ```
 
 *Caption: data flow of approach B (Blender-baked). Solid nodes exist: the generator and the shipped
-glb hold the full station (Tasks 6 and 7) and the scene renders it with the Task 5 sun and camera;
-dotted nodes are planned and not built.*
+glb hold the full station (Tasks 6 and 7), the scene renders it with picking and camera (Task 8),
+and the selection store drives both the scene and the panels; the dotted node (replay plume
+frames) is planned and not built.*
 
 Planned data flow, approach B, from the Phase 4 plan. The plume and highlights are real-time R3F;
 the clock is read inside `useFrame`, never through React state; plume visibility is gated by the
-model grid in the replay. Only the left half (model and scene) is built; the dotted inputs and the
-real-time scene features (Tasks 8 and 9) are planned. This section becomes the 3D reference when
-Tasks 5 to 9 are done (rule 21).
+model grid in the replay. In Task 8 the clock only decides whether the canvas draws every frame
+(playing) or on demand (paused).
 
 ### Regenerating the station model
 
@@ -231,14 +236,288 @@ may be raised without the owner); latest values from the 2026-11-16 run, details
 |---|---|---|---|
 | file size | 15,000,000 bytes | 3,165,648 | `check_glb.py --max-bytes` |
 | triangles | 1,500,000 | 110,484 | `check_glb.py --max-triangles` |
-| draw calls (estimate) | 300 | 168 (the browser count is Task 8; `r3f-perf` showed 260 with the shadow pass) | `check_glb.py --max-draw-calls` |
+| draw calls (estimate) | 300 | 168 (the browser count at the review camera, Task 8: 272 with the shadow pass and the hit proxies, 116 on the `low` tier; see "3D station view (Task 8)") | `check_glb.py --max-draw-calls` |
 | GPU texture memory | 128 MB | 71.4 MB | by hand: sum of `gpuSize` in `build/ks07_inspect.txt` |
 | tags, anchors, 7 separate nodes | 0 missing | 0 missing | `check_glb.py` (no `--only`) |
 
 In the shipped glb a tag node holds its mesh in an unnamed child node for most items (the 21 unnamed
 child nodes carry the meshes, each with the quantisation scale and translation the meshopt
-step adds), so the Task 8 `nodeIndex` must
+step adds), so the Task 8 `nodeIndex` (built) must
 look at descendants, not only at the named node.
+
+## 3D station view (Task 8)
+
+Built in Phase 4 Task 8: the interactive layer on top of the baked model. It adds the node index,
+picking through invisible proxies, hover and selection visuals, camera controls with fly-to and
+reset, quality tiers and the lights. The station is fictional and simulated; the labels show a tag
+and a type name only (no rate, no value). The plume, candidate highlights and wind indicator are
+**planned** (Task 9); the full no-WebGL fallback and the DOM equipment list are planned (Task 10).
+
+```mermaid
+flowchart TD
+    View["StationView<br/>lazy canvas + QualityMenu"] --> Canvas["StationCanvas<br/>frameloop, dpr, shadows"]
+    View --> Menu["QualityMenu<br/>select + Reset view (DOM)"]
+    Canvas --> Perf["PerformanceMonitor<br/>decline, only while playing"]
+    Canvas --> Light["EnvironmentMap + Sun"]
+    Canvas --> Model["StationModel<br/>useGLTF ks07.glb"]
+    Model --> Scene["StationScene<br/>NodeIndexContext"]
+    Scene --> Proxy["HitProxies<br/>one box per tag"]
+    Scene --> Fans["AnimatedParts<br/>6 fans"]
+    Scene --> Sel["SelectionBox + TagLabel"]
+    Scene --> Rig["CameraRig<br/>useCameraFlyTo"]
+    Proxy --> Store["selection store<br/>hover, select"]
+    Sel --> Pure["overlayTags, tagLabelText<br/>pure functions"]
+    Store --> Sel
+    Store --> Rig
+    Menu --> Quality["station store<br/>override, autoTier, reducedMotion"]
+    Perf --> Quality
+    Quality --> Canvas
+```
+
+*Caption: component and state flow of the Task 8 view. All boxes are built. The camera rig is a
+child of `StationScene` (through `StationModel`'s `children`) because it needs the node index. The
+monitor is a sibling of the scene, mounted only while playing, and writes only `autoTier`; the menu
+writes the override.*
+
+```mermaid
+sequenceDiagram
+    participant U as Viewer
+    participant P as HitProxies (K-202__hit)
+    participant S as selection store
+    participant F as useCameraFlyTo
+    participant C as CameraControls
+    U->>P: pointer over
+    P->>S: hover("K-202")
+    Note over S: TagLabel and grey outline appear
+    U->>P: click
+    P->>S: select("K-202")
+    S->>F: selectedTag changed
+    F->>F: tagBounds then flyToTarget
+    F->>C: setLookAt(position, target, !reducedMotion)
+    Note over S: accent outline and label stay on K-202
+```
+
+*Caption: hover, click and fly-to for one equipment item. The same path runs when a click in the
+alarm list selects an instrument tag (`AT-102`): `tagBounds` then returns a 2 m cube.*
+
+### Object-tree contract and the node index
+
+The loaded or built root must follow the contract of the generator
+([STATION_MODEL.md](STATION_MODEL.md)): a node named by each equipment tag (`K-202`), anchor empties
+named `<tag>.<anchor>` (`K-202.packing`), and separate part nodes `<tag>__<part>` (`E-231__fan_1`,
+`FL-601__tip`). In the shipped glb most tag nodes keep the mesh in an unnamed child node (21
+nodes), three tags (`T-301`, `CR-901`, `MCC-902`) are the mesh node itself. So every box and
+outline is computed over the **descendants** of the tag node (`tagBox`).
+
+`model/nodeIndex.ts`:
+
+| Export | Contract |
+|---|---|
+| `buildNodeIndex(root, spec)` | one traversal; first node wins when a name repeats; returns `get(name)`, `equipmentTags`, `missing` |
+| `equipmentTags` | the spec equipment tags **present** in the scene, in spec order. A tag that is absent is not in this list and goes to `missing`. Task 9 relies on this: `get(tag)` is defined for every entry |
+| `missing` | spec tags and anchor ids absent from the scene, in spec order (a tag, then its anchors) |
+| `tagBox(node)` | world `Box3` of the node and descendants; a node without geometry gets a 1 m box at its world position |
+| `tagBounds(tag, index, spec)` | equipment: the node box; instrument: a 2 m cube (`instrumentBox`); unknown tag: `null` |
+| `NodeIndexContext`, `useNodeIndex()` | the index of the mounted `StationScene` |
+
+**Name sanitising.** `GLTFLoader` removes `[ ] . : /` from `node.name` and keeps the original in
+`userData.name`: the anchor `K-202.packing` loads as `K-202packing`. The index therefore keys on
+`userData.name` when it is a string and on `node.name` otherwise (a procedurally built tree). The
+shipped glb loads with no `station model is missing nodes` message in the browser; `StationScene`
+logs a non-empty `missing` list once with `console.error("station model is missing nodes", missing)`
+(the plan put this call in `StationView`, which is outside the canvas and cannot see the index).
+
+### Picking, hover and selection
+
+- **Only proxies are pickable.** `StationModel` gives every mesh a no-op `raycast` and
+  `castShadow`/`receiveShadow`. `HitProxies` renders one `<mesh name="<tag>__hit">` per equipment tag
+  with a shared unit `BoxGeometry` scaled to the tag box and one shared `MeshBasicMaterial`
+  (`colorWrite` and `depthWrite` off). Every handler calls `stopPropagation`; over a proxy the
+  cursor is `pointer`. A box thinner than 0.1 m is widened to 0.1 m (a flat box cannot be raycast).
+  The proxies assume an identity transform of the model root.
+- **State** is `useSelectionStore` (`selectedTag`, `hoveredTag`; selecting the selected tag clears
+  it). Panels and the scene share it, so a click in the alarm list (`select(event.sensor_id)`)
+  outlines and frames the sensor.
+- **Visuals.** `SelectionBox` always mounts two `lineSegments` (shared `EdgesGeometry` of a unit
+  box) and toggles `visible`: selected tag in `--accent`, hovered tag in `--text-2` at 50 % opacity,
+  `depthTest` off, `renderOrder` 10. Colours are read once from the CSS tokens. `TagLabel` renders at
+  most two drei `Html` labels (hovered, selected; one when they are the same tag) at the top centre of
+  the box plus 1 m: tag in `font-mono text-xs` and the type name (`Recip compressor`, `Fin-fan cooler`,
+  `TEG contactor`, `Vapour recovery unit`, ...; instruments `Methane sensor`, `Met mast`, ...).
+  `pointer-events: none`. No rate or value is ever shown here (R1 to R4). The logic is in pure
+  functions so it can be tested without a DOM layer: `overlays/overlayTags.ts` (`overlayTags`: which
+  tag each overlay shows), `overlays/tagLabelText.ts` (`describeTag`, `labelPosition`, the two name
+  maps); `TagLabel` and `SelectionBox` only call them.
+- **Fans.** `AnimatedParts` rotates the six `E-23x__fan_n` nodes about local Y by `delta * 2.0` rad/s
+  (0.5 with reduced motion) in one `useFrame` without allocation; the reduced-motion flag is read from
+  the store, not subscribed. They turn only while frames are drawn (clock playing).
+
+### Camera rules
+
+`CameraRig` mounts drei `CameraControls` (`makeDefault`, distance 8 to 350 m, polar angle at most
+85 degrees) and sets the review camera without a transition on mount. **The controls mount only
+after the glb has loaded** (they are inside `Suspense`, as a child of `StationModel`), so before that
+the canvas shows nothing and no camera input exists.
+
+`flyToTarget(box, cameraPos)`: the target is the box centre; the distance is
+`d = max(12, 2.5 * largest box dimension)` metres; the camera keeps its horizontal direction from the
+target (azimuth) and looks down at 30 degrees: `position = target + d * (cos30 * horizontal unit + sin30 * up)`.
+Directly above the target (horizontal length below 1e-6) it uses the review camera's azimuth.
+`useCameraFlyTo` runs it when `selectedTag` changes; with reduced motion the move is instant.
+`R` (not inside `input`, `select`, `textarea` or `contenteditable`, and not with Ctrl, Alt or Meta) and
+the `Reset view` button (which dispatches the `plumetrace:reset-view` window event, because the button
+is outside the canvas) return to the review camera the same way. Listeners are removed on unmount.
+
+### Quality tiers and lights
+
+| Tier | dpr cap | Shadows | Shadow map | Plume particles (Task 9) |
+|---|---|---|---|---|
+| high | `[1, 1.5]` | on | 2048 | 40,000 |
+| medium | `[1, 1.25]` | on | 1024 | 20,000 |
+| low | `[1, 1]` | off | 512 | 10,000 |
+
+`useQualityTier()` is the manual override, or the automatic tier when the override is `Auto`. The
+override persists in `localStorage["plumetrace.quality"]` (invalid values and storage errors are
+ignored). drei `PerformanceMonitor` is mounted only while the clock plays; it calls `decline()` (one
+tier per call, stops at `low`), which sets only the automatic tier. It never calls `setOverride`, so
+it never writes the override or `localStorage`; `setOverride` is the manual menu only (owner ruling
+2026-11-16, pinned by `store.tier.test.tsx`, "an automatic decline never touches the stored
+override"). Trade-off: while paused the canvas draws on demand, and sparse frames would read as a
+low frame rate, so a slow GPU is never auto-declined while paused; it is measured only once the
+clock plays. `Sun` casts shadows only when the tier has them and re-creates its shadow map when the
+size changes. The canvas draws every frame while the clock plays and on demand while paused.
+
+Lights (owner ruling C2): the sun is **2.2** (was 2.5) and `environmentIntensity` is **0.6** (was
+0.8), both inside the ruled bands (1.5 to 2.5 and 0.4 to 0.8). At the review camera the ground
+reads as mid-grey gravel, not snow, and the cast shadows read better than at the old values. No HDRI
+or asset was changed.
+
+### Measurements (2026-11-16, review camera, 1240 x 768 canvas, Chrome under Playwright)
+
+Hardware: NVIDIA GeForce RTX 3050 Laptop GPU, a **discrete GPU, not the integrated one**; the
+display is 144 Hz. **No integrated-GPU figure is claimed** (owner action C6 in `docs/OWNER_ACTIONS.md`).
+Draw calls and triangles are `gl.info.render.calls` and `.triangles` of the last render, so they
+include the sun's shadow pass and the 24 invisible hit proxies; they are the scene as rendered
+(not the generator's estimate of 168). fps is the `requestAnimationFrame` rate over 30 s at a fixed
+tier with the clock playing.
+
+| Tier | Calls | Triangles | fps | p99 frame | Textures / geometries |
+|---|---|---|---|---|---|
+| high | 272 | 139,168 | 144.0 | 7.3 ms | 41 / 159 |
+| medium | 272 | 139,168 | 144.0 | 7.3 ms | 41 / 159 |
+| low (no shadow pass) | 116 | 52,088 | 143.7 | 8.3 ms | 39 / 159 |
+
+272 is within the 300-call budget as rendered. fps is capped by the display refresh. With the page
+reporting a device pixel ratio of 2 (set by script), the pixel ratio was 1.5, 1.25 and 1 for high,
+medium and low. The `r3f-perf` overlay (`?perf`) showed zeros in this session, so the numbers above
+were read from `gl.info` through a temporary hook that was removed before the end of the task.
+
+### Worked example (real values)
+
+From the review camera `[45, 25, -40]` an alarm click selects `AT-102` (spec position `[100, 5, 2]`,
+scene `[100, 2, -5]`). `instrumentBox` gives `min [99, 1, -6]`, `max [101, 3, -4]`; the largest side is
+2 m, so `d = max(12, 5) = 12`. The horizontal direction from the target is `(-55, -35)`, length 65.19;
+the camera lands at `[91.23, 8.0, -10.58]`, the value read back from the browser (`camera.position`
+after the move). With reduced motion the same position is reached at once (read 40 ms after the
+click: `[12.8, 8.0, -11.8]` for `AT-101` on every sample); without it the samples moved
+(`[17.3, 8.9, -15.1]` to `[13.9, 8.2, -12.7]` in 160 ms).
+
+### Edge cases and the test that pins each
+
+| Case | Behaviour | Pinned by |
+|---|---|---|
+| anchor loaded as `K-202packing` with `userData.name` | found as `K-202.packing` | `nodeIndex.test.ts` ("resolves a loaded anchor by its original name") |
+| name repeats | first node wins | `nodeIndex.test.ts` ("keeps the first node") |
+| tag absent from the scene | not in `equipmentTags`, listed in `missing` | `nodeIndex.test.ts` (two tests) |
+| missing names | logged once, also after a re-render | `StationScene.missing.test.tsx` |
+| mesh in an unnamed child | box covers the descendants | `tagBounds.test.ts` |
+| node without geometry | 1 m box at its world position | `tagBounds.test.ts`, `StationScene.test.tsx` |
+| one proxy per equipment item, click selects | `K-202__hit` click sets `selectedTag` | `StationScene.test.tsx` |
+| fly-to keeps azimuth, 30 degrees, at least 12 m | formula above | `flyToTarget.test.ts` |
+| instrument box | 2 m cube on `specToScene(position)` | `flyToTarget.test.ts`, `tagBounds.test.ts` |
+| reduced motion | `setLookAt(..., false)` | `useCameraFlyTo.test.tsx` |
+| unknown tag selected | camera does not move | `useCameraFlyTo.test.tsx` |
+| `R` with a modifier or inside a `select` | ignored | `useCameraFlyTo.test.tsx` |
+| tier declines one step and stops at `low` | `decline()` | `store.test.ts` |
+| manual override wins; invalid stored value, blocked storage, `matchMedia` change | see test names | `store.tier.test.tsx` |
+| fans spin 2.0 rad/s, 0.5 reduced | `advanceFrames` | `AnimatedParts.test.tsx` |
+| quality menu options, store write, reset event | DOM | `QualityMenu.test.tsx` |
+| quality menu shows a `Quality` caption and the `R` shortcut | visible text on the control surface; `aria-keyshortcuts="R"` | `QualityMenu.test.tsx` ("shows a visible Quality caption ...") |
+| pointer over a proxy | sets `hoveredTag`, cursor `pointer`, calls `stopPropagation` | `HitProxies.test.tsx` ("hover sets the hovered tag ...") |
+| pointer out of a proxy | clears `hoveredTag`, cursor reset, `stopPropagation` | `HitProxies.test.tsx` ("pointer out clears ...") |
+| pointer moves from one proxy to another | the second tag stays hovered | `HitProxies.test.tsx` ("moving from one proxy ...") |
+| click, then click again | selects, stops propagation, second click clears | `HitProxies.test.tsx` ("a click selects ...") |
+| proxy size and place | one per tag present; box centre and size from the tag box | `HitProxies.test.tsx` ("renders one proxy per tag ...") |
+| outlines | two `lineSegments` always mounted, both hidden with no selection | `SelectionBox.test.tsx` ("mounts two outlines ...") |
+| selecting a tag | the same two objects, selected one `visible` on that tag's box, hover one hidden | `SelectionBox.test.tsx` ("selecting a tag ...") |
+| hover outline | `visible`, opacity 0.5, `depthTest` off, `renderOrder` 10; selected opacity 1 | `SelectionBox.test.tsx` ("hovering another tag ...") |
+| hovered tag equals selected tag | hover outline hidden (and no second label) | `SelectionBox.test.tsx`, `overlayTags.test.ts` |
+| selection cleared | the selected outline is hidden, not unmounted | `SelectionBox.test.tsx` ("clearing the selection ...") |
+| instrument selected | outlined with a 2 m cube | `SelectionBox.test.tsx` ("outlines an instrument ...") |
+| label text | type name for each of the 15 equipment types and 6 instrument kinds; empty for an unknown tag | `tagLabelText.test.ts` |
+| label position | top centre of the box, 1 m above it | `tagLabelText.test.ts` ("labelPosition") |
+| at most two labels | which tags get one: `overlayTags` (hover dropped when equal to selected) | `overlayTags.test.ts` |
+| the drei `Html` label element itself | **not unit tested**: the test renderer has no DOM layer for `Html`; checked in the browser (screenshots in `docs/evidence/`) | none |
+| frame-loop allocation (`new`, `.clone()` in `useFrame`) | lint rule `@react-three/no-new-in-loop`, `no-clone-in-loop` | none yet: the plugin is installed but not wired into `eslint.config.js` (pending the owner's edit; see "Known issues found in this task") |
+
+Test-first: the five plan tests (seen failing first), and `overlayTags.test.ts` and
+`tagLabelText.test.ts` (seen failing on the missing modules, then green). Written after the code (not
+red first): `store.tier`, `QualityMenu`, `useCameraFlyTo`, `AnimatedParts`, `tagBounds`,
+`StationScene.missing`, `HitProxies` and `SelectionBox` tests. The last two were then checked by five
+hand-made mutants, applied together and reverted afterwards: a missing `stopPropagation` on pointer
+over, a cursor not reset on pointer out, no hover suppression in `overlayTags`, an outline always
+`visible`, and a label with no 1 m lift. All five were caught by 8 failing tests. The `R` hint of
+`QualityMenu` was checked separately: an earlier assertion (`textContent` contains "R") was vacuous
+because "Reset view" contains an R; it is now `within(button).getByText("R")`, and deleting the
+`<kbd>` hint makes that test fail (seen, then restored). Rendering, picking
+on a real GPU and the camera feel are checked by hand in the browser; the scene folder is excluded
+from coverage.
+
+### Known issues found in this task
+
+- **Open: `@react-three/eslint-plugin` is installed but not wired into `eslint.config.js`.** The file
+  is protected by a config-protection hook; the ruled wiring is pending the owner's edit, and the
+  negative control (`@react-three/no-new-in-loop`) has not been run.
+
+- **Left after the design critique (2026-11-16), each with its reason.** (1) The hover outline
+  (`--text-2` at 50 %) is faint on the light ground: 50 % is the plan's value; changing it needs an
+  owner decision. (2) The two controls are 24.5 CSS px high (`h-7` at a 14 px root), under the 44 px
+  touch target: touch layout is Task 10. (3) The K-202 box includes the whole shelter: the outline is
+  the tag node's world box. (4) Label text is 12 px (`text-xs`, the plan's value).
+  (5) The drei `Html` label is not unit tested (see the edge-case table).
+
+### Resolved in this task
+
+- **PerformanceMonitor flip-flops (resolved, owner ruling 2026-11-16).** drei's monitor increments
+  `flipped` on every incline as well as every decline, so on a machine above 100 fps the plan's
+  `flipflops={3}` plus `onFallback={() => setOverride("low")}` pinned and stored `low` after about
+  10 s of playing (seen twice in the browser). `StationCanvas` now has no `flipflops` and no
+  `onFallback`; the monitor mounts only while the clock plays and calls `decline()` only.
+  Browser check after the change (144 Hz, discrete GPU, device pixel ratio 1): `plumetrace.quality`
+  cleared, 30 s of playing at 120x leaves the stored value `null`, shadows on and pixel ratio 1;
+  then paused, 264 pointer moves with 320 to 350 ms gaps hovered 10 distinct items (the ones visible
+  from the review camera) and shadows stayed on.
+- **`check:replay-bundle` on a documentation URL (resolved, owner ruling 2026-11-16).** The replay
+  chunk contains the R3F error text `https://docs.pmnd.rs/react-three-fiber/api/objects#...`, which
+  contains `/api/`. The script now removes exactly the prefix `https://docs.pmnd.rs/react-three-fiber/api/`
+  before looking for `/api/`; any other `/api/` still fails. Pinned by two tests in
+  `checkReplayBundle.test.ts`: the R3F URL alone passes, and the R3F URL next to `fetch("/api/scenarios")`
+  still fails. Real bundles: `npm run build:replay` then `npm run check:replay-bundle` prints
+  `replay bundle OK`; after `npm run build` the check fails naming `LiveSource-*.js`. `ci_local.py`
+  does not run this check yet (Task 11 adds it).
+
+### How to run and extend
+
+```bash
+cd app/frontend
+npm run dev                    # http://localhost:5173 ; add ?perf for the dev overlay
+npx vitest run src/features/station3d
+```
+
+To add a pickable item: add it to `ks07.yaml` so the generator emits a tag node, regenerate the glb;
+the proxy, label and fly-to follow from the spec. To add scene content that needs the index, pass it
+as a child of `StationModel` and read `useNodeIndex()`. Links: [STATION_MODEL.md](STATION_MODEL.md),
+[UI_PANELS.md](UI_PANELS.md), `.claude/skills/frontend-3d/`.
 
 ## 3D station (Task 5 spike)
 
@@ -257,11 +536,11 @@ Code (`src/features/station3d/`, public entry `index.ts` exports `StationView`):
 
 | File | Role |
 |---|---|
-| `StationView.tsx` | lazy boundary; renders nothing when WebGL 2 is missing (the full fallback is Task 10) |
-| `StationCanvas.tsx` | R3F `<Canvas>`: dpr `[1, 1.5]`, shadows, review camera, optional `?perf` overlay (dev only) |
-| `model/StationModel.tsx` | `useGLTF("/models/ks07.glb", false, true)`: **no Draco** (its decoder loads from a CDN), bundled meshopt; meshes cast and receive shadow |
-| `scene/EnvironmentMap.tsx` | local HDRI `public/textures/env/industrial_sunset_puresky_1k.hdr` as lighting only, plus a flat grey sky colour |
-| `scene/Sun.tsx` | the one directional light: azimuth 250 degrees (WSW), elevation 18 degrees, 2048 shadow map |
+| `StationView.tsx` | lazy boundary and the quality menu; renders nothing when WebGL 2 is missing (the full fallback is Task 10) |
+| `StationCanvas.tsx` | R3F `<Canvas>`: tier dpr and shadows, `frameloop` from the clock, performance monitor, review camera, optional `?perf` overlay (dev only); since Task 8 (spike: dpr `[1, 1.5]`, shadows always on) |
+| `model/StationModel.tsx` | `useGLTF("/models/ks07.glb", false, true)`: **no Draco** (its decoder loads from a CDN), bundled meshopt; meshes cast and receive shadow and have a no-op raycast (Task 8); renders `StationScene` |
+| `scene/EnvironmentMap.tsx` | local HDRI `public/textures/env/industrial_sunset_puresky_1k.hdr` as lighting only (intensity 0.6 since Task 8, spike 0.8), plus a flat grey sky colour |
+| `scene/Sun.tsx` | the one directional light: azimuth 250 degrees (WSW), elevation 18 degrees; intensity 2.2 and shadow map by tier since Task 8 (spike: 2.5, 2048) |
 | `scene/reviewCamera.ts` | `REVIEW_CAMERA`: the fixed camera for every screenshot and fps measurement |
 | `scene/coords.ts` | `specToScene([x, y, z])` returns `[x, z, -y]` |
 | `dev/PerfOverlay.tsx` | `r3f-perf`, dynamic import behind `import.meta.env.DEV`, mounted by `?perf` |
@@ -355,7 +634,9 @@ Vitest with the `jsdom` environment and Testing Library. Setup: `src/shared/test
 Tests live beside the code as `*.test.ts(x)`. Per area: data layer, stores and the replay-bundle check
 in [DATA_LAYER.md](DATA_LAYER.md#tests); panels, guards and keyboard in
 [UI_PANELS.md](UI_PANELS.md#tests); primitives in [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md#tests).
-`src/app/vercelConfig.test.ts` reads `vercel.json` and pins the security headers and the SPA rewrite
+The 3D view is tested in `src/features/station3d/` with `@react-three/test-renderer` (scene graph,
+picking, frames) and plain Vitest (store, node index, fly-to maths); the table is in "3D station view
+(Task 8)". `src/app/vercelConfig.test.ts` reads `vercel.json` and pins the security headers and the SPA rewrite
 (recorded for a later phase; see [DEPLOYMENT.md](DEPLOYMENT.md)). Layers required by the
 `testing-strategy` skill: [TESTING.md](TESTING.md).
 
@@ -394,6 +675,13 @@ schema and the committed `contract.ts`.
 
 - 2026-11-13: Phase 1 Task 5 scaffold.
 - 2026-11-15: Phase 4 Tasks 2 to 4 (design system, data layer, panels).
+- 2026-11-16: Phase 4 Task 8: "3D station view (Task 8)" section (node index, picking, selection,
+  camera, quality tiers, lights, measurements, known issues); the planned-data-flow diagram updated;
+  stack table lists the 3D packages.
+- 2026-11-16: Phase 4 Task 8 fix rounds: performance monitor only while playing (no flip-flop
+  fallback); `check:replay-bundle` ignores the R3F documentation URL; load-status panel is solid;
+  component tests for `HitProxies` and `SelectionBox`, pure `overlayTags` and `tagLabelText`;
+  `QualityMenu` shows a `Quality` caption and the `R` shortcut after a design critique.
 - 2026-11-16: Phase 4 Task 7: the shipped glb is the full station; "Regenerating the station model"
   section with the budgets; separate-node and check_glb notes updated; STATION_MODEL.md added.
 - 2026-11-15: documentation pass: this page became the overview; detail moved to DESIGN_SYSTEM.md,

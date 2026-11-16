@@ -230,7 +230,7 @@ Source: Phase 4 Task 6 plan, design section 9, owner rulings of 2026-11-15.
   `test_check_glb.py::test_separate_nodes_are_required`).
 - **Not claimed (Task 6).** No fps, draw-call or size budget was claimed here; the Task 7
   build measured size, triangles, estimated draw calls and texture memory (STATION_MODEL.md), and
-  Task 8 measures the browser draw calls. The integrated-GPU fps run (C6) is an owner step.
+  Task 8 measured the browser draw calls (FRONTEND.md). The integrated-GPU fps run (C6) is an owner step.
 
 ## 7. Configuration
 

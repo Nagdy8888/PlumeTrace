@@ -210,9 +210,9 @@ describe("StationScene", () => {
 
 ## Steps
 - [ ] Add dev deps (exact) and the ESLint plugin config; tests → FAIL → implement in this order: `qualitySettings`, `store`, `nodeIndex`, `flyToTarget`, `HitProxies`, `StationScene`, `SelectionBox`, `TagLabel`, `AnimatedParts`, `CameraRig` + `useCameraFlyTo`, `QualityMenu`, canvas/view wiring.
-- [ ] `npm run lint && npm run typecheck && npm run test && npm run build`.
-- [ ] Browser (Playwright CLI skill), 1920×1080, `npm run dev`: hover and click K-202 → label + box, camera flies; click an alarm in the list → camera flies to that sensor; `R` resets; with OS reduced motion on (Playwright `reducedMotion: "reduce"`), the camera jumps instead of flying; quality menu changes dpr/shadows (check `?perf`). Console shows no `station model is missing nodes`.
-- [ ] Record at `REVIEW_CAMERA`, quality high: `gl.info.render.calls`, `.triangles`, `.memory.textures`, fps (perf overlay, 30 s) → work log. Must stay ≤ 300 calls and ≥ 58 fps on the owner's integrated-graphics laptop; else follow the fix order in Task 7 and record.
-- [ ] Screenshot `docs/evidence/2026-11-phase-4-station.png`; `check_slop.py`; `impeccable` critique of the overlay chrome (labels, menu); repo checks.
-- [ ] **Docs.** FRONTEND.md → "3D station": object-tree contract, node index, picking (proxies only), selection/hover visuals, camera rules (limits, fly-to formula, reduced motion, reset), quality tiers table, measurements. Work-log; `STATUS.md` (last 4.8, next 4.9).
+- [x] `npm run lint && npm run typecheck && npm run test && npm run build`.
+- [x] Browser (Playwright CLI skill), 1920×1080, `npm run dev`: hover and click K-202 → label + box, camera flies; click an alarm in the list → camera flies to that sensor; `R` resets; with OS reduced motion on (Playwright `reducedMotion: "reduce"`), the camera jumps instead of flying; quality menu changes dpr/shadows (check `?perf`). Console shows no `station model is missing nodes`.
+- [x] Record at `REVIEW_CAMERA`, quality high: `gl.info.render.calls`, `.triangles`, `.memory.textures`, fps (perf overlay, 30 s) → work log. Must stay ≤ 300 calls and ≥ 58 fps on the owner's integrated-graphics laptop; else follow the fix order in Task 7 and record.
+- [x] Screenshot `docs/evidence/2026-11-phase-4-station.png`; `check_slop.py`; `impeccable` critique of the overlay chrome (labels, menu); repo checks.
+- [x] **Docs.** FRONTEND.md → "3D station": object-tree contract, node index, picking (proxies only), selection/hover visuals, camera rules (limits, fly-to formula, reduced motion, reset), quality tiers table, measurements. Work-log; `STATUS.md` (last 4.8, next 4.9).
 - [ ] **Commit** `feat(3d): add station view with picking, selection, camera and quality tiers`.

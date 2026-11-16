@@ -40,6 +40,26 @@ describe("check-replay-bundle", () => {
     expect(r.status).toBe(1);
     expect(r.out).toContain("no ReplaySource");
   });
+  it("ignores the R3F documentation URL in its error text", () => {
+    writeFileSync(
+      join(dir, "StationCanvas-x.js"),
+      '"See: https://docs.pmnd.rs/react-three-fiber/api/objects#using-3rd-party-objects-declaratively"',
+    );
+    writeFileSync(join(dir, "ReplaySource-x.js"), 'fetch("/replay/scenarios/index.json")');
+    const r = run(dir);
+    expect(r.status).toBe(0);
+    expect(r.out).toContain("replay bundle OK");
+  });
+  it("negative control: a live API path next to the R3F URL still fails", () => {
+    writeFileSync(
+      join(dir, "StationCanvas-x.js"),
+      '"https://docs.pmnd.rs/react-three-fiber/api/objects";fetch("/api/scenarios")',
+    );
+    writeFileSync(join(dir, "ReplaySource-x.js"), 'fetch("/replay/scenarios/index.json")');
+    const r = run(dir);
+    expect(r.status).toBe(1);
+    expect(r.out).toContain("live API code in replay bundle: StationCanvas-x.js");
+  });
   it("fails when the folder is missing", () => {
     expect(run(join(dir, "missing")).status).toBe(1);
   });

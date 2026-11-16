@@ -228,7 +228,9 @@ flowchart LR
 ```
 
 `npm run check:replay-bundle` fails when any bundled script contains the live API path `/api/`, so the
-public build cannot call a backend, and fails when no script contains `/replay/scenarios`, so the
+public build cannot call a backend. The only text it ignores is the exact documentation prefix
+`https://docs.pmnd.rs/react-three-fiber/api/` that R3F's own error messages contain (a string, not a
+call); a live path next to it still fails (`checkReplayBundle.test.ts`). It also fails when no script contains `/replay/scenarios`, so the
 check cannot pass vacuously. The negative control (a normal build) fails; it was observed on
 2026-11-15. Full explanation with the build sizes: [DATA_LAYER.md](DATA_LAYER.md#replay-only-build-and-live-build).
 The check does not scan for secrets; `secret_scan.py` does that for the files the build copies.

@@ -350,7 +350,7 @@ flowchart TD
     B2["negative control: npm run build<br/>(not replay mode)"] --> D2["LiveSource chunk with /api/<br/>no ReplaySource"]
     D1 --> K["check-replay-bundle.mjs"]
     D2 --> K
-    K --> R1{"rule 1: any file<br/>contains /api/ ?"}
+    K --> R1{"rule 1: any file contains /api/<br/>after removing the R3F docs URL ?"}
     K --> R2{"rule 2: some file contains<br/>/replay/scenarios ?"}
     R1 -->|"yes"| P["problems list"]
     R2 -->|"no"| P
@@ -373,9 +373,18 @@ Observed on 2026-11-15 with `vite build` into a scratch folder (not `dist/`):
 | `--mode replay` | `index-*.js` 278.33 kB, `ReplaySource-*.js` 1.77 kB, `uPlot.esm-*.js` 50.99 kB | prints `replay bundle OK`, exit 0 |
 | default mode | `index-*.js` 278.32 kB, `LiveSource-*.js` 1.77 kB, `uPlot.esm-*.js` 50.99 kB | `live API code in replay bundle: LiveSource-....js` and `no ReplaySource in the bundle`, exit 1 |
 
-`src/app/checkReplayBundle.test.ts` pins four cases with synthetic bundle folders: a valid replay
+`src/app/checkReplayBundle.test.ts` pins six cases with synthetic bundle folders: a valid replay
 bundle passes; the negative control fails with `live API code in replay bundle`; a bundle without
-ReplaySource fails with `no ReplaySource`; a missing folder fails.
+ReplaySource fails with `no ReplaySource`; a missing folder fails; the R3F documentation URL alone
+passes; and a live `/api/` path next to that URL still fails, naming the file.
+
+Rule 1 ignores one thing only: the exact prefix `https://docs.pmnd.rs/react-three-fiber/api/`
+(`IGNORED_DOC_URL` in the script). R3F's own error text links its docs
+(`.../react-three-fiber/api/objects#...`); that is a string, not a live API call. The script removes
+that prefix from each file's text before it looks for `/api/` (owner ruling 2026-11-16). Observed
+on 2026-11-16 with the real build: `npm run build:replay` then `npm run check:replay-bundle` printed
+`replay bundle OK`; after `npm run build` the check printed `live API code in replay bundle:
+LiveSource-<hash>.js`. `ci_local.py` does not run the check yet (Phase 4 Task 11 adds it).
 
 Replay files are copied from `app/replay/` to `app/frontend/public/replay/` (git-ignored) by
 `npm run copy:replay`, which runs before `dev`, `build` and `build:replay`.
