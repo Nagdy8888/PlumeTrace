@@ -2,6 +2,8 @@ import type { JSX } from "react";
 
 import { useActiveScenario } from "@/shared/data";
 
+import { DISPLAY_MIN_PPM } from "./plumeMath";
+
 /** The five legend steps: concentration label and the ramp token that colours it (log scale). */
 const STEPS = [
   { label: "1", token: "--ch4-0" },
@@ -14,8 +16,9 @@ const STEPS = [
 /**
  * Colour key of the plume heat-map, bottom-left of the station area (a solid panel, not over the
  * scene). It states the unit and what the picture is: the output of the dispersion model, not a
- * measurement; methane itself is invisible. Hidden while no scenario is loaded. It shows
- * concentrations only, never an emission rate.
+ * measurement; methane itself is invisible. It also says what is not drawn (cells below
+ * `DISPLAY_MIN_PPM`), so a sensor alarm with no colour under it is explained. Hidden while no
+ * scenario is loaded. It shows concentrations only, never an emission rate.
  *
  * @returns The legend, or nothing without a scenario.
  */
@@ -40,6 +43,9 @@ export function PlumeLegend(): JSX.Element | null {
         ))}
       </ul>
       <p className="mt-2 text-text-2">Visualisation of the dispersion model. Methane is invisible.</p>
+      <p className="mt-1 text-text-2">
+        {`Cells below ${DISPLAY_MIN_PPM} ppm are not drawn. A sensor alarm can fire on a smaller rise.`}
+      </p>
     </div>
   );
 }

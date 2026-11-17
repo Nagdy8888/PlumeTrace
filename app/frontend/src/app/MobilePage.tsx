@@ -4,7 +4,7 @@ import { STATION_IMAGE_ALT, STATION_IMAGE_SRC } from "@/features/station3d";
 
 /**
  * The light page for phones and small touch screens, shown instead of the control room: product
- * name and the always-visible "Simulated" label, what PlumeTrace does, a still image of the
+ * name and the always-visible "Simulated" label, what the replay shows, a still image of the
  * station and the hint to open the page on a desktop. It loads no scenario data and never imports
  * the 3D scene. The demo video arrives here in Phase 7 (planned, not built).
  *
@@ -20,8 +20,8 @@ export function MobilePage(): JSX.Element {
       <main className="mx-auto flex max-w-xl flex-col gap-4 px-4 py-6">
         <h1 className="text-lg font-semibold text-balance">Methane leak detection for a simulated compressor station</h1>
         <p className="text-base text-text-2">
-          PlumeTrace watches eight fence-line methane sensors at the fictional Station KS-07, detects rises, locates the
-          most likely leaking component with a dispersion model and drafts a work order for an operator to approve.
+          PlumeTrace replays simulated leak scenarios from eight fence-line methane sensors at the fictional Station
+          KS-07: methane rises, alarms, wind and a dispersion-model view of the plume.
         </p>
         <img
           src={STATION_IMAGE_SRC}

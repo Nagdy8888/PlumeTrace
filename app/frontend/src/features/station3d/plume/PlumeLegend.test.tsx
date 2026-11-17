@@ -36,6 +36,14 @@ describe("PlumeLegend", () => {
     ]);
   });
 
+  it("says what the map leaves out, so an alarm with no colour under the sensor is explained", () => {
+    useScenarioStore.setState({ scenario: makeReplay(), status: "ready" });
+    render(<PlumeLegend />);
+    expect(
+      screen.getByText("Cells below 1 ppm are not drawn. A sensor alarm can fire on a smaller rise."),
+    ).toBeInTheDocument();
+  });
+
   it("never states an emission rate or a confidence", () => {
     useScenarioStore.setState({ scenario: makeReplay(), status: "ready" });
     const { container } = render(<PlumeLegend />);

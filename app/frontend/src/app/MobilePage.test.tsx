@@ -16,6 +16,15 @@ describe("MobilePage", () => {
       screen.getByText("Open this page in a desktop browser to use the interactive control room."),
     ).toBeInTheDocument();
   });
+  it("describes only what is built: no locating or drafting claim before the agents exist", () => {
+    const { container } = render(<MobilePage />);
+    expect(
+      screen.getByText(
+        "PlumeTrace replays simulated leak scenarios from eight fence-line methane sensors at the fictional Station KS-07: methane rises, alarms, wind and a dispersion-model view of the plume.",
+      ),
+    ).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/locates|drafts|work order/i);
+  });
   it("has no station view and shows the still image with a text alternative", () => {
     render(<MobilePage />);
     expect(screen.queryByLabelText("Station view")).not.toBeInTheDocument();
