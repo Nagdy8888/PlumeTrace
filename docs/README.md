@@ -75,6 +75,7 @@ The full standard and the page template are in the
 | [evidence/benchmark-improvement-2026-11-14.json](evidence/benchmark-improvement-2026-11-14.json) | Case-level evidence of the improvement run (both methods, generated) |
 | [evidence/2026-11-phase-3-scenarios.md](evidence/2026-11-phase-3-scenarios.md) | Phase 3 scenario evidence: selected weather offsets, detection events and replay file sizes per MVP scenario; local / synthetic plus real weather |
 | [evidence/2026-11-ks07-glb.md](evidence/2026-11-ks07-glb.md) | Phase 4 Task 7 full-station `ks07.glb`: budgets (size, triangles, draw calls, texture memory), bake times, the texture-size and ground rulings, screenshots |
+| [evidence/2026-11-phase-4-ui.md](evidence/2026-11-phase-4-ui.md) | Phase 4 UI evidence (Task 11): screenshots at 1440 x 900 and 1920 x 1080, draw calls and fps on the RTX 3050 laptop GPU (integrated GPU not measured), bundle sizes, axe, e2e and check outputs; local / simulated |
 | [evidence/2026-11-spike.md](evidence/2026-11-spike.md) | Phase 4 Task 5 Blender spike evidence (K-202 with shelter, VS-250, ground patch) and the approach B go or no-go question, with its screenshots |
 | [evidence/2026-11-equipment/](evidence/2026-11-equipment/) | Phase 4 Task 6 review stills (960 x 540 PNG, Cycles) of the 13 newly built equipment types; review aids, not a validation |
 | [evidence/2026-11-phase-2-gate-2.md](evidence/2026-11-phase-2-gate-2.md) | Gate 2 evidence: full check run, official run and determinism check, published reproduction, code diff since 23b8703, decisions summary |
@@ -93,7 +94,7 @@ worked example, edge cases and the test that pins each, how to run and extend.
 | [reference/CONFIGURATION.md](reference/CONFIGURATION.md) | The single root `.env`, the `Settings` object, `env_set.py` and the secret and env checkers; known inconsistencies |
 | [reference/CHECKS.md](reference/CHECKS.md) | `scripts/ci_local.py` stages, the pre-commit hook and the three repository checkers |
 | [reference/CONTRACT.md](reference/CONTRACT.md) | Python to TypeScript contract: generated types and `ks07.json`, drift check |
-| [reference/TESTING.md](reference/TESTING.md) | Test layers, how to run the local checks, coverage thresholds |
+| [reference/TESTING.md](reference/TESTING.md) | Test layers, how to run the local checks, coverage thresholds, browser tests (Playwright, axe, draw-call and fps specs) |
 
 ### Engineering core
 

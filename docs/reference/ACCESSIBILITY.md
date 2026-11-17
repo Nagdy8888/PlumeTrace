@@ -3,8 +3,9 @@
 What the control-room UI does today for keyboard, screen-reader, low-vision and reduced-motion users,
 how that is tested, and what is not done yet. Scope: Phase 4 Tasks 2 to 4 (design system and panels)
 and Task 10 (the accessible alternatives to the 3D station: equipment list, skip link, WebGL
-fallback, mobile page). **Built:** all of those. **Not done:** screen-reader runs, axe, a
-target-size review (see Known gaps).
+fallback, mobile page) and the axe scan of Task 11 (`e2e/a11y.spec.ts`, see
+[TESTING.md](TESTING.md#browser-tests-playwright-phase-4-task-11)). **Built:** all of those.
+**Not done:** screen-reader runs, a target-size review (see Known gaps).
 
 Related pages: [UI_PANELS.md](UI_PANELS.md), [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md),
 [FRONTEND.md](FRONTEND.md#accessibility-and-fallbacks-task-10).
@@ -168,8 +169,12 @@ have made those plan tests pass vacuously.
 
 ## Known gaps and limits
 
-- **No automated accessibility test yet.** The plan adds `@axe-core/playwright` 4.14.0 with the e2e
-  tests in Task 11. Until then the checks above are unit tests and manual review.
+- **Axe covers what axe can see.** `e2e/a11y.spec.ts` runs `@axe-core/playwright` 4.14.0 (axe-core
+  4.14.1) with the tags `wcag2a`, `wcag2aa` and `wcag21aa` on the control room (S1 at +04:00, no
+  WebGL, so the fallback) and on the phone page (390 x 844), and fails on any serious or critical
+  violation. On 2026-11-17 both pages had no violation of any impact (30 and 8 rules passed). It does
+  not run with the 3D canvas, and automated rules find only part of the real problems (no screen reader
+  was run).
 - **Screen-reader behaviour is unverified.** No screen reader was run. The alarm list is a polite live
   region whose content is replaced once per simulated minute; how an assistive technology announces
   that was not tested.
@@ -187,14 +192,16 @@ have made those plan tests pass vacuously.
   shared `tabs.tsx` still carries shadcn's `transition-all` in its base class; `LeftColumn` overrides it
   with `transition-none`, the file itself is not a Task 10 file. The mobile page copy is the plan text
   and can break "KS-07" across lines.
-- **No axe run, no screen reader run.** The names and roles above come from Testing Library queries
-  and a Chromium tab-order recording.
+- **No screen reader run.** The names and roles above come from Testing Library queries, axe and a
+  Chromium tab-order recording.
 - **A lost context logs a three.js warning.** When the fallback replaces the canvas, three.js warns
   `WEBGL_lose_context extension not supported` while disposing the lost renderer (a warning, not an
   error).
-- **Console in a plain load.** Every page load logs one `404` for `/favicon.ico` (no icon is shipped)
-  and, with WebGL, two three.js deprecation warnings (`THREE.Clock`, `PCFSoftShadowMap`). The Task 11
-  console-clean end-to-end test has to deal with them.
+- **Console in a plain load.** Fixed in Task 11 for the favicon: `index.html` now links
+  `/favicon.svg` (a 32 px ring on the dark surface colour), so a browser that asks for an icon no
+  longer gets a `404` console error. With WebGL the console still shows two three.js 0.187.0
+  deprecation warnings (`THREE.Clock`, `PCFSoftShadowMap`); the `webgl` end-to-end test lists exactly
+  those two texts and fails on any other warning or error.
 - **Touch targets.** `Button` `xs` (speed buttons) is 24 px high; the 32 px `icon-sm` and `sm` sizes
   are used for play and Retry. The equipment rows are about 28 px high. A target-size review has not
   been done.
@@ -210,8 +217,8 @@ have made those plan tests pass vacuously.
 3. Do not capture keys that a focused control needs. Extend `usePlaybackKeys.ts` only with tests for
    the ignored targets.
 4. Check contrast of any new token with the WCAG 2.x formula on all four surfaces before use.
-5. Add a test that finds the control by role and name (Testing Library `getByRole`), then run axe when
-   Task 11 provides it.
+5. Add a test that finds the control by role and name (Testing Library `getByRole`), then run axe with
+   `e2e/a11y.spec.ts` (`npm run e2e`).
 
 ## Changelog
 

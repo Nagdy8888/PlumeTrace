@@ -230,6 +230,14 @@ refreshes at 144 Hz, so the frame rate is capped by the display: the result show
 met on this discrete GPU, not what an integrated GPU would do. The medium and low figures stay as
 the earlier 6 s samples.
 
+**Repeatable since Task 11 (2026-11-17).** `app/frontend/e2e/fps.spec.ts` (`npm run e2e:fps`) now
+measures the same definition without any code in the app: `e2e/gpuProbe.ts` reads `renderer.info`
+through the `__THREE_DEVTOOLS__` hook, turns `info.autoReset` off, and sums and resets it once per
+animation frame (120 frames per case), with a raw WebGL draw-call counter as a cross-check. Results,
+S1 +02:20 and the S4 blowdown peak (7200 s), high / medium / low: **296 / 296 / 121** draw calls
+(identical to the table above; GL draws equal them), triangles 142,613 / 142,613 / 55,514, and the
+test fails above 300. Details and the extra figures: [TESTING.md](TESTING.md#browser-tests-playwright-phase-4-task-11).
+
 Picking after `visible={false}` (browser, `REVIEW_CAMERA`): a ray cast at the screen position of
 `AT-105` hit `AT-105__hit` first (and `AT-106__hit` only behind `VS-250__hit`); with the real mouse the
 cursor turned to a pointer over `AT-105`, the tag label showed `AT-105`, and a click changed the

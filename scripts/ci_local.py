@@ -107,6 +107,15 @@ STAGES: tuple[Stage, ...] = (
     Stage("frontend-coverage", (("app/frontend", ("npm", "run", "test:coverage")),), modes=FULL),
     Stage("frontend-build", (("app/frontend", ("npm", "run", "build")),), modes=FULL),
     Stage(
+        "replay-build",
+        (
+            ("app/frontend", ("npm", "run", "build:replay")),
+            ("app/frontend", ("npm", "run", "check:replay-bundle")),
+        ),
+        modes=FULL,
+    ),
+    Stage("e2e", (("app/frontend", ("npm", "run", "e2e")),), modes=FULL),
+    Stage(
         "contract-drift",
         (
             ("app", ("uv", "run", "python", "../scripts/export_contract.py")),

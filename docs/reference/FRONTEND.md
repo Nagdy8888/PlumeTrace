@@ -83,6 +83,7 @@ Exact versions are in `app/frontend/package.json` and `package-lock.json`; the f
 | @react-three/fiber, @react-three/drei | 9.8.2, 10.7.9 |
 | @react-three/test-renderer, @react-three/eslint-plugin (dev, Task 8) | 9.1.1, 0.1.2 (the plugin brings a nested, unused ESLint 8.57.1; see the work log) |
 | r3f-perf (dev) | 7.2.3 |
+| @playwright/test, playwright-core (dev, Task 11), @axe-core/playwright | 1.65.0, 1.65.0, 4.14.0 (`playwright-core` is pinned because axe's peer range `>= 1.0.0` otherwise installed 1.65.1 next to the 1.65.0 copy of `@playwright/test`, and the two sets of types clashed in `tsc`) |
 | shadcn CLI (run with `npx`, not installed) | 4.23.0 |
 
 Node `>=22.13.0` (`engines` in `package.json`).
@@ -103,6 +104,10 @@ Run from `app/frontend/`.
 | `npm run typecheck` | `tsc --noEmit` (strict, `noUncheckedIndexedAccess`) |
 | `npm run test` | Vitest, one run |
 | `npm run test:coverage` | Vitest with v8 coverage; thresholds lines 80, functions 80, branches 70, statements 80 |
+| `npm run e2e` | Playwright, project `no-webgl` (builds the replay, serves it on 4173); the `e2e` stage of `ci_local --full` |
+| `npm run e2e:local` | Playwright, projects `no-webgl` and `webgl` (your machine, needs a GPU) |
+| `npm run e2e:fps` | Playwright, `webgl` project, `e2e/fps.spec.ts` only (frame rate and draw-call budget) |
+| `npm run e2e:update-baseline` | Rewrite the `webgl` screenshot baseline (look at the image before committing) |
 | `npm run gen:types` | `json2ts` (json-schema-to-typescript 16.0.0): `contract.schema.json` to `contract.ts` (see Type contract) |
 
 ## Folder rules
@@ -514,8 +519,8 @@ from coverage.
   before looking for `/api/`; any other `/api/` still fails. Pinned by two tests in
   `checkReplayBundle.test.ts`: the R3F URL alone passes, and the R3F URL next to `fetch("/api/scenarios")`
   still fails. Real bundles: `npm run build:replay` then `npm run check:replay-bundle` prints
-  `replay bundle OK`; after `npm run build` the check fails naming `LiveSource-*.js`. `ci_local.py`
-  does not run this check yet (Task 11 adds it).
+  `replay bundle OK`; after `npm run build` the check fails naming `LiveSource-*.js`. The check runs
+  in stage `replay-build` of `python scripts/ci_local.py --full` (after `npm run build:replay`).
 
 ### How to run and extend
 
@@ -638,7 +643,9 @@ rerunning the commands in `scripts/blender/README.md` reproduces `ks07.glb`.*
 **Purpose.** Everything the 3D view does is also possible without it: by keyboard, with a screen
 reader, without WebGL, with reduced motion and on a phone. The outcome-by-outcome table is in
 [ACCESSIBILITY.md](ACCESSIBILITY.md#fallbacks-and-mobile); this section is the module map. **Built**
-in Task 10; the console-clean end-to-end tests for these paths are Task 11 (planned).
+in Task 10. The console-clean end-to-end tests for these paths are built (Task 11):
+`e2e/control-room.spec.ts` (S1, S4, S5, no-webgl project) and `e2e/station3d.spec.ts` (webgl project);
+see the Browser tests section of [TESTING.md](TESTING.md).
 
 ```mermaid
 flowchart TD
@@ -758,6 +765,22 @@ picking, frames) and plain Vitest (store, node index, fly-to maths); the table i
 (Task 8)". `src/app/vercelConfig.test.ts` reads `vercel.json` and pins the security headers and the SPA rewrite
 (recorded for a later phase; see [DEPLOYMENT.md](DEPLOYMENT.md)). Layers required by the
 `testing-strategy` skill: [TESTING.md](TESTING.md).
+
+### Browser tests (Task 11, built)
+
+Playwright 1.65.0 and `@axe-core/playwright` 4.14.0 run against the replay build served by
+`vite preview` (port 4173). Two projects: `no-webgl` (Chromium with WebGL off, the fallback path;
+runs in `python scripts/ci_local.py --full` as stage `e2e`) and `webgl` (real GPU; model, zero console
+errors, one visual baseline, frame rate and draw calls; manual). Scripts: `npm run e2e`,
+`e2e:local`, `e2e:fps`, `e2e:update-baseline`. Baseline policy: the screenshot
+(`e2e/visual.spec.ts-snapshots/review-s1-0400-webgl-win32.png`, taken on the owner's machine) is
+compared only in the manual `webgl` run with a 2 % pixel tolerance and never in `ci_local`, because
+GPU output differs. Fps policy: `fps.spec.ts` always asserts at least 58 fps on whatever GPU ran and
+prints the GPU name; the integrated-GPU measurement is owner action C6 before Gate 4. The `?perf`
+overlay is not used by the tests: `e2e/gpuProbe.ts` reads `renderer.info` from outside. Dev
+dependencies added: `@playwright/test` 1.65.0, `@axe-core/playwright` 4.14.0 and `playwright-core`
+1.65.0 (the peer dependency of axe, pinned to the same version so only one copy exists). Full page,
+diagrams, worked example and edge cases: [TESTING.md](TESTING.md#browser-tests-playwright-phase-4-task-11).
 
 ## Type contract
 

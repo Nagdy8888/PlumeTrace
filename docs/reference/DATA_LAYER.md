@@ -384,7 +384,7 @@ Rule 1 ignores one thing only: the exact prefix `https://docs.pmnd.rs/react-thre
 that prefix from each file's text before it looks for `/api/` (owner ruling 2026-11-16). Observed
 on 2026-11-16 with the real build: `npm run build:replay` then `npm run check:replay-bundle` printed
 `replay bundle OK`; after `npm run build` the check printed `live API code in replay bundle:
-LiveSource-<hash>.js`. `ci_local.py` does not run the check yet (Phase 4 Task 11 adds it).
+LiveSource-<hash>.js`. The check runs in stage `replay-build` of `python scripts/ci_local.py --full` (after `npm run build:replay`).
 
 Replay files are copied from `app/replay/` to `app/frontend/public/replay/` (git-ignored) by
 `npm run copy:replay`, which runs before `dev`, `build` and `build:replay`.

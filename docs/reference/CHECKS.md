@@ -19,7 +19,7 @@ and build stages, `contract-drift`). The test layers behind the stages are in
 ```mermaid
 flowchart TD
     subgraph REPO["Repository checkers (run with python -I)"]
-        S1["structure"] --> S2["env"] --> S3["secrets"] --> S4["slop"]
+        S4["structure, env, secrets, slop"]
     end
     subgraph PY["Python (from app/ with uv)"]
         P1["ruff"] --> P2["ruff-format"] --> P3["mypy"] --> P4["python-tests (quick)"]
@@ -28,6 +28,7 @@ flowchart TD
     subgraph FE["Frontend (from app/frontend/)"]
         F1["frontend-lint"] --> F2["frontend-typecheck"] --> F3["frontend-test (quick)"]
         F2 --> F4["frontend-coverage (full)"] --> F5["frontend-build (full)"]
+        F5 --> R1["replay-build + check:replay-bundle (full)"] --> E1["e2e: Playwright no-webgl (full)"]
     end
     subgraph CT["Contract (full only)"]
         C1["contract-drift"]
@@ -36,12 +37,12 @@ flowchart TD
     P4 --> F1
     P5 --> F1
     F3 --> C1
-    F5 --> C1
+    E1 --> C1
 ```
 
 Caption: stages run in the fixed order of the `STAGES` tuple. Quick mode runs the stages marked
 quick or both; full mode swaps `python-tests` and `frontend-test` for their heavier versions and
-adds the build and the contract check.
+adds the builds, the browser tests (`e2e`) and the contract check.
 
 The arrows show run order only. A failed stage does not stop the next stage: every selected stage
 runs, then the summary lists the failures. Inside one stage, the first failing command stops that
@@ -68,6 +69,8 @@ Commands are the exact `STAGES` entries in `scripts/ci_local.py`. `skill` means
 | `frontend-test` | quick | `npm run test` (`app/frontend`) | Vitest component and unit tests |
 | `frontend-coverage` | full | `npm run test:coverage` (`app/frontend`) | Same tests plus coverage thresholds |
 | `frontend-build` | full | `npm run build` (`app/frontend`) | Type-check and production build succeed |
+| `replay-build` | full | `npm run build:replay`, then `npm run check:replay-bundle` (`app/frontend`) | The replay-only build type-checks and builds, and its bundle has no live-API path but does contain the ReplaySource (`replay bundle OK`) |
+| `e2e` | full | `npm run e2e` (`app/frontend`) | Playwright `no-webgl` project: control-room flows, console-clean run per scenario, axe, phone page, against a fresh replay build served on port 4173 (see [TESTING.md](TESTING.md#browser-tests-playwright-phase-4-task-11)). The `webgl` project is not part of the stage |
 | `contract-drift` | full | `uv run python ../scripts/export_contract.py` (`app`), `npm run gen:types` (`app/frontend`), `git diff --exit-code -- app/frontend/src/shared` (root) | Committed generated files match the Pydantic models (see [CONTRACT.md](CONTRACT.md)) |
 
 What the quick mode does not prove: coverage thresholds, the production build, the contract, slow
@@ -176,6 +179,8 @@ frontend-typecheck     full/quick
 frontend-test          quick
 frontend-coverage      full
 frontend-build         full
+replay-build           full
+e2e                    full
 contract-drift         full
 ```
 
@@ -233,7 +238,7 @@ Described in [CONFIGURATION.md](CONFIGURATION.md): `env OK` and `no secrets foun
 
 | Case | Behaviour | Test |
 |---|---|---|
-| Quick vs full selection | quick has `python-tests`, no `python-tests-full`, no `contract-drift`; full has the opposite; `structure`, `env`, `secrets`, `slop`, `ruff` and `mypy` are in both | `test_ci_local.py::test_quick_mode_excludes_full_only_stages` |
+| Quick vs full selection | quick has `python-tests`, no `python-tests-full`, no `contract-drift`, no `replay-build`, no `e2e`; full has the opposite; `structure`, `env`, `secrets`, `slop`, `ruff` and `mypy` are in both | `test_ci_local.py::test_quick_mode_excludes_full_only_stages` |
 | `--only nope` | Stops before running anything: `unknown stage: nope` | `test_ci_local.py::test_unknown_stage_name_is_an_error` |
 | First command fails | The second command of the stage never runs | `test_ci_local.py::test_stage_stops_at_first_failing_command` |
 | One stage fails | Exit 1, `FAILED: bad`, passing stages still listed | `test_ci_local.py::test_main_reports_failures` |

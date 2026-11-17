@@ -117,6 +117,8 @@ unless a note says otherwise.
 | zustand | 5.1.0 | Phase 4 Task 3 — the scenario, clock and selection stores |
 | uplot | 1.6.32 | Phase 4 Task 4 — trend charts |
 | radix-ui | 1.8.1 | Phase 4 Task 2 — added by the shadcn CLI 4.23.0 (single package, not `@radix-ui/*`) |
+| @playwright/test / playwright-core | 1.65.0 / 1.65.0 | Phase 4 Task 11 — dev; Chromium revision 1254 (Chrome for Testing 158.0.8127.18), installed with `npx playwright install chromium`; `playwright-core` is pinned so axe's peer dependency does not install a second copy |
+| @axe-core/playwright | 4.14.0 | Phase 4 Task 11 — dev; brings axe-core 4.14.1 |
 | shadcn (CLI, not a dependency) | 4.23.0 | `npx --yes shadcn@4.23.0 add <component>` from `app/frontend` |
 
 ## Configuration
@@ -203,6 +205,26 @@ npm run test
 npm run build        # type-check + production build into dist/
 ```
 
+### Browser tests
+
+Playwright 1.65.0 tests the replay build in Chromium (no backend, no paid call). Install the
+browser once (about 330 MiB download, 770 MB on disk; never `--with-deps`), then run from
+`app/frontend/`:
+
+```bash
+npx playwright install chromium   # once per Playwright version; check first with --dry-run
+npm run e2e                       # project no-webgl: what `ci_local.py --full` runs (stage e2e)
+npm run e2e:local                 # no-webgl and webgl: your machine only (needs a GPU)
+npm run e2e:fps                   # frame rate and draw calls on three quality tiers
+npm run e2e:update-baseline       # rewrite the screenshot baseline; look at the image first
+```
+
+Each run builds the replay (`npm run build:replay`) and serves it with `vite preview` on port 4173,
+so that port must be free. Output (`test-results/`) is git-ignored. What each spec proves, the
+results and how to add a test: [reference/TESTING.md](reference/TESTING.md#browser-tests-playwright-phase-4-task-11).
+Fps and draw-call figures are for the GPU that ran them (the spec prints its name); the integrated
+GPU has not been measured (owner action C6).
+
 ### Run the UI without the backend
 
 The replay files in `app/replay/` are copied to `app/frontend/public/replay/` (git-ignored) before
@@ -269,6 +291,8 @@ frontend-typecheck     full/quick
 frontend-test          quick
 frontend-coverage      full
 frontend-build         full
+replay-build           full
+e2e                    full
 contract-drift         full
 ```
 

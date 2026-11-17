@@ -27,6 +27,7 @@ def test_quick_mode_excludes_full_only_stages() -> None:
     assert "python-tests-full" in full and "python-tests" not in full
     assert "contract-drift" in full and "contract-drift" not in quick
     assert {"structure", "env", "secrets", "slop", "ruff", "mypy"} <= quick & full
+    assert {"replay-build", "e2e"} <= full and not ({"replay-build", "e2e"} & quick)
 
 
 def test_unknown_stage_name_is_an_error() -> None:

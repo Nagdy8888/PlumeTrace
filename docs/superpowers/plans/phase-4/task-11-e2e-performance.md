@@ -254,11 +254,11 @@ Extend `test_ci_local.py::test_quick_mode_excludes_full_only_stages` with `asser
 6. Tests and gates: backend `pytest` summary, frontend `vitest` summary, ruff, typecheck, structure / secrets / env outputs, the **full** security gate (`security-checks` skill, phase-end).
 
 ## Steps
-- [ ] Ask permission for the browser download; install deps (exact); write the config, helpers, specs.
-- [ ] `npm run e2e` (no-webgl) green; `npm run e2e:local` green on the owner's machine; `npm run e2e:update-baseline` once, look at the baseline image and confirm it is correct before committing it; `npm run e2e:fps` → record.
-- [ ] Add the two stages; `python scripts/ci_local.py --full --only replay-build,e2e` → both pass; the runner test is green.
+- [x] Ask permission for the browser download; install deps (exact); write the config, helpers, specs.
+- [x] `npm run e2e` (no-webgl) green; `npm run e2e:local` green on the owner's machine; `npm run e2e:update-baseline` once, look at the baseline image and confirm it is correct before committing it; `npm run e2e:fps` → record.
+- [x] Add the two stages; `python scripts/ci_local.py --full --only replay-build,e2e` → both pass; the runner test is green.
 - [ ] Full security gate (phase end) per `security-checks`; fix every high/critical.
 - [ ] `verify-and-review` against design §9 and the Phase 4 review focus list (README); record findings and fixes.
-- [ ] Write the evidence file. **Docs:** FRONTEND.md → "Testing" (projects, scripts, baseline policy, fps policy); LOCAL_DEVELOPMENT → "Browser tests". Work-log.
+- [x] Write the evidence file. **Docs:** FRONTEND.md → "Testing" (projects, scripts, baseline policy, fps policy); LOCAL_DEVELOPMENT → "Browser tests". Work-log.
 - [ ] **Commit** `test(frontend): add Playwright flows, visual baseline, axe scan and fps check`.
 - [ ] `STATUS.md`: "Phase 4 complete — waiting for Gate 4 (UI review)". **STOP.**
