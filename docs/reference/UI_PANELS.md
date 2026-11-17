@@ -14,7 +14,7 @@ The UI shows one simulated scenario of station KS-07 (fictional) against a playb
 as detection windows close, the station log, methane and wind trends, and playback controls. It is
 **partly 3D**: the station area (`<main aria-label="Station view">`) holds the interactive
 Blender-baked station (built in Phase 4 Task 8: picking, selection, camera, quality tiers; the
-plume and highlights are planned for Task 9). The scenario load status is a panel above the canvas
+plume, sensors, windsock and flare were added in Task 9, see [PLUME.md](PLUME.md); the candidate highlight is built but not mounted until Phase 5). The scenario load status is a panel above the canvas
 (see the wrapper under "Layout"). The `Simulated` label is always visible. The panels show no leak rate and no AI output; the Phase 5 agent panels do not exist.
 
 ## Layout
@@ -135,7 +135,7 @@ playback controls).
 | Alarms | See Alarm rule. Newest first; a row shows the badge `Methane rise` (`StatusBadge` tone `med`: all detection events are medium priority until Phase 5 triage assigns priorities), the sensor id, the UTC time the window closed, and `10-min mean .. ppm · baseline .. ppm · downwind of site` (or `not downwind of site`). Empty text: `No alarms in this period.` The list is `<ul aria-live="polite" aria-label="Alarm list">`; a selected row has `aria-current="true"` |
 | Station log | `scenario.log` entries with `t_s <= t`, newest first: UTC time, kind label (`Permit`, `Gauging`, `Maintenance`, `Shift note`, `Calibration`; an unknown kind is shown as is), tag, text. Empty text: `No log entries yet.` |
 | Trends | Methane per sensor and wind, history only; see Chart rules |
-| Playback bar | Play or Pause button (icon only, `aria-label`), speeds `1×`, `10×`, `60×`, `120×` as a `radiogroup`, a range slider `Simulation time` (step 60 s) with a 2 px wide, 4 px high `--alarm-med` tick under the track at every alarm close time, and the readout `Elapsed +02:20 · 02:20:00 UTC`. Every control is disabled until the scenario is `ready` |
+| Playback bar | Play or Pause button (icon only, `aria-label`), speeds `1×`, `10×`, `60×`, `120×` as a `radiogroup`, a range slider `Simulation time` (step 60 s) with a 2 px wide, 4 px high `--alarm-med` tick under the track at every alarm close time (two alarms at the same time, as in S4 at 7800 s, draw two ticks on top of each other; each tick is keyed by time and position, `PlaybackBar.readout.test.tsx`), and the readout `Elapsed +02:20 · 02:20:00 UTC`. Every control is disabled until the scenario is `ready` |
 | Station status | The `ScenarioStatus` message inside the station view; see below |
 
 ### Alarm rule
@@ -259,7 +259,11 @@ task.
    `features/` or `app/` contains `formatRate`.
 3. **`keyframes[].sources` is never rendered as text.** It is the simulation input for drawing the
    plume. Guards: `viewGuards.test.ts` fails on `keyframes`, `rate_kg_h` or `anchor_id` in
-   `features/` or `app/` sources; `src/app/simulationTruth.test.tsx` renders every data view twice.
+   `features/` or `app/` sources, except in two allow-listed plume files (`station3d/plume/plumeFrames.ts`,
+   `station3d/plume/PlumeParticles.tsx`; Task 9, owner deviation 2026-11-16) and four more static
+   guards there (exact allow-list, no import of the readers from outside the plume scope, no text, DOM or
+   aria sink and only fixed-string logging in the scope; see [PLUME.md](PLUME.md));
+   `station3d/plume/plumeTruth.test.tsx` renders the plume layers and checks text, names, `userData` and the console; `src/app/simulationTruth.test.tsx` renders every data view twice.
    With the real S1 file it finds no source anchor id, no `<rate> kg/h` string and no `kg/h` at all
    in the rendered HTML (`innerHTML`: text, attributes and labels). With a fixture whose source rate
    is `37.25` kg/h and anchor `VS-250.tip` it finds none of the needles `37.25`, `37.3`, `37.2` and
@@ -285,7 +289,7 @@ task.
 | `app/AppShell.wiring.test.tsx` | backend down shows the heading, the start command and an enabled `Retry`; the rAF loop is mounted (a 0.5 s frame at speed 60 advances the clock by 30 s) |
 | `app/WindReadout.test.tsx` | wind text |
 | `app/clockLabels.test.tsx` | every clock is zone-labelled or elapsed |
-| `app/viewGuards.test.ts`, `app/simulationTruth.test.tsx` | no `formatRate`, no source rate or anchor in views |
+| `app/viewGuards.test.ts`, `app/simulationTruth.test.tsx`, `features/station3d/plume/plumeTruth.test.tsx` | no `formatRate`, no source rate or anchor in views; the plume allow-list and its four guards |
 | `features/alarms/visibleEvents.test.ts` | `1199` gives 0 events, `1200` gives 1, `1800` gives `AT-101`, `AT-102`, `AT-104` (newest window first, tie by sensor id); no scenario gives an empty list |
 | `features/alarms/components/AlarmList*.test.tsx`, `StationLog.test.tsx` | empty state; row text; click selects and seeks to the close time; `aria-current`; "not downwind" wording; log at the exact second, newest first |
 | `features/trends/chartData.test.ts`, `chartTheme.test.ts` | values after the current sample are hidden; only the selected methane sensor is highlighted; colours read from the CSS variables, empty strings when a token is missing |
@@ -303,8 +307,9 @@ statements 90.7, branches 88.9, functions 92.2 and lines 92.9 percent (labelled 
 - Known and accepted at Task 4: the clock readouts re-render per simulated second (two tiny
   components); the methane y axis shows two ticks at 220 px height; the alarm detail wraps at 320 px.
 - Desktop only; below 1280 px the log moves under the alarms; narrow and touch viewports are Task 10.
-- The station area shows the baked 3D station with its interaction layer (Task 8); the plume,
-  candidate highlights and wind indicator are planned (Task 9), and the no-WebGL fallback, DOM
+- The station area shows the baked 3D station with its interaction layer (Task 8) and, since Task 9,
+  the plume, sensor markers, windsock and flare ([PLUME.md](PLUME.md)); the candidate highlight is
+  built but unmounted until Phase 5, and the no-WebGL fallback, DOM
   equipment list and mobile page are planned (Task 10). Details and limits of the 3D view:
   [FRONTEND.md](FRONTEND.md#3d-station-view-task-8).
 

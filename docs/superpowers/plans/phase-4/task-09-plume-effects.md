@@ -225,12 +225,12 @@ describe("decodeKeyframes", () => {
 `overlays/CandidateHighlight.test.tsx`: two candidates (`VS-250.tip` p 0.87, `K-202.packing` p 0.10) → two spheres; the first sphere's `emissiveIntensity` ≈ 3.61 and the second ≈ 1.3; an unknown anchor id is skipped (no throw). (Pass `labels={false}` as in Task 8.)
 
 ## Steps
-- [ ] Add deps (exact). Pure tests → FAIL → implement `plumeMath`, `plumeFrames`, `random`.
-- [ ] Shaders/materials, field hook, heat-map, particles, layer; component tests → FAIL → implement → green.
-- [ ] Sensors, windsock, flare, candidate highlight, post effects, legend.
-- [ ] `npm run lint && npm run typecheck && npm run test && npm run build`.
-- [ ] Browser, S1 at 120×: before 7200 s no plume; after the release starts the heat-map appears **downwind** of VS-250 matching the wind readout (check the compass); particles drift the same way; alarms fire on the sensors under the heat-map. S4: plume only during the blowdown window. S5: **no plume at all** (the drift is a sensor fault) — this is the honesty check; record it.
-- [ ] Measure at `REVIEW_CAMERA`, S1 at +02:20, high: draw calls, triangles, fps (30 s) → work log; ≥ 58 fps; else reduce `plumeParticles` for the tier that fails and record.
-- [ ] Screenshot `docs/evidence/2026-11-phase-4-plume-s1.png`; `check_slop.py`; `impeccable` critique of legend + labels; repo checks.
-- [ ] **Docs.** FRONTEND.md → "Plume and effects": data path (key frames → textures), decode formula, threshold and ramp, particle model (visual spread table, grid gating, wall-clock motion), sensors/windsock/flare/candidates, post effects per tier, measurements. Work-log; `STATUS.md` (last 4.9, next 4.10).
+- [x] Add deps (exact). Pure tests → FAIL → implement `plumeMath`, `plumeFrames`, `random`.
+- [x] Shaders/materials, field hook, heat-map, particles, layer; component tests → FAIL → implement → green.
+- [x] Sensors, windsock, flare, candidate highlight, post effects, legend.
+- [x] `npm run lint && npm run typecheck && npm run test && npm run build`.
+- [x] Browser, S1 at 120×: before 7200 s no plume; after the release starts the heat-map appears **downwind** of VS-250 matching the wind readout (check the compass); particles drift the same way; alarms fire on the sensors under the heat-map. S4: plume only during the blowdown window. S5: **no plume at all** (the drift is a sensor fault) — this is the honesty check; record it.
+- [x] Measure at `REVIEW_CAMERA`, S1 at +02:20, high: draw calls, triangles, fps (30 s) → work log; ≥ 58 fps; else reduce `plumeParticles` for the tier that fails and record.
+- [x] Screenshot `docs/evidence/2026-11-phase-4-plume-s1.png`; `check_slop.py`; `impeccable` critique of legend + labels; repo checks.
+- [x] **Docs.** FRONTEND.md → "Plume and effects": data path (key frames → textures), decode formula, threshold and ramp, particle model (visual spread table, grid gating, wall-clock motion), sensors/windsock/flare/candidates, post effects per tier, measurements. Work-log; `STATUS.md` (last 4.9, next 4.10).
 - [ ] **Commit** `feat(3d): add plume heat-map, particles, sensors, windsock, flare and candidate highlight`.

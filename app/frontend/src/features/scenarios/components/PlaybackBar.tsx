@@ -65,9 +65,9 @@ function Scrubber({ ready, eventTimesS }: Pick<PlaybackBarProps, "ready" | "even
         style={{ marginInline: THUMB_INSET }}
       >
         {durationS > 0
-          ? eventTimesS.map((t) => (
+          ? eventTimesS.map((t, i) => (
               <span
-                key={t}
+                key={`${t}-${i}`}
                 className="absolute top-0 h-1 w-0.5 -translate-x-1/2 bg-alarm-med"
                 style={{ left: `${(t / durationS) * 100}%` }}
               />

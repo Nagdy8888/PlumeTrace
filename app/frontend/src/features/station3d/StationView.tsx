@@ -1,6 +1,7 @@
 import { lazy, Suspense, type JSX } from "react";
 
 import { QualityMenu } from "./overlays/QualityMenu";
+import { PlumeLegend } from "./plume/PlumeLegend";
 
 const StationCanvas = lazy(() => import("./StationCanvas"));
 
@@ -8,11 +9,11 @@ const StationCanvas = lazy(() => import("./StationCanvas"));
 const HAS_WEBGL = typeof WebGL2RenderingContext !== "undefined";
 
 /**
- * The 3D station view: the lazily loaded canvas (so the 2D panels render first) and the quality
- * menu in the corner. Names missing from the model are logged by the scene with
+ * The 3D station view: the lazily loaded canvas (so the 2D panels render first), the quality
+ * menu in the top corner and the plume legend in the bottom corner. Names missing from the model are logged by the scene with
  * `console.error("station model is missing nodes", ...)`.
  *
- * @returns The canvas and menu, or nothing when WebGL 2 is unavailable.
+ * @returns The canvas, menu and legend, or nothing when WebGL 2 is unavailable.
  */
 export function StationView(): JSX.Element | null {
   if (!HAS_WEBGL) return null;
@@ -22,6 +23,7 @@ export function StationView(): JSX.Element | null {
         <StationCanvas />
       </Suspense>
       <QualityMenu />
+      <PlumeLegend />
     </>
   );
 }

@@ -5,7 +5,7 @@
 `app/frontend/` is the PlumeTrace control-room web app: React + TypeScript + Vite. As of Phase 4 Task 4
 it has the design system, the data layer (live API or static replay) and the control-room panels:
 top bar, alarms, station log, trends and playback bar. The station area shows the scenario load status and the baked 3D model of
-the full station with picking, selection, camera fly-to and quality tiers (Task 8; the plume is Task 9). The data is the simulated station KS-07
+the full station with picking, selection, camera fly-to and quality tiers (Task 8) and the plume, sensors, windsock and flare (Task 9, [PLUME.md](PLUME.md)). The data is the simulated station KS-07
 (fictional); the weather in it is real. Design reference: section 9; visual rules: `.ux-profile.md`.
 
 This page is the overview. The detail lives in four focused pages:
@@ -180,7 +180,11 @@ zone-labelled (`... UTC`) or says `Elapsed`.
   probability must add it, with a test, before showing the number. `formatRate` must not be called
   from a view (`src/app/viewGuards.test.ts`).
 - **Replay `keyframes[].sources` is never rendered as text** (`viewGuards.test.ts`,
-  `simulationTruth.test.tsx`).
+  `simulationTruth.test.tsx`, `station3d/plume/plumeTruth.test.tsx`). Since Task 9 two plume files
+  (`plume/plumeFrames.ts`, `plume/PlumeParticles.tsx`) may read the sources to draw the plume; an exact-file
+  allow-list and four more static guards in `viewGuards.test.ts` keep every other file, and every text,
+  DOM, aria and log sink in the plume files, free of them (owner-approved deviation 2026-11-16 P4 T9;
+  details in [PLUME.md](PLUME.md)).
 - **Every clock shows a zone label or `Elapsed`** (`clockLabels.test.tsx`). A station-local time gets
   its own label `UTC+5 station time`.
 
@@ -192,7 +196,8 @@ Blender generator for every equipment type ([BLENDER_EQUIPMENT.md](BLENDER_EQUIP
 Task 7, the piping, site, bake and the one-command export ([STATION_MODEL.md](STATION_MODEL.md)):
 the shipped `ks07.glb` is the full station (24 items, 15 piping routes, racks, site). Since Task 8
 the viewer adds picking, selection, labels, camera fly-to and quality tiers (section "3D station
-view (Task 8)" below); the plume and candidate highlights (Task 9) are still planned.
+view (Task 8)" below); since Task 9 it also draws the plume, sensors, windsock and flare (see
+[PLUME.md](PLUME.md)); the candidate highlight is built but not mounted (Phase 5).
 `vite.config.ts` excludes `src/features/station3d/scene/**` from coverage.
 
 ```mermaid
@@ -200,21 +205,19 @@ flowchart LR
     Bpy["scripts/blender/ bpy script<br/>from ks07.json<br/>BUILT (equipment, piping, site)"] --> Glb["public/models/ks07.glb<br/>15 MB or less<br/>BUILT (full station, 3.17 MB)"]
     Glb --> Scene["station3d scene<br/>React Three Fiber<br/>BUILT (model, index, picking, camera, tiers)"]
     Sel["useSelectionStore<br/>BUILT (Task 8)"] <--> Scene
-    Clock["useClockStore<br/>playing selects frameloop: BUILT<br/>read in useFrame for the plume: PLANNED"] --> Scene
-    Frames["replay keyframes<br/>plume visual only<br/>PLANNED (Task 9)"] --> Scene
-    classDef planned stroke-dasharray: 5 5
-    class Frames planned
+    Clock["useClockStore<br/>playing selects frameloop; read in useFrame for the plume<br/>BUILT"] --> Scene
+    Frames["replay keyframes<br/>plume visual only<br/>BUILT (Task 9, PLUME.md)"] --> Scene
 ```
 
-*Caption: data flow of approach B (Blender-baked). Solid nodes exist: the generator and the shipped
+*Caption: data flow of approach B (Blender-baked). Every node exists: the generator and the shipped
 glb hold the full station (Tasks 6 and 7), the scene renders it with picking and camera (Task 8),
-and the selection store drives both the scene and the panels; the dotted node (replay plume
-frames) is planned and not built.*
+the selection store drives both the scene and the panels, and the replay plume frames and the clock
+draw the plume (Task 9). The candidate highlight is built but not mounted.*
 
-Planned data flow, approach B, from the Phase 4 plan. The plume and highlights are real-time R3F;
+Data flow, approach B, from the Phase 4 plan. The plume and highlights are real-time R3F;
 the clock is read inside `useFrame`, never through React state; plume visibility is gated by the
-model grid in the replay. In Task 8 the clock only decides whether the canvas draws every frame
-(playing) or on demand (paused).
+model grid in the replay. The clock decides whether the canvas draws every frame (playing) or on
+demand (paused), and since Task 9 `usePlumeField` reads it in `useFrame`.
 
 ### Regenerating the station model
 
@@ -250,8 +253,8 @@ look at descendants, not only at the named node.
 Built in Phase 4 Task 8: the interactive layer on top of the baked model. It adds the node index,
 picking through invisible proxies, hover and selection visuals, camera controls with fly-to and
 reset, quality tiers and the lights. The station is fictional and simulated; the labels show a tag
-and a type name only (no rate, no value). The plume, candidate highlights and wind indicator are
-**planned** (Task 9); the full no-WebGL fallback and the DOM equipment list are planned (Task 10).
+and a type name only (no rate, no value). The plume, sensors, windsock and flare were added in Task 9
+([PLUME.md](PLUME.md)); the full no-WebGL fallback and the DOM equipment list are planned (Task 10).
 
 ```mermaid
 flowchart TD
@@ -559,10 +562,10 @@ measurements (size, draw calls, fps, bake time) are in `docs/evidence/2026-11-sp
 Most items are one node named by the tag. Two kinds of part stay their own node so the frontend can
 animate them; their names are `naming.part_name(tag, part)` = `<tag>__<part>`:
 
-| Node | Where | Origin (pivot) | Contents | Intended use (Task 9, planned) |
+| Node | Where | Origin (pivot) | Contents | Use in the frontend |
 |---|---|---|---|---|
-| `E-231__fan_1`, `E-231__fan_2` (same for `E-232`, `E-233`) | fin-fan coolers | the fan hub, item-local `(-L/4, 0, 3.4)` and `(+L/4, 0, 3.4)` | hub cylinder r 0.2 m and four blades pitched 12 degrees | spin about the node's local Y axis |
-| `FL-601__tip` | flare stack | item-local `(0, 0, 28.5)`, the top of the stack | tip cylinder r 0.35 m and the open wind shield ring; its top centre is the anchor `FL-601.tip` | place the flame at the anchor |
+| `E-231__fan_1`, `E-231__fan_2` (same for `E-232`, `E-233`) | fin-fan coolers | the fan hub, item-local `(-L/4, 0, 3.4)` and `(+L/4, 0, 3.4)` | hub cylinder r 0.2 m and four blades pitched 12 degrees | spun about the node's local Y axis (built, `AnimatedParts`, Task 8) |
+| `FL-601__tip` | flare stack | item-local `(0, 0, 28.5)`, the top of the stack | tip cylinder r 0.35 m and the open wind shield ring; its top centre is the anchor `FL-601.tip` | the flame is placed at the anchor `FL-601.tip` (built, `FlareFlame`, Task 9) |
 
 Real values from the 2026-11-16 raw export (three.js frame, Y up): `E-231__fan_1` has translation
 `[-2, 3.4, 0]` inside `E-231` (translation `[95, 0, -57]`), its blades span about +-1.55 m in x and z
@@ -682,6 +685,10 @@ schema and the committed `contract.ts`.
   fallback); `check:replay-bundle` ignores the R3F documentation URL; load-status panel is solid;
   component tests for `HitProxies` and `SelectionBox`, pure `overlayTags` and `tagLabelText`;
   `QualityMenu` shows a `Quality` caption and the `R` shortcut after a design critique.
+- 2026-11-16: Phase 4 Task 9: plume, heat-map, sensors, windsock, flare, post effects and the legend
+  ([PLUME.md](PLUME.md)); display rules name the plume allow-list and guards; planned-data-flow diagram
+  now shows the plume frames as built; `@react-three/postprocessing` 3.2.2 and `postprocessing` 6.39.6
+  added (exact pins).
 - 2026-11-16: Phase 4 Task 7: the shipped glb is the full station; "Regenerating the station model"
   section with the budgets; separate-node and check_glb notes updated; STATION_MODEL.md added.
 - 2026-11-15: documentation pass: this page became the overview; detail moved to DESIGN_SYSTEM.md,

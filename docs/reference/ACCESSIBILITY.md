@@ -76,7 +76,10 @@ containers focusable was not checked.
 
 Under `prefers-reduced-motion: reduce`, animation and transition durations drop to 0.01 ms for all
 elements. The panels have no autoplay animation; the only motion is the clock, which the user starts.
-Reduced-motion handling of the 3D camera and plume is planned for Tasks 8 to 10.
+In the 3D station view (built, tested): the camera jumps instead of flying, the plume particles and the
+flare flicker run at a quarter speed, and a sensor alarm ring appears at full size at once
+(`useCameraFlyTo.test.tsx`, `PlumeLayer.test.tsx`, `FlareFlame.test.tsx`, `SensorMarkers.test.tsx`;
+see [PLUME.md](PLUME.md)). The no-WebGL fallback and the mobile view are planned for Task 10.
 
 ## Known gaps and limits
 

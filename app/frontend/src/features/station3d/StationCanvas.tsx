@@ -8,6 +8,7 @@ import { PerfOverlay } from "./dev/PerfOverlay";
 import { StationModel } from "./model/StationModel";
 import { CameraRig } from "./scene/CameraRig";
 import { EnvironmentMap } from "./scene/EnvironmentMap";
+import { PostEffects } from "./scene/PostEffects";
 import { QUALITY } from "./scene/qualitySettings";
 import { REVIEW_CAMERA } from "./scene/reviewCamera";
 import { Sun } from "./scene/Sun";
@@ -20,8 +21,8 @@ const SHOW_PERF = new URLSearchParams(window.location.search).has("perf");
  * The R3F canvas: quality tier (dpr, shadows), review camera and orbit controls, local
  * image-based lighting, one sun and the baked station. It renders every frame while the clock is
  * playing and on demand otherwise. While the clock plays, the frame-rate monitor lowers the
- * automatic tier one step per decline; it never changes or stores the manual choice. The plume and
- * highlights arrive in Task 9.
+ * automatic tier one step per decline; it never changes or stores the manual choice. The plume,
+ * sensors, windsock and flare are part of the scene; bloom and SMAA run on high and medium.
  *
  * @returns The canvas filling its parent.
  */
@@ -47,6 +48,7 @@ export default function StationCanvas(): JSX.Element {
           <CameraRig />
         </StationModel>
       </Suspense>
+      <PostEffects tier={tier} />
       {SHOW_PERF && <PerfOverlay />}
     </Canvas>
   );

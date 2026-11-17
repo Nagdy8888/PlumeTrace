@@ -22,7 +22,7 @@ flowchart LR
         UI["Control-room panels<br/>alarms, trends, log, playback"]
     end
     AG["LangGraph agents<br/>PLANNED"]
-    TD["3D station scene<br/>model, picking, selection, camera, tiers built;<br/>plume and highlights PLANNED"]
+    TD["3D station scene<br/>model, picking, selection, camera, tiers, plume,<br/>sensors, windsock, flare built;<br/>candidate highlight built, unmounted until Phase 5"]
     RR["Rules table, work orders, reports<br/>PLANNED"]
     OM --> SIM
     ENG -->|"used by runner and export"| SIM
@@ -35,10 +35,10 @@ flowchart LR
     STORE --> PG
     AG -.->|planned| API
     AG -.->|planned| RR
-    UI -.->|"model, picking, camera built; plume planned"| TD
+    UI -.->|"model, picking, camera, plume built; highlight unmounted"| TD
 ```
 
-*System at a glance: solid parts exist and are tested; dotted parts (agents, rules table, reports, the full 3D station) are planned and not built; the 3D station is the Phase 4 baked model of the whole station with a sun, picking, selection labels, camera fly-to and quality tiers (Task 8); the plume and candidate highlights are not built yet. Nothing is deployed; the replay build is built and previewed locally.*
+*System at a glance: solid parts exist and are tested; dotted parts (agents, rules table, reports) are planned and not built, and the dotted link to the 3D station marks that the station view is not yet fed by agents; the 3D station is the Phase 4 baked model of the whole station with a sun, picking, selection labels, camera fly-to and quality tiers (Task 8), plus the plume heat-map and particles, sensor markers, windsock, flare and legend (Task 9); the candidate highlight is built and tested but not mounted until Phase 5, which supplies its candidates. Nothing is deployed; the replay build is built and previewed locally.*
 
 Details of each box: [SIMULATOR](reference/SIMULATOR.md), [ENGINEERING](reference/ENGINEERING.md) and
 [PHYSICS_PIPELINE](reference/PHYSICS_PIPELINE.md), [API](reference/API.md),
@@ -125,7 +125,8 @@ worked example, edge cases and the test that pins each, how to run and extend.
 | Document | What it covers |
 |---|---|
 | [reference/API.md](reference/API.md) | REST endpoints (health, scenarios, replay), request path, configuration, limits |
-| [reference/FRONTEND.md](reference/FRONTEND.md) | React app: stack, scripts, folder rules, live and replay builds, layout; the 3D station (baked full-station model, node index, picking, selection, camera, quality tiers, measurements, regeneration command and budgets; no plume yet) |
+| [reference/PLUME.md](reference/PLUME.md) | The plume layer of the 3D station: key-frame decode, ground heat-map, GPU particles, legend, sensors, windsock, flare, post effects, the simulation-truth guards, draw-call measurements |
+| [reference/FRONTEND.md](reference/FRONTEND.md) | React app: stack, scripts, folder rules, live and replay builds, layout; the 3D station (baked full-station model, node index, picking, selection, camera, quality tiers, measurements, regeneration command and budgets; the plume layer is in PLUME.md) |
 | [reference/ASSETS.md](reference/ASSETS.md) | Poly Haven CC0 textures and HDRI used by the 3D pipeline: ids, licence, source, where each is used, how to fetch and verify |
 | [reference/STATION_MODEL.md](reference/STATION_MODEL.md) | Station model: piping routes, pipe racks, site (yard, pads, road, bund, fence), the AO bake, `scripts/build_station.sh`, the glTF-Transform step and the `check_glb.py` budgets (Phase 4 Task 7) |
 | [reference/BLENDER_EQUIPMENT.md](reference/BLENDER_EQUIPMENT.md) | Blender generator parts library and the 15 equipment builders: parts, anchors, separate glb nodes (fans, flare tip), materials, how to build and check one type (Phase 4 Task 6; the whole-station chain is STATION_MODEL.md) |

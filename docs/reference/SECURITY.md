@@ -213,7 +213,9 @@ Code: `app/frontend/src`. Details: [DATA_LAYER.md](DATA_LAYER.md), [UI_PANELS.md
 - **Fonts are local.** IBM Plex comes from npm packages bundled by Vite; no font host is contacted.
 - **No Supabase or OpenAI in the browser.** The frontend never connects to either.
 - **Simulation truth is not shown.** `keyframes[].sources` is never rendered; tests
-  `viewGuards.test.ts` and `simulationTruth.test.tsx` pin it.
+  `viewGuards.test.ts` and `simulationTruth.test.tsx` pin it. Two plume files read it to draw particles
+  (exact-file allow-list, Task 9); four more static guards and `plumeTruth.test.tsx` keep it out of text,
+  names, aria, `userData` and logs ([PLUME.md](PLUME.md)).
 
 ### The replay bundle check
 

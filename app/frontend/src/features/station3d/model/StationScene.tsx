@@ -1,8 +1,13 @@
 import { useEffect, useMemo, type JSX, type ReactNode } from "react";
 import type { Object3D } from "three";
 
+import { useActiveScenario } from "@/shared/data";
 import type { FacilitySpec } from "@/shared/types/generated/contract";
 
+import { FlareFlame } from "../overlays/FlareFlame";
+import { SensorMarkers } from "../overlays/SensorMarkers";
+import { WindSock } from "../overlays/WindSock";
+import { PlumeLayer } from "../plume/PlumeLayer";
 import { SelectionBox } from "../overlays/SelectionBox";
 import { TagLabel } from "../overlays/TagLabel";
 import { AnimatedParts } from "./AnimatedParts";
@@ -33,8 +38,9 @@ function reportMissing(missing: readonly string[]): void {
 
 /**
  * The station as the real-time layer sees it: the model, its node index (also published through
- * {@link NodeIndexContext}), the picking proxies, the animated fans, the selection outline and
- * the labels. Names missing from the model are logged once with `console.error`.
+ * {@link NodeIndexContext}), the picking proxies, the animated fans, the selection outline, the
+ * labels and, for the loaded scenario, the plume, the sensor markers and the windsock, plus the
+ * flare flame. Names missing from the model are logged once with `console.error`.
  *
  * @param props - See {@link StationSceneProps}.
  * @returns The scene content.
@@ -42,6 +48,7 @@ function reportMissing(missing: readonly string[]): void {
 export function StationScene({ root, spec, labels = true, children }: StationSceneProps): JSX.Element {
   const index = useMemo(() => buildNodeIndex(root, spec), [root, spec]);
   useEffect(() => reportMissing(index.missing), [index]);
+  const scenario = useActiveScenario();
   return (
     <NodeIndexContext.Provider value={index}>
       <primitive object={root} dispose={null} />
@@ -49,6 +56,10 @@ export function StationScene({ root, spec, labels = true, children }: StationSce
       <AnimatedParts index={index} />
       <SelectionBox index={index} spec={spec} />
       {labels && <TagLabel index={index} spec={spec} />}
+      {scenario !== null && <PlumeLayer scenario={scenario} />}
+      {scenario !== null && <SensorMarkers scenario={scenario} />}
+      <WindSock scenario={scenario} />
+      <FlareFlame />
       {children}
     </NodeIndexContext.Provider>
   );

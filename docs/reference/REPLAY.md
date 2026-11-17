@@ -157,7 +157,7 @@ flowchart LR
     J --> D["decode_log_u8<br/>reference decoder, used by the tests"]
 ```
 
-*Grid encoding path: a float grid becomes one byte per cell, then base64 text in the file. `decode_log_u8` is the Python reference decoder that the tests use. No frontend decoder or plume texture exists yet; drawing the plume from these grids is planned for Phase 4.*
+*Grid encoding path: a float grid becomes one byte per cell, then base64 text in the file. `decode_log_u8` is the Python reference decoder that the tests use. The frontend decodes the grids too: `decodeKeyframes` (base64 to bytes), `decodeLogU8` and the shader decoder load them into two grid textures that the plume layer draws (built in Phase 4 Task 9, see [PLUME.md](PLUME.md)).*
 
 | Byte | Meaning | Decoded ppm |
 |---|---|---|

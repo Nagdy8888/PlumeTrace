@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useClockStore } from "@/shared/playback";
 
@@ -33,6 +33,16 @@ describe("PlaybackBar readout and ticks", () => {
     const ticks = [...container.querySelectorAll<HTMLElement>("span[style]")];
     expect(ticks.map((t) => t.style.left)).toEqual(["25%", "50%"]);
     expect(ticks[0]?.parentElement).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("draws a tick for each of two alarms at the same time without a duplicate React key (S4 7800 s)", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { container } = render(
+      <PlaybackBar ready simStartUtc="2025-07-15T06:00:00Z" eventTimesS={[7800, 7800]} />,
+    );
+    expect(spy).not.toHaveBeenCalled();
+    expect(container.querySelectorAll("span[style]")).toHaveLength(2);
+    spy.mockRestore();
   });
 
   it("gives the slider the whole timeline in one-minute steps", () => {
