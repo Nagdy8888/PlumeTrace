@@ -113,8 +113,11 @@ Concentrations below 1 ppm are discarded. From 1 ppm the ramp is the five methan
 `--ch4-4` on a log scale (`t = clamp(log10(ppm) / 2, 0, 1)`, so 1 ppm is the first colour and 100 ppm
 the last); opacity is `0.25 + 0.5 t`, at most 0.75 (`alphaForPpm`). The legend (`PlumeLegend`) reads
 `Methane above background, ppm (model at 1.5 m)` with five steps `1`, `3`, `10`, `30`, `100+` in the
-same tokens and the line `Visualisation of the dispersion model. Methane is invisible.` It is a
-solid panel, hidden when no scenario is loaded, and shows no rate.
+same tokens and the line `Visualisation of the dispersion model. Methane is invisible.` A second line
+says what the map leaves out, rendered from `DISPLAY_MIN_PPM`: `Cells below 1 ppm are not drawn. A sensor
+alarm can fire on a smaller rise.` (added in the Gate 4 fix round, so an alarm with no colour under the
+sensor is explained; the floor itself is unchanged). It is a solid panel, hidden when no scenario is
+loaded, and shows no rate.
 
 ### Particle model
 
@@ -281,6 +284,7 @@ non-zero byte in any frame, and the browser at 15,000 s shows no heat-map and no
 | Unknown candidate anchor | skipped | `CandidateHighlight.test.tsx` |
 | Glow | `1 + 3 p` (3.61 and 1.3 for 0.87 and 0.10) | `CandidateHighlight.test.tsx` |
 | Legend text and tokens, no rate, hidden without a scenario | | `PlumeLegend.test.tsx` |
+| Alarm with no drawn cell under the sensor (the mean rise is under 1 ppm, so no colour) | the legend says `Cells below 1 ppm are not drawn. A sensor alarm can fire on a smaller rise.` | `PlumeLegend.test.tsx` "says what the map leaves out, so an alarm with no colour under the sensor is explained" |
 
 ## Deviations from the plan (owner-ratified, 2026-11-16 review)
 
@@ -355,3 +359,4 @@ stair-step cell edges are honest to the 5 m grid. Nothing was changed after the 
 - 2026-11-17: Phase 4 Task 9 fix round: allocation-free `keyframeInto`, deviations section, sensor
   hit boxes invisible, draw calls re-measured as rendered at 1920 x 1080 on three tiers, 30 s fps run,
   corrected the 1 ppm patch extent, stale built and planned labels fixed across the docs.
+- 2026-11-17: Gate 4 fix round: legend line for the 1 ppm display floor (F-1); no diagram change.

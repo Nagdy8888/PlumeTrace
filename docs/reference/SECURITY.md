@@ -3,7 +3,7 @@
 Reference for security controls as they exist in the code. The process (quick gate, full gate,
 hardening phase, release gate) is described in the `security-checks` project skill; this page
 records what the code does today and is extended by later tasks. It states only what is implemented.
-Status date of this revision: 2026-11-15 (Phases 1 to 4 Task 4).
+Status date of this revision: 2026-11-17 (Phases 1 to 4, Gate 4 preparation).
 
 Related pages: [CONFIGURATION.md](CONFIGURATION.md) (settings and `.env` in depth),
 [DATABASE.md](DATABASE.md) (schema and RLS), [API.md](API.md), [DATA_LAYER.md](DATA_LAYER.md),
@@ -260,6 +260,16 @@ The Vite dev server and `vite preview` do not send them. See [DEPLOYMENT.md](DEP
 | Direct table access through Supabase REST | RLS with no policy, schema not exposed | in place |
 | Cross-site scripting | React text rendering, no HTML sinks, CSP (later deployment) | partly: CSP not active |
 
+## Accepted risks
+
+### SEC-1: picomatch ReDoS (GHSA-fc5q-39xc-vjpf), development tools only
+
+- **Finding:** `npm audit --audit-level=high` (from `app/frontend/`) exits 1 with 9 high entries, all from the one advisory GHSA-fc5q-39xc-vjpf (picomatch "ReDoS through single-branch repeated extglobs", CWE-1333, CVSS 7.5, affected `<=4.0.7`). picomatch 4.0.7 is the latest published version, so no fixed release exists. It reaches `vite`, `vitest`, `@vitest/coverage-v8`, `@vitejs/plugin-react`, `json-schema-to-typescript` and `typescript-eslint` through `tinyglobby` and `fdir`.
+- **Accepted by:** the owner (delegated Opus decision at Gate 4, 2026-11-17; recorded in `docs/superpowers/plans/STATUS.md`).
+- **Reason:** development-time only. `npm audit --omit=dev` reports 0 vulnerabilities, `npm ls picomatch --omit=dev` lists nothing and the string `picomatch` does not occur in `app/frontend/dist`. The tools run only on the developer's machine on glob patterns written in this repository; the ReDoS needs an attacker-controlled pattern or path, which nothing in this project supplies. This is an assessment, not a test. `npm audit fix --force` is not a fix: it downgrades vite and vitest and leaves picomatch at an affected version.
+- **Scope of the acceptance:** this one advisory id only. Any other high or critical advisory, or this advisory appearing under `npm audit --omit=dev`, blocks as before. No suppression, override or audit configuration is added.
+- **Revisit:** at Phase 6 Task 6 (supply chain) or on 2026-12-15, whichever comes first, and at every phase gate until then: re-run `npm audit --audit-level=high` and `npm view picomatch version`. When a fixed picomatch is published, the lockfile is updated in that task (the owner approves the pin change) and this entry is removed.
+
 ## Known gaps (not yet in place)
 
 - Phase 6: rate limits, request body limit, host-header check (a local process or DNS rebinding can
@@ -282,8 +292,8 @@ python -I .claude/skills/security-checks/scripts/check_env.py .
 python -I .claude/skills/security-checks/scripts/secret_scan.py .
 ```
 
-Phase check results are in `docs/evidence/` (Phase 1 and 2 files; the Phase 4 UI evidence is
-collected at Gate 4). The `docs/evidence/<date>-security.md` reports are written by the security
+Phase check results are in `docs/evidence/` (Phase 1 and 2 files; the Phase 4 gate results, including
+the full security gate run on 2026-11-17, are in `docs/evidence/2026-11-phase-4-ui.md` sections 7 and 8). The `docs/evidence/<date>-security.md` reports are written by the security
 phases.
 
 ## How to extend
@@ -303,3 +313,6 @@ phases.
 - 2026-11-15: Phase 4 Task 1 API section.
 - 2026-11-15: whole-project revision: trust-boundary diagram, settings and secrets, local database,
   frontend, replay-bundle check, threat table and known gaps.
+- 2026-11-17: Phase 4 gate security run recorded; open high finding SEC-1 (dev-only picomatch advisory,
+  not accepted) added to the known gaps.
+- 2026-11-17: SEC-1 accepted at Gate 4 (delegated owner decision), revisit Phase 6 Task 6 or 2026-12-15.

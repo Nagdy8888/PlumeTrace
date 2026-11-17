@@ -700,7 +700,7 @@ Context loss. `preventDefault()` on the lost event is what allows the browser to
 | `features/station3d/StationFallback.tsx`, `stationImage.ts` | the figure; the image path and alt text, shared with the mobile page |
 | `features/station3d/StationCanvas.tsx` | `onCreated` adds the `webglcontextlost` (with `preventDefault`) and `webglcontextrestored` listeners and reports them to `StationView` |
 | `app/useViewportClass.ts` | `"mobile"` when `(max-width: 767px)` matches, or `(pointer: coarse)` matches and `innerWidth < 1024`; `useSyncExternalStore` over the two media queries and `resize`; `"desktop"` without `matchMedia` |
-| `app/MobilePage.tsx` | product name, `Simulated`, the heading and paragraph, the still image, the desktop hint |
+| `app/MobilePage.tsx` | product name, `Simulated`, the heading and one paragraph that describes only what the replay shows (eight fence-line sensors at the fictional Station KS-07: methane rises, alarms, wind and a dispersion-model view; no locating or drafting claim before the agents exist, Gate 4 fix round, guard in `MobilePage.test.tsx`), the still image, the desktop hint |
 | `app/LeftColumn.tsx`, `app/SkipLink.tsx` | the Alarms and Equipment tabs (`shared/ui/tabs.tsx`, Radix) and the skip link |
 | `app/AppShell.tsx` | `AppShell` picks `MobilePage` or `ControlRoom` (the former shell body); the data bootstrap, clock loop and keys are mounted only in `ControlRoom` |
 

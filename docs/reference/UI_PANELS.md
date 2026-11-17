@@ -305,7 +305,7 @@ task.
 |---|---|
 | `app/AppShell.test.tsx` | product name, `Simulated`, regions `Alarms`, `Station log`, `Trends` and `main` `Station view` |
 | `app/AppShell.wiring.test.tsx` | backend down shows the heading, the start command and an enabled `Retry`; the rAF loop is mounted (a 0.5 s frame at speed 60 advances the clock by 30 s) |
-| `app/AppShell.viewport.test.tsx`, `app/LeftColumn.test.tsx`, `app/MobilePage.test.tsx`, `app/useViewportClass.test.ts` | mobile page on a narrow screen with no fetch; skip link before the top bar; tabs switch; mobile page text and image; the viewport rule |
+| `app/AppShell.viewport.test.tsx`, `app/LeftColumn.test.tsx`, `app/MobilePage.test.tsx`, `app/useViewportClass.test.ts` | mobile page on a narrow screen with no fetch; skip link before the top bar; tabs switch; mobile page text and image, and the guard that the copy makes no locating, drafting or work-order claim; the viewport rule |
 | `features/station3d/EquipmentList*.test.tsx` | every tag has an area; areas in the fixed order; row names; click and `aria-pressed`; scroll into view |
 | `app/WindReadout.test.tsx` | wind text |
 | `app/clockLabels.test.tsx` | every clock is zone-labelled or elapsed |

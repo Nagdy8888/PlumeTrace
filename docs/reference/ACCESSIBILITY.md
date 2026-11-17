@@ -190,8 +190,9 @@ have made those plan tests pass vacuously.
   router; accepted). The fallback caption is not a live region, so a runtime switch to the still image
   after a context loss is not announced (the fallback mounts with its text; accepted for now). The
   shared `tabs.tsx` still carries shadcn's `transition-all` in its base class; `LeftColumn` overrides it
-  with `transition-none`, the file itself is not a Task 10 file. The mobile page copy is the plan text
-  and can break "KS-07" across lines.
+  with `transition-none`, the file itself is not a Task 10 file. The mobile page copy (rewritten in the
+  Gate 4 fix round to describe only what the replay shows, see the guard in `MobilePage.test.tsx`)
+  can still break "KS-07" at the hyphen across lines (seen at 390 px, left open).
 - **No screen reader run.** The names and roles above come from Testing Library queries, axe and a
   Chromium tab-order recording.
 - **A lost context logs a three.js warning.** When the fallback replaces the canvas, three.js warns

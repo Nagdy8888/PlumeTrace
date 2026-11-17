@@ -1,14 +1,22 @@
 {
   "schema_version": 1,
-  "scope": "Phase 1 foundations, Phase 2 engineering core and Phase 3 simulator, replay export and run persistence (local, simulated station); no API, agents, LLM calls or replay build exist yet.",
-  "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+  "scope": "Phase 1 foundations, Phase 2 engineering core, Phase 3 simulator, replay export and run persistence, and Phase 4 (read-only scenario API, control-room UI, Blender-baked 3D station, static replay build, Playwright e2e) on a local simulated station. No agents, LLM calls, WebSocket, approval flow or deployment exist yet.",
+  "revision": "fcb000f + Gate 4 preparation docs working tree (2026-11-17)",
   "environment": "local-dev Windows 11, Python 3.12",
   "assessments": [
     {
       "id": "B01",
       "status": "Planned",
-      "reason": "Trust boundaries are not mapped yet. Next action: map them when the API and graph land; test in Phase 6.",
-      "evidence": []
+      "reason": "The trust boundaries that exist after Phase 4 (repo to disk, backend to Postgres, browser to loopback API, script to Open-Meteo, static bundle to a future host) are mapped in a diagram and table in SECURITY.md; model, worker and approval boundaries do not exist yet. Next action: extend the map when the graph lands and test the boundaries in Phase 6.",
+      "evidence": [
+        {
+          "kind": "design",
+          "path": "docs/reference/SECURITY.md",
+          "result": "observed",
+          "revision": "fcb000f + Gate 4 preparation docs working tree (2026-11-17)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        }
+      ]
     },
     {
       "id": "B02",
@@ -31,8 +39,23 @@
     {
       "id": "B05",
       "status": "Planned",
-      "reason": "No API exists yet. Next action: API bodies reject extra fields; test in Phase 6.",
-      "evidence": []
+      "reason": "The Phase 4 API has three read-only GET routes (health, scenario list, scenario replay) and takes no request body, so no privilege-bearing field can be sent; the scenario id is looked up in a registry and an unknown id gives a fixed 404 without echo (test_unknown_scenario_is_404_without_echo). Write endpoints, the resume payload and the extra-field rejection tests arrive with Phase 5 and Phase 6.",
+      "evidence": [
+        {
+          "kind": "code",
+          "path": "app/backend/plumetrace/api/main.py",
+          "result": "observed",
+          "revision": "fcb000f + Gate 4 preparation docs working tree (2026-11-17)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        },
+        {
+          "kind": "runtime",
+          "path": "docs/evidence/2026-11-phase-4-ui.md",
+          "result": "passed",
+          "revision": "fcb000f + Gate 4 preparation docs working tree (2026-11-17)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        }
+      ]
     },
     {
       "id": "B06",
@@ -49,7 +72,7 @@
     {
       "id": "B08",
       "status": "Planned",
-      "reason": "The root .env, env_set, check_env and secret_scan exist, and tests scan the committed replay files and the export bytes for keys (a planted key is caught). Remaining: a key scan of the built static site and trace redaction.",
+      "reason": "The root .env, env_set, check_env and secret_scan exist, and tests scan the committed replay files and the export bytes for keys (a planted key is caught). Phase 4 gate (2026-11-17): secret_scan.py over app/frontend/dist (both the live and the replay build) and app/replay printed no secrets found, and the repo scan and check_env passed. Remaining: a dedicated test that scans the built static site (the scan is a command, not a test), and trace redaction.",
       "evidence": [
         {
           "kind": "test",
@@ -57,14 +80,36 @@
           "result": "passed",
           "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
           "environment": "local-dev Windows 11, Python 3.12"
+        },
+        {
+          "kind": "runtime",
+          "path": "docs/evidence/2026-11-phase-4-ui.md",
+          "result": "passed",
+          "revision": "fcb000f + Gate 4 preparation docs working tree (2026-11-17)",
+          "environment": "local-dev Windows 11, Python 3.12"
         }
       ]
     },
     {
       "id": "B09",
       "status": "Planned",
-      "reason": "No API yet. Next action: exact-origin CORS on the local API.",
-      "evidence": []
+      "reason": "The local API has an exact-origin CORS allow-list (http://localhost:5173 and http://127.0.0.1:5173, credentials off), pinned by test_cors_allows_only_the_dev_origin. Remaining: authorisation for non-browser clients (none by design, single operator on loopback), and the WebSocket Origin check, which needs the WebSocket (Phase 5).",
+      "evidence": [
+        {
+          "kind": "code",
+          "path": "app/backend/plumetrace/api/main.py",
+          "result": "observed",
+          "revision": "fcb000f + Gate 4 preparation docs working tree (2026-11-17)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        },
+        {
+          "kind": "runtime",
+          "path": "docs/evidence/2026-11-phase-4-ui.md",
+          "result": "passed",
+          "revision": "fcb000f + Gate 4 preparation docs working tree (2026-11-17)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        }
+      ]
     },
     {
       "id": "B10",
@@ -75,8 +120,16 @@
     {
       "id": "B11",
       "status": "Planned",
-      "reason": "No model drafts are rendered yet. Next action: render them safely as text, add a CSP, and test in a browser.",
-      "evidence": []
+      "reason": "No model drafts exist yet, so no model text is rendered. The UI renders scenario text (log entries, alarm text) as React text: a search of app/frontend/src found no dangerouslySetInnerHTML, innerHTML, eval or new Function outside tests (Phase 4 gate, 2026-11-17). Remaining: hostile-snippet tests in a browser when drafts render (Phase 5), and a CSP, which is recorded for a later deployment and not active.",
+      "evidence": [
+        {
+          "kind": "runtime",
+          "path": "docs/evidence/2026-11-phase-4-ui.md",
+          "result": "observed",
+          "revision": "fcb000f + Gate 4 preparation docs working tree (2026-11-17)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        }
+      ]
     },
     {
       "id": "B12",
@@ -115,21 +168,28 @@
           "kind": "code",
           "path": "app/backend/plumetrace/data_sources/open_meteo.py",
           "result": "observed",
-          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "revision": "fcb000f + Gate 4 preparation docs working tree (2026-11-17)",
           "environment": "local-dev Windows 11, Python 3.12"
         },
         {
           "kind": "design",
           "path": "docs/reference/SECURITY.md",
           "result": "observed",
-          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "revision": "fcb000f + Gate 4 preparation docs working tree (2026-11-17)",
           "environment": "local-dev Windows 11, Python 3.12"
         },
         {
           "kind": "test",
           "path": "app/backend/tests/data_sources/test_open_meteo_edges.py",
           "result": "passed",
-          "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
+          "revision": "fcb000f + Gate 4 preparation docs working tree (2026-11-17)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        },
+        {
+          "kind": "runtime",
+          "path": "docs/evidence/2026-11-phase-4-ui.md",
+          "result": "passed",
+          "revision": "fcb000f + Gate 4 preparation docs working tree (2026-11-17)",
           "environment": "local-dev Windows 11, Python 3.12"
         }
       ]
@@ -262,7 +322,7 @@
     {
       "id": "B31",
       "status": "Planned",
-      "reason": "No API or static host yet. Next action: API and static cache and security headers, Phase 6.",
+      "reason": "The local API and the Vite preview send no cache or security headers (headers are recorded for a later deployment in DEPLOYMENT.md and are not active); the API has no pagination or signed URLs. Next action: API and static cache and security headers, Phase 6.",
       "evidence": []
     },
     {
@@ -274,8 +334,15 @@
     {
       "id": "B33",
       "status": "Planned",
-      "reason": "Exact pins and lockfiles exist and pip-audit is clean; 10 moderate npm dev findings are open (11 in Phase 1), none high or critical. Next action: audit stage in Phase 6 Task 6. Phase 2 check: pip-audit reports no known vulnerabilities, npm audit reports no high or critical finding (10 moderate, eslint toolchain), and numpy==2.5.4 is pinned in app/uv.lock (docs/evidence/2026-11-phase-2-checks.md).",
+      "reason": "SEC-1 accepted in SECURITY.md (Gate 4, 2026-11-17), revisit Phase 6 Task 6 or 2026-12-15; 8 moderate dev-only findings are the Phase 6 baseline; audit stage planned in Phase 6 Task 6.",
       "evidence": [
+        {
+          "kind": "runtime",
+          "path": "docs/evidence/2026-11-phase-4-ui.md",
+          "result": "failed",
+          "revision": "fcb000f + Gate 4 preparation docs working tree (2026-11-17)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        },
         {
           "kind": "runtime",
           "path": "docs/evidence/2026-11-phase-2-checks.md",
@@ -369,8 +436,15 @@
     {
       "id": "B39",
       "status": "Planned",
-      "reason": "Negative and boundary tests exist for the engineering core, the Phase 1 facility and config tests, and the Phase 3 simulator (scenario model, instruments, weather, runner, export, selection, variants *_edges tests) and run tables, plus Hypothesis laws for the plume grid codec. All are function-level or fixture-level; no deny, race or restart test goes through a real API or graph interface yet.",
+      "reason": "Negative and boundary tests exist for the engineering core, the Phase 1 facility and config tests, and the Phase 3 simulator (scenario model, instruments, weather, runner, export, selection, variants *_edges tests) and run tables, plus Hypothesis laws for the plume grid codec. All are function-level or fixture-level. Phase 4 adds real-interface tests: the read-only API tests, and Playwright flows through the built replay bundle in a real browser (console-clean run per scenario, axe, phone page, WebGL fallback). No deny, race or restart test goes through a graph or an approval interface, because none exists yet.",
       "evidence": [
+        {
+          "kind": "runtime",
+          "path": "docs/evidence/2026-11-phase-4-ui.md",
+          "result": "passed",
+          "revision": "fcb000f + Gate 4 preparation docs working tree (2026-11-17)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        },
         {
           "kind": "test",
           "path": "docs/evidence/2026-11-phase-2-checks.md",
@@ -411,13 +485,21 @@
     {
       "id": "B40",
       "status": "Planned",
-      "reason": "Only a shell exists. Next action: simulated and real labels, pending and failure states, keyboard use, reduced-motion and 3D fallback.",
-      "evidence": []
+      "reason": "Built in Phase 4 and tested in a browser: Simulated badge and Replay label, backend-not-reachable state with Retry, equipment list and alarm rows reachable by keyboard, skip link, reduced motion, WebGL-unavailable and context-loss fallback, phone page without 3D, axe scan with no violation. Not built or not proven: reconnect (no WebSocket), rollback and the approval flow (Phase 5), the keyboard flow through the agent panel and approval dialog, and the integrated-GPU frame rate (owner action C6). Keeps this entry Planned.",
+      "evidence": [
+        {
+          "kind": "runtime",
+          "path": "docs/evidence/2026-11-phase-4-ui.md",
+          "result": "passed",
+          "revision": "fcb000f + Gate 4 preparation docs working tree (2026-11-17)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        }
+      ]
     },
     {
       "id": "B41",
       "status": "Planned",
-      "reason": "The committed replay files are static JSON without a backend, keys or live actions and are scanned for keys by a test. Remaining: the same scan on the built static site and tests that live actions are denied on the public build (Phase 4 onward).",
+      "reason": "The committed replay files are static JSON without a backend, keys or live actions and are scanned for keys by a test. Phase 4: the replay build is checked by check:replay-bundle (no live API path in any JS file, ReplaySource present, with a negative control on the live build) and secret_scan.py found no secrets in dist and app/replay. Remaining: approve and reject actions in replay and their denial tests (Phase 5 and Phase 7), and a dedicated test for the built-site key scan.",
       "evidence": [
         {
           "kind": "test",
@@ -425,14 +507,29 @@
           "result": "passed",
           "revision": "662e4c3 + Gate 3 fix round + docs working tree (2026-11-15)",
           "environment": "local-dev Windows 11, Python 3.12"
+        },
+        {
+          "kind": "runtime",
+          "path": "docs/evidence/2026-11-phase-4-ui.md",
+          "result": "passed",
+          "revision": "fcb000f + Gate 4 preparation docs working tree (2026-11-17)",
+          "environment": "local-dev Windows 11, Python 3.12"
         }
       ]
     },
     {
       "id": "B42",
       "status": "Planned",
-      "reason": "No endpoints yet. Next action: take an inventory when the API lands and compare it in Phase 6.",
-      "evidence": []
+      "reason": "Inventory after Phase 4: three GET routes on the local FastAPI app (health, scenario list, scenario replay) plus the static replay files; the frontend contains no Supabase client or URL (search of package.json and src, Phase 4 gate). The comparison against a formal surface inventory is Phase 6.",
+      "evidence": [
+        {
+          "kind": "code",
+          "path": "app/backend/plumetrace/api/main.py",
+          "result": "observed",
+          "revision": "fcb000f + Gate 4 preparation docs working tree (2026-11-17)",
+          "environment": "local-dev Windows 11, Python 3.12"
+        }
+      ]
     }
   ]
 }
