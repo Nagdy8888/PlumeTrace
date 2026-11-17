@@ -42,7 +42,10 @@ Layout of `src/app/AppShell.tsx`, a CSS grid with `grid-rows-[48px_minmax(0,1fr)
 working area is `grid-cols-[320px_minmax(0,1fr)_360px]` from 1280 px wide. Below 1280 px it is two
 columns and the station log moves under the alarms in the left column. Panels are separated by 1 px
 `border-border-1` lines: no gaps, no shadows (the shared `Panel` border is overridden per side).
-Desktop only for now; the narrow or touch viewport page is Phase 4 Task 10.
+The left column is `LeftColumn` (Task 10): two tabs, `Alarms` and `Equipment`, the column being the
+skip-link target `#alarms-panel`. This layout is the desktop control room; on a narrow screen or a
+small touch screen `AppShell` renders `MobilePage` instead (see [ACCESSIBILITY.md](ACCESSIBILITY.md#fallbacks-and-mobile)).
+In the diagram above, "Alarms" is the left column.
 
 Inside `<main>`, `StationView` (the 3D canvas, lazy-loaded) fills the area (`absolute inset-0`). The
 load status sits in a wrapper above it: `relative z-10 border border-border-2 bg-surface-1 p-4
@@ -56,29 +59,40 @@ described in [FRONTEND.md](FRONTEND.md#3d-station-view-task-8).
 
 ```mermaid
 flowchart TD
-    Shell["AppShell"] --> Top["TopBar"]
-    Top --> Picker["ScenarioPicker"]
-    Top --> Wind["WindReadout"]
-    Top --> Utc["UtcClock"]
-    Shell --> AL["AlarmList, with AlarmRow"]
-    Shell --> SV["StationView<br/>3D canvas, Task 8"]
+    Shell["AppShell / ControlRoom"] --> Skip["SkipLink"]
+    Shell --> Top["TopBar"]
+    Shell --> LC["LeftColumn, tabs"]
+    LC --> AL["AlarmList, with AlarmRow"]
+    LC --> EQ["EquipmentList"]
+    Shell --> SV["StationView<br/>3D canvas or fallback"]
     Shell --> SS["StationStatus<br/>solid panel above the canvas"]
     SS --> Stat["ScenarioStatus"]
     Shell --> SL["StationLog"]
     Shell --> TP["TrendsPanel"]
-    TP --> UC["UPlotChart x2"]
     Shell --> PB["PlaybackBar"]
-    PB --> SB["SpeedButtons"]
+```
+
+```mermaid
+flowchart TD
+    Top["TopBar"] --> Picker["ScenarioPicker"]
+    Top --> Wind["WindReadout"]
+    Top --> Utc["UtcClock"]
+    TP["TrendsPanel"] --> UC["UPlotChart x2"]
+    PB["PlaybackBar"] --> SB["SpeedButtons"]
     PB --> SC["Scrubber"]
     PB --> TR["TimeReadout"]
 ```
 
-Components rendered by `AppShell`. All panels sit inside the shared `Panel` primitive except the top
+Two diagrams: the top-level components of the control room (above) and the children of the top bar,
+the trends panel and the playback bar (below). Components rendered by the control room (`ControlRoom`, the former body of `AppShell`; `AppShell`
+itself only chooses between it and `MobilePage`). All panels sit inside the shared `Panel` primitive except the top
 bar, the station view (the canvas, see FRONTEND.md), the station status and the playback bar.
-`StationStatus` is a private component of
+`StationStatus` and `ControlRoom` are private components of
 `AppShell.tsx`; `UtcClock`, `SpeedButtons`, `Scrubber` and `TimeReadout` are private to their files.
+`EquipmentList` is in `features/station3d/` (it lists what the 3D view can select) and reads and writes
+only the selection store (`aria-pressed` per row, `select(tag)` on click).
 
-`AppShell` mounts three hooks once: `useScenarioBootstrap()` (resolves the data source, loads the
+`ControlRoom` mounts three hooks once: `useScenarioBootstrap()` (resolves the data source, loads the
 list, opens the first scenario, returns the mode), `usePlaybackLoop()` (the rAF clock) and
 `usePlaybackKeys()` (the keyboard map). It passes the active scenario down as a prop to the panels
 and computes the alarm tick times for the playback bar: `window_start_s + 600` for every event.
@@ -92,6 +106,8 @@ and computes the alarm tick times for the playback bar: `window_start_s + 600` f
 | `ScenarioPicker` | `features/scenarios/components/ScenarioPicker.tsx` | scenario store `index`, `activeId` | `chooseScenario(id)` | on list or choice change |
 | `WindReadout` | `app/WindReadout.tsx` | `conditions` prop | none | with its parent |
 | `AlarmList`, `AlarmRow` | `features/alarms/components/` | scenario prop, clock minute, selection `selectedTag` | `select(sensor_id)`, `seek(close time)` | once per simulated minute |
+| `LeftColumn` | `app/LeftColumn.tsx` | scenario prop (passed on) | none (tab state is Radix-internal) | only on tab change |
+| `EquipmentList` | `features/station3d/EquipmentList.tsx` | selection `selectedTag` | `select(tag)` | on selection change |
 | `StationLog` | `features/alarms/components/StationLog.tsx` | scenario prop, clock: count of entries with `t_s <= tSeconds` | none | when an entry appears |
 | `TrendsPanel`, `UPlotChart` | `features/trends/components/` | scenario prop, clock minute and `useSampleIndex()`, selection `selectedTag`; the cursor reads `getState()` | none | once per simulated minute |
 | `PlaybackBar` | `features/scenarios/components/PlaybackBar.tsx` | clock `playing`, `speed`, `durationS`, minute and whole second | `play`, `pause`, `setSpeed`, `seek` | speed, play state, minute; readout per second |
@@ -229,7 +245,9 @@ Mounted once by `usePlaybackKeys()` on `window`. Ignored when the target is insi
 
 On the focused scrubber (an `input type="range"`) the browser's own arrow keys move it by its step of
 60 s. In the scenario picker (`select`) the keys belong to the list. Other native controls: every
-button is reachable with Tab; the radio group of speeds uses `role="radio"` buttons.
+button is reachable with Tab; the radio group of speeds uses `role="radio"` buttons. Task 10 adds the
+skip link (first Tab stop), the two tabs (arrow keys switch them) and the equipment rows (native
+buttons); the recorded tab order is in [ACCESSIBILITY.md](ACCESSIBILITY.md#keyboard).
 
 ## Binding display rules
 
@@ -287,6 +305,8 @@ task.
 |---|---|
 | `app/AppShell.test.tsx` | product name, `Simulated`, regions `Alarms`, `Station log`, `Trends` and `main` `Station view` |
 | `app/AppShell.wiring.test.tsx` | backend down shows the heading, the start command and an enabled `Retry`; the rAF loop is mounted (a 0.5 s frame at speed 60 advances the clock by 30 s) |
+| `app/AppShell.viewport.test.tsx`, `app/LeftColumn.test.tsx`, `app/MobilePage.test.tsx`, `app/useViewportClass.test.ts` | mobile page on a narrow screen with no fetch; skip link before the top bar; tabs switch; mobile page text and image; the viewport rule |
+| `features/station3d/EquipmentList*.test.tsx` | every tag has an area; areas in the fixed order; row names; click and `aria-pressed`; scroll into view |
 | `app/WindReadout.test.tsx` | wind text |
 | `app/clockLabels.test.tsx` | every clock is zone-labelled or elapsed |
 | `app/viewGuards.test.ts`, `app/simulationTruth.test.tsx`, `features/station3d/plume/plumeTruth.test.tsx` | no `formatRate`, no source rate or anchor in views; the plume allow-list and its four guards |
@@ -306,12 +326,14 @@ statements 90.7, branches 88.9, functions 92.2 and lines 92.9 percent (labelled 
 
 - Known and accepted at Task 4: the clock readouts re-render per simulated second (two tiny
   components); the methane y axis shows two ticks at 220 px height; the alarm detail wraps at 320 px.
-- Desktop only; below 1280 px the log moves under the alarms; narrow and touch viewports are Task 10.
+- The control room is the desktop layout; below 1280 px the log moves under the left column; phones
+  and small touch screens get the mobile page (Task 10).
 - The station area shows the baked 3D station with its interaction layer (Task 8) and, since Task 9,
   the plume, sensor markers, windsock and flare ([PLUME.md](PLUME.md)); the candidate highlight is
-  built but unmounted until Phase 5, and the no-WebGL fallback, DOM
-  equipment list and mobile page are planned (Task 10). Details and limits of the 3D view:
-  [FRONTEND.md](FRONTEND.md#3d-station-view-task-8).
+  built but unmounted until Phase 5. Since Task 10 it shows a still image when WebGL 2 is missing or
+  the 3D view fails, and the Equipment tab lists everything the view can select. Details and limits:
+  [FRONTEND.md](FRONTEND.md#3d-station-view-task-8),
+  [FRONTEND.md](FRONTEND.md#accessibility-and-fallbacks-task-10).
 
 ## How to add a panel
 
@@ -334,6 +356,8 @@ statements 90.7, branches 88.9, functions 92.2 and lines 92.9 percent (labelled 
 
 ## Changelog
 
+- 2026-11-17: Phase 4 Task 10: left column tabs (Alarms, Equipment), skip link, mobile page; component
+  tree, store matrix, keyboard map, tests and limits updated.
 - 2026-11-15: Phase 4 Task 4 panels.
 - 2026-11-15: documentation pass: layout and component diagrams, store matrix, alarm rule worked
   example with the real S1 events, status texts, binding rules with their guard tests.

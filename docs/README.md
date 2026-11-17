@@ -126,14 +126,14 @@ worked example, edge cases and the test that pins each, how to run and extend.
 |---|---|
 | [reference/API.md](reference/API.md) | REST endpoints (health, scenarios, replay), request path, configuration, limits |
 | [reference/PLUME.md](reference/PLUME.md) | The plume layer of the 3D station: key-frame decode, ground heat-map, GPU particles, legend, sensors, windsock, flare, post effects, the simulation-truth guards, draw-call measurements |
-| [reference/FRONTEND.md](reference/FRONTEND.md) | React app: stack, scripts, folder rules, live and replay builds, layout; the 3D station (baked full-station model, node index, picking, selection, camera, quality tiers, measurements, regeneration command and budgets; the plume layer is in PLUME.md) |
+| [reference/FRONTEND.md](reference/FRONTEND.md) | React app: stack, scripts, folder rules, live and replay builds, layout; the 3D station (baked full-station model, node index, picking, selection, camera, quality tiers, measurements, regeneration command and budgets; the plume layer is in PLUME.md; accessibility and fallbacks: equipment list, WebGL fallback, viewport classes, mobile page) |
 | [reference/ASSETS.md](reference/ASSETS.md) | Poly Haven CC0 textures and HDRI used by the 3D pipeline: ids, licence, source, where each is used, how to fetch and verify |
 | [reference/STATION_MODEL.md](reference/STATION_MODEL.md) | Station model: piping routes, pipe racks, site (yard, pads, road, bund, fence), the AO bake, `scripts/build_station.sh`, the glTF-Transform step and the `check_glb.py` budgets (Phase 4 Task 7) |
 | [reference/BLENDER_EQUIPMENT.md](reference/BLENDER_EQUIPMENT.md) | Blender generator parts library and the 15 equipment builders: parts, anchors, separate glb nodes (fans, flare tip), materials, how to build and check one type (Phase 4 Task 6; the whole-station chain is STATION_MODEL.md) |
 | [reference/DESIGN_SYSTEM.md](reference/DESIGN_SYSTEM.md) | Design tokens, typography, shadcn primitives, formatting helpers, anti-slop rules |
 | [reference/DATA_LAYER.md](reference/DATA_LAYER.md) | `DataSource` interface (live and replay), error kinds, stores, replay-only bundle guard |
 | [reference/UI_PANELS.md](reference/UI_PANELS.md) | Control-room panels, component tree, keyboard map, binding display rules |
-| [reference/ACCESSIBILITY.md](reference/ACCESSIBILITY.md) | Accessibility as built, known gaps and limits |
+| [reference/ACCESSIBILITY.md](reference/ACCESSIBILITY.md) | Accessibility as built (skip link, tabs, equipment list, WebGL fallback, reduced motion, mobile page, recorded tab order), known gaps and limits |
 
 ### Security and quality
 

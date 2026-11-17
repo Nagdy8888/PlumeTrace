@@ -1,35 +1,10 @@
-import type { EquipmentType, FacilitySpec, InstrumentKind } from "@/shared/types/generated/contract";
+import type { FacilitySpec } from "@/shared/types/generated/contract";
 
+import { EQUIPMENT_LABEL, INSTRUMENT_LABEL } from "../equipmentLabels";
 import type { Vec3 } from "../interaction/flyToTarget";
 
-/** English names of the 15 equipment types. */
-export const EQUIPMENT_LABEL: Record<EquipmentType, string> = {
-  pig_trap: "Pig trap",
-  filter_separator: "Filter separator",
-  scrubber: "Scrubber",
-  recip_compressor: "Recip compressor",
-  fin_fan_cooler: "Fin-fan cooler",
-  vent_stack: "Vent stack",
-  teg_contactor: "TEG contactor",
-  teg_regenerator: "TEG regenerator",
-  fuel_gas_skid: "Fuel gas skid",
-  storage_tank: "Storage tank",
-  vru: "Vapour recovery unit",
-  knockout_drum: "Knockout drum",
-  flare_stack: "Flare stack",
-  meter_run: "Meter run",
-  building: "Building",
-};
-
-/** English names of the instrument kinds. */
-export const INSTRUMENT_LABEL: Record<InstrumentKind, string> = {
-  methane_point: "Methane sensor",
-  met_mast: "Met mast",
-  flow: "Flow meter",
-  temperature: "Temperature sensor",
-  pressure: "Pressure sensor",
-  thermocouple: "Thermocouple",
-};
+// The name maps moved to `equipmentLabels.ts` (shared with the equipment list); re-exported here.
+export { EQUIPMENT_LABEL, INSTRUMENT_LABEL };
 
 /** Height of the label above the top of the box, in metres. */
 const LABEL_LIFT_M = 1;

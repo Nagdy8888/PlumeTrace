@@ -119,7 +119,8 @@ tests at most 400). A feature folder is used through its `index.ts` only. The fu
   `cursorPlugin`) and `src/features/scenarios/` (`ScenarioPicker`, `ScenarioStatus`, `PlaybackBar`,
   `useScenarioBootstrap`, `usePlaybackKeys`).
 - `src/shared/testing/setup.ts` is the Vitest setup file (jest-dom matchers, cleanup after each
-  test); `replayFixture.ts` builds a valid replay for tests.
+  test, a no-op `scrollIntoView` and a quiet `getContext` that returns `null`; why:
+  [ACCESSIBILITY.md](ACCESSIBILITY.md#fallbacks-and-mobile)); `replayFixture.ts` builds a valid replay for tests.
 - `src/shared/data/`, `src/shared/playback/` and `src/shared/selection/` are the data layer (see
   Data layer); each has an `index.ts` that is its public API.
 - `src/shared/lib/` holds `cn.ts` (class merging) and `format.ts` (units and time formatting).
@@ -161,8 +162,10 @@ plume) is never rendered as text, and the layer stores no rate.
 ## Layout and panels
 
 Summary only; the full page is [UI_PANELS.md](UI_PANELS.md). `AppShell` is a CSS grid, rows
-`48px / 1fr / 220px / 44px`: top bar, working area (alarms 320 px, station view, station log 360 px
-from 1280 px wide; the log moves under the alarms below that), trends and playback bar. An alarm
+`48px / 1fr / 220px / 44px`: top bar, working area (left column with the `Alarms` and `Equipment` tabs
+320 px, station view, station log 360 px from 1280 px wide; the log moves under the left column below
+that), trends and playback bar. On phones and small touch screens `AppShell` shows the light mobile
+page instead (see "Accessibility and fallbacks (Task 10)"). An alarm
 appears when its 10-minute detection window closes: `window_start_s + 600 <= t`. Keyboard: `Space`
 plays or pauses; `ArrowLeft` and `ArrowRight` seek 60 s, 600 s with `Shift`. Every clock is
 zone-labelled (`... UTC`) or says `Elapsed`.
@@ -197,7 +200,9 @@ Task 7, the piping, site, bake and the one-command export ([STATION_MODEL.md](ST
 the shipped `ks07.glb` is the full station (24 items, 15 piping routes, racks, site). Since Task 8
 the viewer adds picking, selection, labels, camera fly-to and quality tiers (section "3D station
 view (Task 8)" below); since Task 9 it also draws the plume, sensors, windsock and flare (see
-[PLUME.md](PLUME.md)); the candidate highlight is built but not mounted (Phase 5).
+[PLUME.md](PLUME.md)); the candidate highlight is built but not mounted (Phase 5). Since Task 10 a
+still image replaces the view where WebGL 2 is missing or fails, and an equipment list reaches every
+pickable item without the 3D view.
 `vite.config.ts` excludes `src/features/station3d/scene/**` from coverage.
 
 ```mermaid
@@ -254,7 +259,8 @@ Built in Phase 4 Task 8: the interactive layer on top of the baked model. It add
 picking through invisible proxies, hover and selection visuals, camera controls with fly-to and
 reset, quality tiers and the lights. The station is fictional and simulated; the labels show a tag
 and a type name only (no rate, no value). The plume, sensors, windsock and flare were added in Task 9
-([PLUME.md](PLUME.md)); the full no-WebGL fallback and the DOM equipment list are planned (Task 10).
+([PLUME.md](PLUME.md)); the no-WebGL fallback and the DOM equipment list are built (Task 10, see
+[Accessibility and fallbacks](#accessibility-and-fallbacks-task-10)).
 
 ```mermaid
 flowchart TD
@@ -349,8 +355,9 @@ logs a non-empty `missing` list once with `console.error("station model is missi
   `TEG contactor`, `Vapour recovery unit`, ...; instruments `Methane sensor`, `Met mast`, ...).
   `pointer-events: none`. No rate or value is ever shown here (R1 to R4). The logic is in pure
   functions so it can be tested without a DOM layer: `overlays/overlayTags.ts` (`overlayTags`: which
-  tag each overlay shows), `overlays/tagLabelText.ts` (`describeTag`, `labelPosition`, the two name
-  maps); `TagLabel` and `SelectionBox` only call them.
+  tag each overlay shows), `overlays/tagLabelText.ts` (`describeTag`, `labelPosition`; the two name
+  maps moved to `station3d/equipmentLabels.ts` in Task 10 and `tagLabelText.ts` only re-exports them);
+  `TagLabel` and `SelectionBox` only call them.
 - **Fans.** `AnimatedParts` rotates the six `E-23x__fan_n` nodes about local Y by `delta * 2.0` rad/s
   (0.5 with reduced motion) in one `useFrame` without allocation; the reduced-motion flag is read from
   the store, not subscribed. They turn only while frames are drawn (clock playing).
@@ -485,7 +492,8 @@ from coverage.
 - **Left after the design critique (2026-11-16), each with its reason.** (1) The hover outline
   (`--text-2` at 50 %) is faint on the light ground: 50 % is the plan's value; changing it needs an
   owner decision. (2) The two controls are 24.5 CSS px high (`h-7` at a 14 px root), under the 44 px
-  touch target: touch layout is Task 10. (3) The K-202 box includes the whole shelter: the outline is
+  touch target: still open. Task 10 built a light mobile page without the 3D view, not a touch
+  layout of the control room (a touch device 1024 px or wider keeps the control room). (3) The K-202 box includes the whole shelter: the outline is
   the tag node's world box. (4) Label text is 12 px (`text-xs`, the plan's value).
   (5) The drei `Html` label is not unit tested (see the edge-case table).
 
@@ -535,11 +543,11 @@ textures, `--prune false`, `--join false --flatten false`) -> `public/models/ks0
 `scripts/check_glb.py` (every spec tag and anchor present, size budget). The glb is generated;
 never edit it by hand. Spike content: K-202 with shelter, VS-250, a ground patch.
 
-Code (`src/features/station3d/`, public entry `index.ts` exports `StationView`):
+Code (`src/features/station3d/`, public entry `index.ts` exports `StationView`, `EquipmentList`, `STATION_IMAGE_ALT` and `STATION_IMAGE_SRC`):
 
 | File | Role |
 |---|---|
-| `StationView.tsx` | lazy boundary and the quality menu; renders nothing when WebGL 2 is missing (the full fallback is Task 10) |
+| `StationView.tsx` | lazy canvas, quality menu and legend; since Task 10 it renders `StationFallback` when WebGL 2 is missing, owns the `StationErrorBoundary` and the 3 s context-loss timer, and hides the menu and legend with the dev-only `?clean` flag |
 | `StationCanvas.tsx` | R3F `<Canvas>`: tier dpr and shadows, `frameloop` from the clock, performance monitor, review camera, optional `?perf` overlay (dev only); since Task 8 (spike: dpr `[1, 1.5]`, shadows always on) |
 | `model/StationModel.tsx` | `useGLTF("/models/ks07.glb", false, true)`: **no Draco** (its decoder loads from a CDN), bundled meshopt; meshes cast and receive shadow and have a no-op raycast (Task 8); renders `StationScene` |
 | `scene/EnvironmentMap.tsx` | local HDRI `public/textures/env/industrial_sunset_puresky_1k.hdr` as lighting only (intensity 0.6 since Task 8, spike 0.8), plus a flat grey sky colour |
@@ -620,10 +628,118 @@ rerunning the commands in `scripts/blender/README.md` reproduces `ks07.glb`.*
 | Face normal exactly between two axes | box UV picks z, then x | `tests/blender/test_uvmath.py::test_diagonal_normal_ties_to_z` |
 | Item rotated in the spec | local and world positions round-trip | `tests/blender/test_layout.py::test_round_trip` |
 | Spec point to scene point | `[x, y, z]` becomes `[x, z, -y]` | `scene/coords.test.ts` (2 tests) |
-| Browser without WebGL 2 (or jsdom) | `StationView` renders nothing; the 2D panels work | indirectly by the `AppShell` tests (jsdom has no WebGL 2); no dedicated test, the full fallback is Task 10 |
+| Browser without WebGL 2 (or jsdom) | `StationView` shows the still-image fallback (Task 10); the 2D panels work | `StationView.test.tsx`, `StationView.clean.test.tsx`; see "Accessibility and fallbacks (Task 10)" |
 | Draco | never used; the glb has no Draco data and `useGLTF(url, false, true)` skips its CDN decoder | **no test** (the scene is excluded from jsdom and coverage); keep it by never passing `--compress draco` |
 | `--bake none`, `low` (256 px, 16 samples), `high` (`layout.ao_resolution`: 1024 px compressors and ground, else 512 px; 128 samples) | AO image size and samples change; `none` exports without occlusion | **no test** (needs Blender); times in the evidence files |
 | Blender other than 4.5 | prints `Blender 4.5 required, found x.y.z` and exits 2 | **no test** (needs Blender) |
+
+## Accessibility and fallbacks (Task 10)
+
+**Purpose.** Everything the 3D view does is also possible without it: by keyboard, with a screen
+reader, without WebGL, with reduced motion and on a phone. The outcome-by-outcome table is in
+[ACCESSIBILITY.md](ACCESSIBILITY.md#fallbacks-and-mobile); this section is the module map. **Built**
+in Task 10; the console-clean end-to-end tests for these paths are Task 11 (planned).
+
+```mermaid
+flowchart TD
+    Shell["AppShell"] --> VC["useViewportClass"]
+    Shell --> MP["MobilePage<br/>no data, no 3D"]
+    Shell --> CR["ControlRoom"]
+    CR --> SK["SkipLink"]
+    CR --> LC["LeftColumn<br/>tabs, #alarms-panel"]
+    LC --> AL["AlarmList"]
+    LC --> EL["EquipmentList"]
+    EL --> LB["equipmentLabels<br/>AREA_ORDER, AREA_OF_TAG"]
+    CR --> SV["StationView"]
+    SV --> WG["hasWebGL2"]
+    SV --> EB["StationErrorBoundary"]
+    SV --> FB["StationFallback"]
+    EB --> CV["StationCanvas<br/>lazy chunk"]
+```
+
+Module map. `StationView` shows `StationFallback` when `hasWebGL2()` is false, when the error boundary
+caught an error or when the context stayed lost for 3 s; otherwise the lazy `StationCanvas`.
+
+```mermaid
+sequenceDiagram
+    participant GL as Browser WebGL context
+    participant CV as StationCanvas
+    participant SV as StationView
+    participant FB as StationFallback
+    GL->>CV: webglcontextlost (default prevented)
+    CV->>SV: onContextLost
+    SV->>SV: start 3 s timer
+    alt restored within 3 s
+        GL->>CV: webglcontextrestored
+        CV->>SV: onContextRestored
+        SV->>SV: cancel timer, canvas stays
+    else not restored
+        SV->>SV: console.error once, lost = true
+        SV->>FB: render the still image
+    end
+```
+
+Context loss. `preventDefault()` on the lost event is what allows the browser to restore the context.
+
+### Module by module
+
+| Module | What it does |
+|---|---|
+| `features/station3d/equipmentLabels.ts` | English names of the 15 equipment types and 6 instrument kinds (moved out of `tagLabelText.ts`, which re-exports them), `AREA_ORDER` (9 areas: Inlet, Compression, Dehydration, Fuel gas, Storage, Flare, Metering and outlet, Buildings, Methane sensors) and `AREA_OF_TAG` (24 equipment tags) |
+| `features/station3d/EquipmentList.tsx` | `Panel` `Equipment`: one section per area, one `<button aria-pressed>` per tag (24 equipment items and the 8 `methane_point` sensors, in spec order); click selects through the selection store; a tag selected elsewhere is scrolled into view with `scrollIntoView({ block: "nearest" })` |
+| `features/station3d/webgl.ts` | `hasWebGL2()`: throw-away canvas, `getContext("webgl2")`, `WEBGL_lose_context` released if present, any exception is `false` |
+| `features/station3d/StationView.tsx` | calls `hasWebGL2` once (lazy `useState`), owns the 3 s context-loss timer (`RESTORE_WAIT_MS`), wraps the canvas, menu and legend in the boundary |
+| `features/station3d/StationErrorBoundary.tsx` | class component (`getDerivedStateFromError`, `componentDidCatch`); logs `station view failed` once |
+| `features/station3d/StationFallback.tsx`, `stationImage.ts` | the figure; the image path and alt text, shared with the mobile page |
+| `features/station3d/StationCanvas.tsx` | `onCreated` adds the `webglcontextlost` (with `preventDefault`) and `webglcontextrestored` listeners and reports them to `StationView` |
+| `app/useViewportClass.ts` | `"mobile"` when `(max-width: 767px)` matches, or `(pointer: coarse)` matches and `innerWidth < 1024`; `useSyncExternalStore` over the two media queries and `resize`; `"desktop"` without `matchMedia` |
+| `app/MobilePage.tsx` | product name, `Simulated`, the heading and paragraph, the still image, the desktop hint |
+| `app/LeftColumn.tsx`, `app/SkipLink.tsx` | the Alarms and Equipment tabs (`shared/ui/tabs.tsx`, Radix) and the skip link |
+| `app/AppShell.tsx` | `AppShell` picks `MobilePage` or `ControlRoom` (the former shell body); the data bootstrap, clock loop and keys are mounted only in `ControlRoom` |
+
+### Worked example (real values, 2026-11-17)
+
+Chromium 156 (Playwright 1.66 alpha library, installed browser build 1248, SwiftShader WebGL), replay
+build served by `vite --mode replay`:
+
+- Desktop 1920 x 1080: first Tab lands on `Skip to alarms`; Enter moves focus to `alarms-panel` and sets
+  `#alarms-panel`. ArrowRight on the `Alarms` tab selects `Equipment`. Clicking `VS-250 Vent stack` sets
+  `aria-pressed="true"`, the camera flies to the stack and the label `VS-250 Vent stack` appears
+  (`docs/evidence/2026-11-phase-4-equipment-list.png`).
+- `--disable-webgl --disable-webgl2 --disable-3d-apis`: the caption shows, no request for `ks07.glb`,
+  `K-202` in the list still gets `aria-pressed="true"` (`...-no-webgl.png`).
+- `loseContext()` on the canvas: still a canvas at 1.5 s, the fallback at 4 s with one
+  `station view lost its graphics context and it was not restored` error (`...-webgl-fallback.png`).
+  `loseContext()` then `restoreContext()` after 0.8 s: canvas kept, nothing logged.
+- Touch emulation 390 x 844 and 820 x 1180: the mobile page; requests matching `.glb`, `StationCanvas`,
+  `replay` or `/api/`: none; the image loaded at 1920 px natural width; no horizontal scroll
+  (`...-mobile-phone.png`, `...-mobile-tablet.png`).
+
+### Edge cases and the test that pins each
+
+| Case | Result | Test |
+|---|---|---|
+| `getContext` returns null or throws | `hasWebGL2()` is false | `webgl.test.ts` |
+| No WebGL 2 | fallback with the caption; no console output; no menu, legend or canvas | `StationView.test.tsx`, `StationView.clean.test.tsx` |
+| Canvas throws | fallback; one `station view failed` | `StationView.failure.test.tsx` |
+| Context lost 2999 ms / 3000 ms | canvas / fallback | `StationView.failure.test.tsx` |
+| Context restored in time | canvas, no log | `StationView.failure.test.tsx` |
+| A spec tag has no area | impossible: test fails | `EquipmentList.test.tsx` (every equipment tag has an area) |
+| `?clean` in a dev build / in a production build | quality menu and legend hidden (canvas kept) / flag ignored | `StationView.devflag.test.tsx` |
+| Row pressed twice | selection cleared (selection store rule) | `EquipmentList.groups.test.tsx` |
+| Selected row | 4 px accent bar, semibold tag, primary-text name; unselected rows keep a transparent 4 px bar | `EquipmentList.groups.test.tsx` |
+| Narrow, coarse under 1024, coarse at 1366 | mobile, mobile, desktop | `useViewportClass.test.ts` |
+| Mobile page | no `Station view` region, no fetch | `MobilePage.test.tsx`, `AppShell.viewport.test.tsx` |
+| Reduced motion | store flag true | `store.reducedMotion.test.ts` |
+| jsdom has no canvas | `setup.ts` returns null quietly from `getContext` so tests stay console-clean | every test that renders `AppShell` |
+
+### How to run and extend
+
+Run: `npm run test` (the files above), `npm run lint`, `npm run typecheck`, `npm run build:replay`,
+`npm run check:replay-bundle`, then a browser pass as in the worked example. To add a new piece of 3D
+UI, give it a non-3D route as well: a row in the equipment list or a text equivalent, and a test that
+the no-WebGL view still offers the same action. A new equipment tag needs an entry in `AREA_OF_TAG`
+(the test fails without it).
 
 ## Anti-slop gate
 
@@ -689,6 +805,9 @@ schema and the committed `contract.ts`.
   ([PLUME.md](PLUME.md)); display rules name the plume allow-list and guards; planned-data-flow diagram
   now shows the plume frames as built; `@react-three/postprocessing` 3.2.2 and `postprocessing` 6.39.6
   added (exact pins).
+- 2026-11-17: Phase 4 Task 10: "Accessibility and fallbacks (Task 10)" section (module map and
+  context-loss diagrams, worked example, edge cases); layout summary names the tabs and the mobile
+  page; the no-WebGL edge case row is now pinned.
 - 2026-11-16: Phase 4 Task 7: the shipped glb is the full station; "Regenerating the station model"
   section with the budgets; separate-node and check_glb notes updated; STATION_MODEL.md added.
 - 2026-11-15: documentation pass: this page became the overview; detail moved to DESIGN_SYSTEM.md,

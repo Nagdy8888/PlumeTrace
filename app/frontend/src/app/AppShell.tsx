@@ -1,6 +1,6 @@
 import { useMemo, type JSX } from "react";
 
-import { AlarmList, EVENT_WINDOW_S, StationLog } from "@/features/alarms";
+import { EVENT_WINDOW_S, StationLog } from "@/features/alarms";
 import {
   PlaybackBar,
   ScenarioStatus,
@@ -13,7 +13,11 @@ import { TrendsPanel } from "@/features/trends";
 import { useActiveScenario, useScenarioStore, type DataSourceMode } from "@/shared/data";
 import { usePlaybackLoop } from "@/shared/playback";
 
+import { LeftColumn } from "./LeftColumn";
+import { MobilePage } from "./MobilePage";
+import { SkipLink } from "./SkipLink";
 import { TopBar } from "./TopBar";
+import { useViewportClass } from "./useViewportClass";
 
 /** Status of the station view: the index failing counts as a failed scenario load. */
 function StationStatus({ mode }: { mode: DataSourceMode | null }): JSX.Element {
@@ -31,18 +35,29 @@ function StationStatus({ mode }: { mode: DataSourceMode | null }): JSX.Element {
 }
 
 /**
- * Top-level layout of the PlumeTrace control room (desktop, 1280 px and wider).
- *
- * Rows: top bar 48 px, working area, trends 220 px, playback bar 44 px. The working area has
- * alarms (320 px), the station view (the 3D scene; the plume arrives in Task 9) and the station
- * log (360 px). The load status sits above the 3D canvas, on its own solid surface. Below 1280 px
- * the log moves under the alarms. It mounts the data bootstrap, the playback clock loop and the
- * keyboard shortcuts once. The "Simulated" label is always visible because every station value is
- * simulated (design section 8).
+ * Top-level layout of the PlumeTrace page: the control room on desktop, the light mobile page
+ * (no data, no 3D) on phones and small touch screens (see {@link useViewportClass}).
  *
  * @returns The application shell.
  */
 export function AppShell(): JSX.Element {
+  return useViewportClass() === "mobile" ? <MobilePage /> : <ControlRoom />;
+}
+
+/**
+ * The PlumeTrace control room (desktop, 1280 px and wider).
+ *
+ * Rows: top bar 48 px, working area, trends 220 px, playback bar 44 px. The working area has
+ * the tabbed left column (Alarms and Equipment, 320 px), the station view (the 3D scene or its
+ * still-image fallback) and the station log (360 px). The load status sits above the 3D canvas,
+ * on its own solid surface. Below 1280 px the log moves under the left column. It mounts the data
+ * bootstrap, the playback clock loop and the keyboard shortcuts once, and starts with a skip link.
+ * The "Simulated" label is always visible because every station value is simulated (design
+ * section 8).
+ *
+ * @returns The control room.
+ */
+function ControlRoom(): JSX.Element {
   const mode = useScenarioBootstrap();
   usePlaybackLoop();
   usePlaybackKeys();
@@ -55,10 +70,11 @@ export function AppShell(): JSX.Element {
 
   return (
     <div className="grid h-full grid-rows-[48px_minmax(0,1fr)_220px_44px] bg-surface-0 text-text-1">
+      <SkipLink />
       <TopBar mode={mode} />
       <div className="grid min-h-0 grid-cols-[320px_minmax(0,1fr)] grid-rows-2 min-[1280px]:grid-cols-[320px_minmax(0,1fr)_360px] min-[1280px]:grid-rows-1">
         <div className="col-start-1 row-start-1 grid min-h-0 grid-rows-[minmax(0,1fr)]">
-          <AlarmList scenario={scenario} />
+          <LeftColumn scenario={scenario} />
         </div>
         <main
           aria-label="Station view"

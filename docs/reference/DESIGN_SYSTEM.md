@@ -125,8 +125,10 @@ canvases use `11px "IBM Plex Mono"` for axis text (`chartOptions.ts`).
   0.01 ms (`!important`, all elements and pseudo-elements).
 - No gradients, glass or glows on product UI. The shadcn `Dialog` content keeps its `shadow-lg` (an
   overlay, not a panel), and the `Tabs` trigger keeps `data-[state=active]:shadow-sm` for the default
-  variant (`shadow-none` for the line variant). Tabs are not used by any panel yet; remove or accept
-  that shadow when the first tab list is built (Task 10).
+  variant (`shadow-none` for the line variant). Resolved in Phase 4 Task 10: `app/LeftColumn.tsx`
+  builds the first tab list with the `line` variant, so the default-variant shadow is not used; the
+  triggers also override `transition-all` with `transition-none` (web-design-guidelines), and the
+  underline is a 2 px `--accent` bottom border on the active trigger, no shadow.
 
 ## shadcn primitives
 
